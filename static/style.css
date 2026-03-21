@@ -113,6 +113,19 @@ select {
   border: 1px dashed #3b5e98;
   min-height: 90px;
 }
+.sponsor-cta {
+  display: block;
+  text-decoration: none;
+  color: #0d1f14;
+  background: #7fffd4;
+  border: 1px solid #36c9a2;
+  border-radius: 10px;
+  padding: 16px;
+  font-weight: 700;
+}
+.sponsor-cta:hover {
+  background: #9dffe1;
+}
 .ad-label {
   color: var(--muted);
   font-size: 12px;

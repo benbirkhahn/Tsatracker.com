@@ -6,9 +6,10 @@
   <title>SecureLine Live — TSA Wait Times</title>
   <link rel="stylesheet" href="/static/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <!-- Replace ca-pub-XXXXXXXX with your AdSense publisher ID once approved -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXX"
+  {% if monetization.enable_adsense %}
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ monetization.adsense_client }}"
           crossorigin="anonymous"></script>
+  {% endif %}
 </head>
 <body>
   <header class="hero">
@@ -18,12 +19,18 @@
 
   <section class="ad-slot top-ad">
     <div class="ad-label">Advertisement</div>
+    {% if monetization.enable_adsense %}
     <ins class="adsbygoogle"
          style="display:block"
-         data-ad-client="ca-pub-XXXXXXXX"
-         data-ad-slot="1111111111"
+         data-ad-client="{{ monetization.adsense_client }}"
+         data-ad-slot="{{ monetization.adsense_slot_top }}"
          data-ad-format="auto"
          data-full-width-responsive="true"></ins>
+    {% else %}
+    <a class="sponsor-cta" href="{{ monetization.sponsor_cta_url }}" target="_blank" rel="noopener">
+      {{ monetization.sponsor_cta_text }} — Reach travelers now
+    </a>
+    {% endif %}
   </section>
 
   <main class="layout">
@@ -51,12 +58,18 @@
 
   <section class="ad-slot bottom-ad">
     <div class="ad-label">Advertisement</div>
+    {% if monetization.enable_adsense %}
     <ins class="adsbygoogle"
          style="display:block"
-         data-ad-client="ca-pub-XXXXXXXX"
-         data-ad-slot="2222222222"
+         data-ad-client="{{ monetization.adsense_client }}"
+         data-ad-slot="{{ monetization.adsense_slot_bottom }}"
          data-ad-format="auto"
          data-full-width-responsive="true"></ins>
+    {% else %}
+    <a class="sponsor-cta" href="{{ monetization.sponsor_cta_url }}" target="_blank" rel="noopener">
+      Sponsor this slot — High-intent airport audience
+    </a>
+    {% endif %}
   </section>
 
   <footer class="footer">
@@ -64,9 +77,11 @@
   </footer>
 
   <script src="/static/app.js"></script>
+  {% if monetization.enable_adsense %}
   <script>
     (adsbygoogle = window.adsbygoogle || []).push({});
     (adsbygoogle = window.adsbygoogle || []).push({});
   </script>
+  {% endif %}
 </body>
 </html>

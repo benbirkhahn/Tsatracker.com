@@ -16,6 +16,12 @@ DB_PATH = os.getenv("DB_PATH", "data.db")
 POLL_SECONDS = int(os.getenv("POLL_SECONDS", "120"))
 COLLECT_NOW_TOKEN = os.getenv("COLLECT_NOW_TOKEN")
 ENABLE_POLLER = os.getenv("ENABLE_POLLER", "true").lower() == "true"
+ENABLE_ADSENSE = os.getenv("ENABLE_ADSENSE", "false").lower() == "true"
+ADSENSE_CLIENT = os.getenv("ADSENSE_CLIENT", "").strip()
+ADSENSE_SLOT_TOP = os.getenv("ADSENSE_SLOT_TOP", "").strip()
+ADSENSE_SLOT_BOTTOM = os.getenv("ADSENSE_SLOT_BOTTOM", "").strip()
+SPONSOR_CTA_URL = os.getenv("SPONSOR_CTA_URL", "mailto:ads@secureline-live.com").strip()
+SPONSOR_CTA_TEXT = os.getenv("SPONSOR_CTA_TEXT", "Advertise here").strip()
 UA = {"User-Agent": "Mozilla/5.0 (tsa-live-site/1.0)"}
 
 LIVE_AIRPORTS = {
@@ -327,6 +333,14 @@ def index():
         "index.html",
         live_airports=LIVE_AIRPORTS,
         pipeline_airports=PIPELINE_AIRPORTS,
+        monetization={
+            "enable_adsense": ENABLE_ADSENSE and bool(ADSENSE_CLIENT and ADSENSE_SLOT_TOP and ADSENSE_SLOT_BOTTOM),
+            "adsense_client": ADSENSE_CLIENT,
+            "adsense_slot_top": ADSENSE_SLOT_TOP,
+            "adsense_slot_bottom": ADSENSE_SLOT_BOTTOM,
+            "sponsor_cta_url": SPONSOR_CTA_URL,
+            "sponsor_cta_text": SPONSOR_CTA_TEXT,
+        },
     )
 
 

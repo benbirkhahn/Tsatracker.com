@@ -24,7 +24,14 @@ Open:
 
 ## Monetization hooks
 - AdSense slots are pre-placed in `templates/index.html`
-- Replace `ca-pub-XXXXXXXX` and test ad slot IDs with your real values after account approval
+- Controlled by env vars:
+  - `ENABLE_ADSENSE=true`
+  - `ADSENSE_CLIENT=ca-pub-...`
+  - `ADSENSE_SLOT_TOP=...`
+  - `ADSENSE_SLOT_BOTTOM=...`
+- If AdSense is not enabled, sponsor CTA fallback is shown:
+  - `SPONSOR_CTA_URL=...`
+  - `SPONSOR_CTA_TEXT=...`
 
 ## Notes
 - Poll interval is currently 120 seconds.
