@@ -3,13 +3,15 @@ let chart;
 function fmtMinutes(v) {
   const n = Number(v);
   if (Number.isNaN(n)) return "-";
-  return `${Math.max(0, Math.round(n))} min`;
+  if (n <= 0) return "Closed";
+  return `${Math.max(1, Math.round(n))} min`;
 }
 function waitTierClass(waitMinutes) {
   const n = Number(waitMinutes);
-  if (n <= 7) return "wait-pill low";
-  if (n <= 15) return "wait-pill med";
-  if (n <= 25) return "wait-pill high";
+  if (n <= 0) return "wait-pill closed";
+  if (n <= 15) return "wait-pill low";
+  if (n <= 30) return "wait-pill med";
+  if (n <= 45) return "wait-pill high";
   return "wait-pill critical";
 }
 

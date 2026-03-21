@@ -204,9 +204,9 @@ def fetch_mia_rows() -> List[Dict]:
         # Keep only open lanes when status metadata is present.
         if status and status != "open":
             continue
-        wait_val = rec.get("projectedMinWaitMinutes")
+        wait_val = rec.get("projectedWaitTime")
         if wait_val is None:
-            wait_val = rec.get("projectedWaitTime")
+            wait_val = rec.get("projectedMinWaitMinutes")
         if qname is None or wait_val is None:
             continue
         wait_val = max(0.0, float(wait_val))
@@ -243,18 +243,6 @@ def ord_friendly_checkpoint(metric_name: str) -> str:
     return metric_name
 
 
-def ord_bucket_minutes(wait_seconds: float) -> float:
-    # Mirror flychicago widget bucketing behavior from tsawaittimes.js
-    bucket = int(float(wait_seconds) + 59) // 60  # ceil for integer arithmetic
-    if bucket <= 7:
-        return 5.0
-    if bucket <= 12:
-        return 10.0
-    if bucket <= 17:
-        return 15.0
-    if bucket <= 20:
-        return 20.0
-    return 25.0  # represents >20 minutes in UI-friendly form
 
 
 def fetch_ord_rows() -> List[Dict]:
@@ -272,7 +260,7 @@ def fetch_ord_rows() -> List[Dict]:
         # Ignore sentinel invalid values.
         if float(wait_seconds) >= 400000:
             continue
-        wait_minutes = ord_bucket_minutes(float(wait_seconds))
+        wait_minutes = max(0.0, float(wait_seconds) / 60.0)
         rows.append(
             {
                 "airport_code": "ORD",

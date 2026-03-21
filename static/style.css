@@ -152,6 +152,10 @@ body {
   background: #dcfce7;
   color: #166534;
 }
+.wait-pill.closed {
+  background: #e2e8f0;
+  color: #334155;
+}
 .wait-pill.med {
   background: #fef3c7;
   color: #92400e;
