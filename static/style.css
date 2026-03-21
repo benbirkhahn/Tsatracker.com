@@ -116,6 +116,14 @@ body {
   font-size: 12px;
   color: #64748b;
 }
+.selection-source-status {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.selection-source-status.is-live { color: #166534; }
+.selection-source-status.is-fallback { color: #92400e; }
+.selection-source-status.is-unknown { color: #64748b; }
 .airport-pages-links {
   margin-top: 6px;
   display: flex;
@@ -326,3 +334,22 @@ select {
   font-size: 12px;
   text-align: center;
 }
+.footer-links {
+  margin-top: 8px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  align-items: center;
+}
+.footer-links a {
+  color: #334155;
+  text-decoration: none;
+}
+.footer-links a:hover { text-decoration: underline; }
+.header-link {
+  color: #dbeafe;
+  text-decoration: none;
+}
+.header-link:hover { text-decoration: underline; }
+.legal-card { max-width: 760px; margin: 0 auto; }
+.legal-list { margin: 0; padding-left: 18px; color: #334155; line-height: 1.6; }

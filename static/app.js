@@ -166,12 +166,43 @@ async function loadHistory(airportCode) {
 
 function setSelectionSummary(payload, airportCode) {
   const target = document.getElementById("selection-summary");
+  const sourceTarget = document.getElementById("selection-source-status");
   const meta = payload.live_airports?.[airportCode];
   if (!airportCode || !meta) {
     target.textContent = "No airport selected yet.";
+    sourceTarget.textContent = "";
+    sourceTarget.className = "selection-source-status";
     return;
   }
   target.textContent = `Selected: ${airportCode} — ${meta.name}`;
+}
+
+function sourceStatusLabel(sourceType, sourceReason) {
+  if (sourceType === "live_direct") return ["Live direct source", "is-live"];
+  if (sourceType === "estimated_fallback") {
+    if (sourceReason === "live_stale_or_unavailable") return ["Fallback estimate (live temporarily unavailable)", "is-fallback"];
+    return ["Estimated source (not yet live-integrated)", "is-fallback"];
+  }
+  return ["Source status unavailable", "is-unknown"];
+}
+
+async function updateSelectionSourceStatus(airportCode) {
+  const sourceTarget = document.getElementById("selection-source-status");
+  if (!airportCode) {
+    sourceTarget.textContent = "";
+    sourceTarget.className = "selection-source-status";
+    return;
+  }
+  try {
+    const resp = await fetch(`/api/tsa-wait-times?code=${airportCode}`);
+    const payload = await resp.json();
+    const [label, cls] = sourceStatusLabel(payload.sourceType, payload.sourceReason);
+    sourceTarget.textContent = `Data source: ${label}`;
+    sourceTarget.className = `selection-source-status ${cls}`;
+  } catch (_e) {
+    sourceTarget.textContent = "Data source: unavailable";
+    sourceTarget.className = "selection-source-status is-unknown";
+  }
 }
 
 function renderAirportChips(payload, filterText = "") {
@@ -198,6 +229,7 @@ async function selectAirport(code) {
   const select = document.getElementById("airport-select");
   select.value = code;
   setSelectionSummary(livePayloadCache, code);
+  await updateSelectionSourceStatus(code);
   renderAirportChips(livePayloadCache, document.getElementById("airport-search").value);
   renderLiveCards(livePayloadCache, code);
   await loadHistory(code);

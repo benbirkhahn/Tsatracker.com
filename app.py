@@ -128,6 +128,38 @@ def airport_page_seo(code: str, airport_name: str) -> Dict:
     )
 
 
+def legal_page_seo(slug: str) -> Dict:
+    mapping = {
+        "privacy": ("Privacy Policy", "Read SecureLine's privacy policy and data handling details."),
+        "terms": ("Terms of Service", "Read SecureLine's terms for using TSA wait-time services."),
+        "contact": ("Contact", "Contact SecureLine for support, data questions, or partnerships."),
+    }
+    title, description = mapping[slug]
+    return build_page_seo(
+        title=f"{title} | SecureLine",
+        description=description,
+        canonical_path=f"/{slug}",
+    )
+
+
+def index_template_context(initial_airport_code: str, seo: Dict) -> Dict:
+    return {
+        "live_airports": LIVE_AIRPORTS,
+        "pipeline_airports": PIPELINE_AIRPORTS,
+        "initial_airport_code": initial_airport_code,
+        "airport_pages": [{"code": c, "href": airport_seo_slug(c), "name": v["name"]} for c, v in LIVE_AIRPORTS.items()],
+        "seo": seo,
+        "monetization": {
+            "enable_adsense": ENABLE_ADSENSE and bool(ADSENSE_CLIENT),
+            "adsense_client": ADSENSE_CLIENT,
+            "adsense_slot_top": ADSENSE_SLOT_TOP,
+            "adsense_slot_bottom": ADSENSE_SLOT_BOTTOM,
+            "sponsor_cta_url": SPONSOR_CTA_URL,
+            "sponsor_cta_text": SPONSOR_CTA_TEXT,
+        },
+    }
+
+
 def clamp_wait_minutes(v: float) -> float:
     return max(0.0, min(float(v), 180.0))
 
@@ -512,22 +544,7 @@ def history_for_airport(airport_code: str, hours: int = 12) -> List[Dict]:
 
 @app.route("/")
 def index():
-    return render_template(
-        "index.html",
-        live_airports=LIVE_AIRPORTS,
-        pipeline_airports=PIPELINE_AIRPORTS,
-        initial_airport_code="",
-        airport_pages=[{"code": c, "href": airport_seo_slug(c), "name": v["name"]} for c, v in LIVE_AIRPORTS.items()],
-        seo=home_page_seo(),
-        monetization={
-            "enable_adsense": ENABLE_ADSENSE and bool(ADSENSE_CLIENT),
-            "adsense_client": ADSENSE_CLIENT,
-            "adsense_slot_top": ADSENSE_SLOT_TOP,
-            "adsense_slot_bottom": ADSENSE_SLOT_BOTTOM,
-            "sponsor_cta_url": SPONSOR_CTA_URL,
-            "sponsor_cta_text": SPONSOR_CTA_TEXT,
-        },
-    )
+    return render_template("index.html", **index_template_context("", home_page_seo()))
 
 @app.route("/airports/<airport_slug>")
 def airport_page(airport_slug: str):
@@ -538,22 +555,22 @@ def airport_page(airport_slug: str):
     meta = LIVE_AIRPORTS.get(code)
     if not meta:
         return jsonify({"error": "Airport page unavailable"}), 404
-    return render_template(
-        "index.html",
-        live_airports=LIVE_AIRPORTS,
-        pipeline_airports=PIPELINE_AIRPORTS,
-        initial_airport_code=code,
-        airport_pages=[{"code": c, "href": airport_seo_slug(c), "name": v["name"]} for c, v in LIVE_AIRPORTS.items()],
-        seo=airport_page_seo(code, meta["name"]),
-        monetization={
-            "enable_adsense": ENABLE_ADSENSE and bool(ADSENSE_CLIENT),
-            "adsense_client": ADSENSE_CLIENT,
-            "adsense_slot_top": ADSENSE_SLOT_TOP,
-            "adsense_slot_bottom": ADSENSE_SLOT_BOTTOM,
-            "sponsor_cta_url": SPONSOR_CTA_URL,
-            "sponsor_cta_text": SPONSOR_CTA_TEXT,
-        },
-    )
+    return render_template("index.html", **index_template_context(code, airport_page_seo(code, meta["name"])))
+
+
+@app.route("/privacy")
+def privacy():
+    return render_template("legal.html", page_title="Privacy Policy", slug="privacy", seo=legal_page_seo("privacy"))
+
+
+@app.route("/terms")
+def terms():
+    return render_template("legal.html", page_title="Terms of Service", slug="terms", seo=legal_page_seo("terms"))
+
+
+@app.route("/contact")
+def contact():
+    return render_template("legal.html", page_title="Contact", slug="contact", seo=legal_page_seo("contact"))
 
 
 @app.route("/api/live")

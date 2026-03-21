@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ seo.title }}</title>
+  <meta name="description" content="{{ seo.description }}">
+  <link rel="canonical" href="{{ seo.canonical_url }}">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="header">
+    <div class="logo-shield">🛡️</div>
+    <div>
+      <div class="header-title">SecureLine</div>
+      <div class="header-sub">Real-time TSA checkpoint wait times</div>
+    </div>
+    <div class="header-badge"><a class="header-link" href="/">Back to Live Wait Times</a></div>
+  </header>
+  <main class="main">
+    <section class="card legal-card">
+      <div class="card-head">
+        <h2>{{ page_title }}</h2>
+      </div>
+      {% if slug == "privacy" %}
+      <p class="muted">SecureLine collects operational analytics and airport wait-time data to improve service quality.</p>
+      <ul class="legal-list">
+        <li>We do not sell personal information.</li>
+        <li>Basic usage analytics may be collected for performance and reliability.</li>
+        <li>Advertising providers may use cookies according to their policies.</li>
+        <li>Questions: <a href="/contact">Contact SecureLine</a>.</li>
+      </ul>
+      {% elif slug == "terms" %}
+      <p class="muted">By using SecureLine, you agree to these service terms.</p>
+      <ul class="legal-list">
+        <li>Wait times are provided as informational guidance, not travel guarantees.</li>
+        <li>Data may include live direct feeds and estimated fallback values.</li>
+        <li>Service availability may change without notice.</li>
+        <li>Use of the site constitutes acceptance of these terms.</li>
+      </ul>
+      {% else %}
+      <p class="muted">Need help, partnership info, or data questions?</p>
+      <ul class="legal-list">
+        <li>Email: <a href="mailto:ben@benbirkhahn.com">ben@benbirkhahn.com</a></li>
+        <li>Response target: within 1-2 business days.</li>
+      </ul>
+      {% endif %}
+    </section>
+  </main>
+  <footer class="footer">
+    <div>SecureLine helps travelers plan around unpredictable checkpoint lines.</div>
+    <div class="footer-links">
+      <a href="/privacy">Privacy</a>
+      <span>•</span>
+      <a href="/terms">Terms</a>
+      <span>•</span>
+      <a href="/contact">Contact</a>
+    </div>
+  </footer>
+</body>
+</html>
