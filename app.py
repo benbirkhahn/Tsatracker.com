@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, List
 
 import requests
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, Response, jsonify, render_template, request
 
 APP_TZ = timezone.utc
 DB_PATH = os.getenv("DB_PATH", "data.db")
@@ -22,6 +22,11 @@ ADSENSE_SLOT_TOP = os.getenv("ADSENSE_SLOT_TOP", "").strip()
 ADSENSE_SLOT_BOTTOM = os.getenv("ADSENSE_SLOT_BOTTOM", "").strip()
 SPONSOR_CTA_URL = os.getenv("SPONSOR_CTA_URL", "mailto:ads@secureline-live.com").strip()
 SPONSOR_CTA_TEXT = os.getenv("SPONSOR_CTA_TEXT", "Advertise here").strip()
+_publisher_token = ADSENSE_CLIENT.replace("ca-", "").strip() if ADSENSE_CLIENT else ""
+ADS_TXT_LINE = os.getenv(
+    "ADS_TXT_LINE",
+    f"google.com, {_publisher_token}, DIRECT, f08c47fec0942fa0" if _publisher_token.startswith("pub-") else "",
+).strip()
 UA = {"User-Agent": "Mozilla/5.0 (tsa-live-site/1.0)"}
 
 LIVE_AIRPORTS = {
@@ -530,6 +535,11 @@ def api_tsa_wait_times():
 @app.route("/api/pipeline")
 def api_pipeline():
     return jsonify({"generated_at": utc_now().isoformat(), "airports": PIPELINE_AIRPORTS})
+@app.route("/ads.txt")
+def ads_txt():
+    if not ADS_TXT_LINE:
+        return Response("Not configured\n", status=404, mimetype="text/plain")
+    return Response(f"{ADS_TXT_LINE}\n", mimetype="text/plain")
 
 @app.route("/healthz")
 def healthz():
