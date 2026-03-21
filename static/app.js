@@ -5,6 +5,31 @@ function fmtMinutes(v) {
   if (Number.isNaN(n)) return "-";
   return `${Math.max(0, Math.round(n))} min`;
 }
+function waitTierClass(waitMinutes) {
+  const n = Number(waitMinutes);
+  if (n <= 7) return "wait-pill low";
+  if (n <= 15) return "wait-pill med";
+  if (n <= 25) return "wait-pill high";
+  return "wait-pill critical";
+}
+
+function cleanCheckpointLabel(label) {
+  if (!label) return "Checkpoint";
+  return String(label)
+    .replace(/ProjectedQueueTime.*$/i, "")
+    .replace(/JourneyTime.*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function latestCapturedAt(rows) {
+  if (!rows.length) return null;
+  const ts = rows
+    .map((r) => new Date(r.captured_at))
+    .filter((d) => !Number.isNaN(d.getTime()))
+    .sort((a, b) => b - a);
+  return ts[0] || null;
+}
 
 function renderLiveCards(payload) {
   const host = document.getElementById("live-cards");
@@ -24,11 +49,18 @@ function renderLiveCards(payload) {
         const el = document.createElement("div");
         el.className = "checkpoint-row";
         el.innerHTML = `
-          <div>${row.checkpoint}</div>
-          <div class="wait-pill">${fmtMinutes(row.wait_minutes)}</div>
+          <div class="checkpoint-name">${cleanCheckpointLabel(row.checkpoint)}</div>
+          <div class="${waitTierClass(row.wait_minutes)}">${fmtMinutes(row.wait_minutes)}</div>
         `;
         card.appendChild(el);
       });
+      const updatedAt = latestCapturedAt(list);
+      if (updatedAt) {
+        const foot = document.createElement("div");
+        foot.className = "updated-meta";
+        foot.textContent = `Updated ${updatedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+        card.appendChild(foot);
+      }
     }
     host.appendChild(card);
   });

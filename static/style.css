@@ -133,6 +133,12 @@ body {
   font-size: 13px;
 }
 .checkpoint-row:first-of-type { border-top: 0; }
+.checkpoint-name {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+  color: #0f172a;
+}
 .wait-pill {
   white-space: nowrap;
   border-radius: 999px;
@@ -141,6 +147,29 @@ body {
   font-weight: 800;
   background: #dcfce7;
   color: #166534;
+}
+.wait-pill.low {
+  background: #dcfce7;
+  color: #166534;
+}
+.wait-pill.med {
+  background: #fef3c7;
+  color: #92400e;
+}
+.wait-pill.high {
+  background: #ffedd5;
+  color: #c2410c;
+}
+.wait-pill.critical {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.updated-meta {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #dbeafe;
+  font-size: 11px;
+  color: #64748b;
 }
 
 .controls {

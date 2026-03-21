@@ -200,19 +200,61 @@ def fetch_mia_rows() -> List[Dict]:
     rows = []
     for rec in payload.get("current", []):
         qname = rec.get("queueName")
-        wait_val = rec.get("projectedWaitTime")
+        status = str(rec.get("status", "")).strip().lower()
+        # Keep only open lanes when status metadata is present.
+        if status and status != "open":
+            continue
+        wait_val = rec.get("projectedMinWaitMinutes")
+        if wait_val is None:
+            wait_val = rec.get("projectedWaitTime")
         if qname is None or wait_val is None:
             continue
+        wait_val = max(0.0, float(wait_val))
         rows.append(
             {
                 "airport_code": "MIA",
                 "checkpoint": qname,
-                "wait_minutes": float(wait_val),
+                "wait_minutes": wait_val,
                 "source": endpoint,
                 "captured_at": stamp,
             }
         )
     return rows
+
+def ord_friendly_checkpoint(metric_name: str) -> str:
+    s = metric_name.lower()
+    mapping = [
+        ("t2c5general", "Terminal 2 — Checkpoint 5 General"),
+        ("t2c5precheck", "Terminal 2 — Checkpoint 5 TSA PreCheck"),
+        ("t3c6", "Terminal 3 — Checkpoint 6"),
+        ("t3c7general", "Terminal 3 — Checkpoint 7 General"),
+        ("t3c7a", "Terminal 3 — Checkpoint 7A"),
+        ("t3c8general", "Terminal 3 — Checkpoint 8 General"),
+        ("t3c8precheck", "Terminal 3 — Checkpoint 8 TSA PreCheck"),
+        ("t3c9", "Terminal 3 — Checkpoint 9"),
+        ("t5c10", "Terminal 5 — Checkpoint 10"),
+        ("security02floor", "Terminal 1 — Economy"),
+        ("tsafloor", "Terminal 1 — TSA PreCheck"),
+        ("pafloor", "Terminal 1 — Priority"),
+    ]
+    for key, label in mapping:
+        if key in s:
+            return label
+    return metric_name
+
+
+def ord_bucket_minutes(wait_seconds: float) -> float:
+    # Mirror flychicago widget bucketing behavior from tsawaittimes.js
+    bucket = int(float(wait_seconds) + 59) // 60  # ceil for integer arithmetic
+    if bucket <= 7:
+        return 5.0
+    if bucket <= 12:
+        return 10.0
+    if bucket <= 17:
+        return 15.0
+    if bucket <= 20:
+        return 20.0
+    return 25.0  # represents >20 minutes in UI-friendly form
 
 
 def fetch_ord_rows() -> List[Dict]:
@@ -230,11 +272,11 @@ def fetch_ord_rows() -> List[Dict]:
         # Ignore sentinel invalid values.
         if float(wait_seconds) >= 400000:
             continue
-        wait_minutes = float(wait_seconds) / 60.0
+        wait_minutes = ord_bucket_minutes(float(wait_seconds))
         rows.append(
             {
                 "airport_code": "ORD",
-                "checkpoint": name,
+                "checkpoint": ord_friendly_checkpoint(name),
                 "wait_minutes": wait_minutes,
                 "source": endpoint,
                 "captured_at": stamp,
@@ -273,23 +315,30 @@ def poll_forever() -> None:
 
 
 def latest_snapshot() -> Dict:
+    cutoff = (utc_now() - timedelta(minutes=15)).isoformat()
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute(
         """
         SELECT airport_code, checkpoint, wait_minutes, source, captured_at
         FROM samples
-        WHERE id IN (
-            SELECT MAX(id)
-            FROM samples
-            GROUP BY airport_code, checkpoint
-        )
+        WHERE captured_at >= ?
+        ORDER BY captured_at DESC
         """
+        ,
+        (cutoff,),
     )
     rows = cur.fetchall()
     conn.close()
-    out = {}
+    out: Dict[str, List[Dict]] = {}
+    seen = set()
     for airport_code, checkpoint, wait_minutes, source, captured_at in rows:
+        if airport_code == "ORD":
+            checkpoint = ord_friendly_checkpoint(checkpoint)
+        key = (airport_code, checkpoint)
+        if key in seen:
+            continue
+        seen.add(key)
         out.setdefault(airport_code, []).append(
             {
                 "checkpoint": checkpoint,
