@@ -22,6 +22,7 @@ ADSENSE_SLOT_TOP = os.getenv("ADSENSE_SLOT_TOP", "").strip()
 ADSENSE_SLOT_BOTTOM = os.getenv("ADSENSE_SLOT_BOTTOM", "").strip()
 SPONSOR_CTA_URL = os.getenv("SPONSOR_CTA_URL", "mailto:ads@secureline-live.com").strip()
 SPONSOR_CTA_TEXT = os.getenv("SPONSOR_CTA_TEXT", "Advertise here").strip()
+SITE_URL = os.getenv("SITE_URL", "https://secureline-live.onrender.com").strip().rstrip("/")
 _publisher_token = ADSENSE_CLIENT.replace("ca-", "").strip() if ADSENSE_CLIENT else ""
 ADS_TXT_LINE = os.getenv(
     "ADS_TXT_LINE",
@@ -90,6 +91,41 @@ def start_runtime_once() -> None:
 
 def utc_now() -> datetime:
     return datetime.now(tz=APP_TZ)
+
+
+def airport_seo_slug(code: str) -> str:
+    return f"/airports/{code.lower()}-tsa-wait-times"
+
+
+def build_page_seo(title: str, description: str, canonical_path: str) -> Dict:
+    return {
+        "title": title,
+        "description": description,
+        "canonical_url": f"{SITE_URL}{canonical_path}",
+        "site_url": SITE_URL,
+    }
+
+
+def home_page_seo() -> Dict:
+    return build_page_seo(
+        title="Live TSA Wait Times by Airport (PHL, MIA, ORD) | SecureLine",
+        description=(
+            "Track live TSA wait times for major US airports with source-labeled feeds, trend charts, "
+            "and fast airport lookup."
+        ),
+        canonical_path="/",
+    )
+
+
+def airport_page_seo(code: str, airport_name: str) -> Dict:
+    clean_name = airport_name.split("(")[0].strip()
+    return build_page_seo(
+        title=f"{code} TSA Wait Times (Live) | {clean_name} | SecureLine",
+        description=(
+            f"Live TSA wait times for {code} ({clean_name}) with checkpoint-level updates and recent trend history."
+        ),
+        canonical_path=airport_seo_slug(code),
+    )
 
 
 def clamp_wait_minutes(v: float) -> float:
@@ -480,6 +516,35 @@ def index():
         "index.html",
         live_airports=LIVE_AIRPORTS,
         pipeline_airports=PIPELINE_AIRPORTS,
+        initial_airport_code="",
+        airport_pages=[{"code": c, "href": airport_seo_slug(c), "name": v["name"]} for c, v in LIVE_AIRPORTS.items()],
+        seo=home_page_seo(),
+        monetization={
+            "enable_adsense": ENABLE_ADSENSE and bool(ADSENSE_CLIENT),
+            "adsense_client": ADSENSE_CLIENT,
+            "adsense_slot_top": ADSENSE_SLOT_TOP,
+            "adsense_slot_bottom": ADSENSE_SLOT_BOTTOM,
+            "sponsor_cta_url": SPONSOR_CTA_URL,
+            "sponsor_cta_text": SPONSOR_CTA_TEXT,
+        },
+    )
+
+@app.route("/airports/<airport_slug>")
+def airport_page(airport_slug: str):
+    m = re.fullmatch(r"([a-z]{3})-tsa-wait-times", airport_slug.strip().lower())
+    if not m:
+        return jsonify({"error": "Not found"}), 404
+    code = m.group(1).upper()
+    meta = LIVE_AIRPORTS.get(code)
+    if not meta:
+        return jsonify({"error": "Airport page unavailable"}), 404
+    return render_template(
+        "index.html",
+        live_airports=LIVE_AIRPORTS,
+        pipeline_airports=PIPELINE_AIRPORTS,
+        initial_airport_code=code,
+        airport_pages=[{"code": c, "href": airport_seo_slug(c), "name": v["name"]} for c, v in LIVE_AIRPORTS.items()],
+        seo=airport_page_seo(code, meta["name"]),
         monetization={
             "enable_adsense": ENABLE_ADSENSE and bool(ADSENSE_CLIENT),
             "adsense_client": ADSENSE_CLIENT,
@@ -535,6 +600,38 @@ def api_tsa_wait_times():
 @app.route("/api/pipeline")
 def api_pipeline():
     return jsonify({"generated_at": utc_now().isoformat(), "airports": PIPELINE_AIRPORTS})
+
+
+@app.route("/robots.txt")
+def robots_txt():
+    body = (
+        "User-agent: *\n"
+        "Allow: /\n\n"
+        f"Sitemap: {SITE_URL}/sitemap.xml\n"
+    )
+    return Response(body, mimetype="text/plain")
+
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    urls = ["/"] + [airport_seo_slug(c) for c in LIVE_AIRPORTS.keys()]
+    now = utc_now().date().isoformat()
+    entries = []
+    for p in urls:
+        entries.append(
+            "<url>"
+            f"<loc>{SITE_URL}{p}</loc>"
+            f"<lastmod>{now}</lastmod>"
+            "</url>"
+        )
+    body = (
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+        "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">"
+        + "".join(entries)
+        + "</urlset>"
+    )
+    return Response(body, mimetype="application/xml")
+
 @app.route("/ads.txt")
 def ads_txt():
     if not ADS_TXT_LINE:

@@ -3,7 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SecureLine — TSA Wait Times</title>
+  <title>{{ seo.title }}</title>
+  <meta name="description" content="{{ seo.description }}">
+  <link rel="canonical" href="{{ seo.canonical_url }}">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{ seo.title }}">
+  <meta property="og:description" content="{{ seo.description }}">
+  <meta property="og:url" content="{{ seo.canonical_url }}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ seo.title }}">
+  <meta name="twitter:description" content="{{ seo.description }}">
   <link rel="stylesheet" href="/static/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   {% if monetization.enable_adsense %}
@@ -31,6 +40,11 @@
       <div class="lookup-controls">
         <input id="airport-search" class="airport-search" type="search" placeholder="Search: PHL, MIA, ORD, Philadelphia..." autocomplete="off">
         <div id="airport-chips" class="airport-chips"></div>
+      </div>
+      <div class="airport-pages-links">
+        {% for p in airport_pages %}
+        <a href="{{ p.href }}">{{ p.code }} TSA wait times</a>
+        {% endfor %}
       </div>
       <div id="selection-summary" class="selection-summary">No airport selected yet.</div>
     </section>
@@ -94,7 +108,23 @@
     SecureLine helps travelers plan around unpredictable checkpoint lines. Refresh cadence: ~2 minutes.
   </footer>
 
+  <script>
+    window.INITIAL_AIRPORT_CODE = "{{ initial_airport_code }}";
+  </script>
   <script src="/static/app.js"></script>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "SecureLine",
+      "url": "{{ seo.site_url }}",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "{{ seo.site_url }}/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+  </script>
   {% if monetization.enable_adsense %}
   <script>
     (adsbygoogle = window.adsbygoogle || []).push({

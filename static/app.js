@@ -235,6 +235,11 @@ async function bootstrap() {
   renderAirportChips(livePayloadCache);
   renderLiveCards(livePayloadCache, null);
   await loadHistory(null);
+
+  const initialCode = String(window.INITIAL_AIRPORT_CODE || "").toUpperCase();
+  if (initialCode && livePayloadCache.live_airports?.[initialCode]) {
+    await selectAirport(initialCode);
+  }
 }
 
 bootstrap();
