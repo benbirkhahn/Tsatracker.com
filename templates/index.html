@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SecureLine Live — TSA Wait Times</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Replace ca-pub-XXXXXXXX with your AdSense publisher ID once approved -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXX"
+          crossorigin="anonymous"></script>
+</head>
+<body>
+  <header class="hero">
+    <h1>SecureLine Live</h1>
+    <p>Real-source TSA checkpoint waits during ongoing staffing volatility.</p>
+  </header>
+
+  <section class="ad-slot top-ad">
+    <div class="ad-label">Advertisement</div>
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-XXXXXXXX"
+         data-ad-slot="1111111111"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+  </section>
+
+  <main class="layout">
+    <section class="panel">
+      <h2>Live Airports (Real Feeds)</h2>
+      <p class="muted">Showing only airports with verified callable live sources.</p>
+      <div id="live-cards" class="card-grid"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Wait Trend (Stock-Style History)</h2>
+      <div class="controls">
+        <label for="airport-select">Airport</label>
+        <select id="airport-select"></select>
+      </div>
+      <canvas id="history-chart" height="120"></canvas>
+    </section>
+
+    <section class="panel">
+      <h2>In Progress Airports</h2>
+      <p class="muted">These are being actively researched and will move to live as soon as endpoints are verified.</p>
+      <div id="pipeline-list"></div>
+    </section>
+  </main>
+
+  <section class="ad-slot bottom-ad">
+    <div class="ad-label">Advertisement</div>
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-XXXXXXXX"
+         data-ad-slot="2222222222"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+  </section>
+
+  <footer class="footer">
+    <small>Data refresh target: every 2 minutes. Always verify critical travel decisions with your airline/airport.</small>
+  </footer>
+
+  <script src="/static/app.js"></script>
+  <script>
+    (adsbygoogle = window.adsbygoogle || []).push({});
+    (adsbygoogle = window.adsbygoogle || []).push({});
+  </script>
+</body>
+</html>

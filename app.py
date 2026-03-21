@@ -1,0 +1,393 @@
+#!/usr/bin/env python3
+import logging
+import os
+import re
+import sqlite3
+import threading
+import time
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List
+
+import requests
+from flask import Flask, jsonify, render_template, request
+
+APP_TZ = timezone.utc
+DB_PATH = os.getenv("DB_PATH", "data.db")
+POLL_SECONDS = int(os.getenv("POLL_SECONDS", "120"))
+COLLECT_NOW_TOKEN = os.getenv("COLLECT_NOW_TOKEN")
+ENABLE_POLLER = os.getenv("ENABLE_POLLER", "true").lower() == "true"
+UA = {"User-Agent": "Mozilla/5.0 (tsa-live-site/1.0)"}
+
+LIVE_AIRPORTS = {
+    "PHL": {"name": "Philadelphia International (PHL)", "mode": "LIVE_PUBLIC"},
+    "MIA": {"name": "Miami International (MIA)", "mode": "LIVE_KEY_REQUIRED"},
+    "ORD": {"name": "Chicago O'Hare International (ORD)", "mode": "LIVE_PUBLIC"},
+}
+
+PIPELINE_AIRPORTS = [
+    {
+        "code": "CLT",
+        "name": "Charlotte Douglas International",
+        "status": "IN_RESEARCH",
+        "notes": "No public callable live JSON endpoint confirmed yet.",
+    },
+    {
+        "code": "MCO",
+        "name": "Orlando International",
+        "status": "IN_RESEARCH",
+        "notes": "No public callable live JSON endpoint confirmed yet.",
+    },
+    {
+        "code": "JAX",
+        "name": "Jacksonville International",
+        "status": "IN_RESEARCH",
+        "notes": "Checkpoint info visible, but no live wait JSON endpoint exposed.",
+    },
+]
+
+app = Flask(__name__)
+_mia_cache = {"key": None, "endpoint": None, "fetched_at": None}
+_poll_lock = threading.Lock()
+_runtime_started = False
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+logger = logging.getLogger("secureline-live")
+
+
+def start_runtime_once() -> None:
+    global _runtime_started
+    if _runtime_started:
+        return
+    init_db()
+    with _poll_lock:
+        collect_once()
+    if ENABLE_POLLER:
+        t = threading.Thread(target=poll_forever, daemon=True)
+        t.start()
+    _runtime_started = True
+    logger.info("runtime_started db_path=%s poller=%s", DB_PATH, ENABLE_POLLER)
+
+
+def utc_now() -> datetime:
+    return datetime.now(tz=APP_TZ)
+
+
+def init_db() -> None:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS samples (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            airport_code TEXT NOT NULL,
+            checkpoint TEXT NOT NULL,
+            wait_minutes REAL NOT NULL,
+            source TEXT NOT NULL,
+            captured_at TEXT NOT NULL
+        )
+        """
+    )
+    cur.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_samples_airport_time
+        ON samples (airport_code, captured_at)
+        """
+    )
+    conn.commit()
+    conn.close()
+
+
+def db_insert_rows(rows: List[Dict]) -> None:
+    if not rows:
+        return
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.executemany(
+        """
+        INSERT INTO samples (airport_code, checkpoint, wait_minutes, source, captured_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        [
+            (
+                r["airport_code"],
+                r["checkpoint"],
+                float(r["wait_minutes"]),
+                r["source"],
+                r["captured_at"],
+            )
+            for r in rows
+        ],
+    )
+    conn.commit()
+    conn.close()
+
+
+def fetch_phl_rows() -> List[Dict]:
+    url = "https://www.phl.org/phllivereach/metrics"
+    resp = requests.get(url, headers=UA, timeout=20)
+    resp.raise_for_status()
+    payload = resp.json()
+    zone_map = {
+        "4126": "D/E TSA PreCheck",
+        "3971": "D/E General",
+        "4377": "A-West General",
+        "4386": "A-East TSA PreCheck",
+        "4368": "A-East General",
+        "5047": "B General",
+        "5052": "C General",
+        "5068": "F General",
+    }
+    rows = []
+    stamp = utc_now().isoformat()
+    for row in payload.get("content", {}).get("rows", []):
+        zone_id = str(row[0])
+        if zone_id not in zone_map:
+            continue
+        wait_minutes = float(row[1])
+        rows.append(
+            {
+                "airport_code": "PHL",
+                "checkpoint": zone_map[zone_id],
+                "wait_minutes": wait_minutes,
+                "source": url,
+                "captured_at": stamp,
+            }
+        )
+    return rows
+
+
+def refresh_mia_api_key_if_needed(force: bool = False) -> None:
+    now = utc_now()
+    if not force and _mia_cache["key"] and _mia_cache["fetched_at"]:
+        age = now - _mia_cache["fetched_at"]
+        if age < timedelta(hours=1):
+            return
+
+    page = requests.get("https://www.miami-airport.com/tsa-waittimes.asp", headers=UA, timeout=20).text
+    js_paths = re.findall(r'<script[^>]+src=["\']([^"\']*js/wait-times/main[^"\']+\.js)["\']', page, re.I)
+    if not js_paths:
+        raise RuntimeError("MIA main wait-times bundle not found")
+    main_js_url = "https://www.miami-airport.com" + js_paths[0]
+    js = requests.get(main_js_url, headers=UA, timeout=20).text
+    endpoint_match = re.search(r"https://waittime\.api\.aero/waittime/v2/current/[A-Z]+", js)
+    key_match = re.search(r'x-apikey\\?"\s*:\\?"([a-f0-9]{20,})', js, re.I)
+    if not endpoint_match or not key_match:
+        raise RuntimeError("MIA endpoint or x-apikey not found in JS bundle")
+    _mia_cache["endpoint"] = endpoint_match.group(0)
+    _mia_cache["key"] = key_match.group(1)
+    _mia_cache["fetched_at"] = now
+
+
+def fetch_mia_rows() -> List[Dict]:
+    refresh_mia_api_key_if_needed()
+    endpoint = _mia_cache["endpoint"]
+    key = _mia_cache["key"]
+    resp = requests.get(endpoint, headers={**UA, "x-apikey": key}, timeout=20)
+    if resp.status_code == 403:
+        refresh_mia_api_key_if_needed(force=True)
+        resp = requests.get(_mia_cache["endpoint"], headers={**UA, "x-apikey": _mia_cache["key"]}, timeout=20)
+    resp.raise_for_status()
+    payload = resp.json()
+    stamp = utc_now().isoformat()
+    rows = []
+    for rec in payload.get("current", []):
+        qname = rec.get("queueName")
+        wait_val = rec.get("projectedWaitTime")
+        if qname is None or wait_val is None:
+            continue
+        rows.append(
+            {
+                "airport_code": "MIA",
+                "checkpoint": qname,
+                "wait_minutes": float(wait_val),
+                "source": endpoint,
+                "captured_at": stamp,
+            }
+        )
+    return rows
+
+
+def fetch_ord_rows() -> List[Dict]:
+    endpoint = "https://tsawaittimes.flychicago.com/tsawaittimes"
+    resp = requests.get(endpoint, headers=UA, timeout=20)
+    resp.raise_for_status()
+    payload = resp.json()
+    stamp = utc_now().isoformat()
+    rows = []
+    for rec in payload:
+        name = rec.get("name", "")
+        wait_seconds = rec.get("waitTimes")
+        if wait_seconds is None:
+            continue
+        # Ignore sentinel invalid values.
+        if float(wait_seconds) >= 400000:
+            continue
+        wait_minutes = float(wait_seconds) / 60.0
+        rows.append(
+            {
+                "airport_code": "ORD",
+                "checkpoint": name,
+                "wait_minutes": wait_minutes,
+                "source": endpoint,
+                "captured_at": stamp,
+            }
+        )
+    return rows
+
+
+def collect_once() -> Dict:
+    result = {"ok": [], "errors": []}
+    collectors = [
+        ("PHL", fetch_phl_rows),
+        ("MIA", fetch_mia_rows),
+        ("ORD", fetch_ord_rows),
+    ]
+    all_rows = []
+    for code, fn in collectors:
+        try:
+            rows = fn()
+            all_rows.extend(rows)
+            result["ok"].append({"airport": code, "rows": len(rows)})
+            logger.info("collector_success airport=%s rows=%s", code, len(rows))
+        except Exception as e:
+            result["errors"].append({"airport": code, "error": str(e)})
+            logger.exception("collector_failure airport=%s", code)
+    db_insert_rows(all_rows)
+    return result
+
+
+def poll_forever() -> None:
+    logger.info("poller_started interval_seconds=%s", POLL_SECONDS)
+    while True:
+        with _poll_lock:
+            collect_once()
+        time.sleep(POLL_SECONDS)
+
+
+def latest_snapshot() -> Dict:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT airport_code, checkpoint, wait_minutes, source, captured_at
+        FROM samples
+        WHERE id IN (
+            SELECT MAX(id)
+            FROM samples
+            GROUP BY airport_code, checkpoint
+        )
+        """
+    )
+    rows = cur.fetchall()
+    conn.close()
+    out = {}
+    for airport_code, checkpoint, wait_minutes, source, captured_at in rows:
+        out.setdefault(airport_code, []).append(
+            {
+                "checkpoint": checkpoint,
+                "wait_minutes": wait_minutes,
+                "source": source,
+                "captured_at": captured_at,
+            }
+        )
+    return out
+
+
+def history_for_airport(airport_code: str, hours: int = 12) -> List[Dict]:
+    cutoff = (utc_now() - timedelta(hours=hours)).isoformat()
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT airport_code, checkpoint, wait_minutes, captured_at
+        FROM samples
+        WHERE airport_code = ? AND captured_at >= ?
+        ORDER BY captured_at ASC
+        """,
+        (airport_code, cutoff),
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return [
+        {
+            "airport_code": r[0],
+            "checkpoint": r[1],
+            "wait_minutes": r[2],
+            "captured_at": r[3],
+        }
+        for r in rows
+    ]
+
+
+@app.route("/")
+def index():
+    return render_template(
+        "index.html",
+        live_airports=LIVE_AIRPORTS,
+        pipeline_airports=PIPELINE_AIRPORTS,
+    )
+
+
+@app.route("/api/live")
+def api_live():
+    return jsonify(
+        {
+            "generated_at": utc_now().isoformat(),
+            "live_airports": LIVE_AIRPORTS,
+            "data": latest_snapshot(),
+        }
+    )
+
+
+@app.route("/api/history")
+def api_history():
+    code = request.args.get("airport", "PHL").upper()
+    hours = int(request.args.get("hours", "12"))
+    if code not in LIVE_AIRPORTS:
+        return jsonify({"error": "Unknown airport"}), 400
+    return jsonify(
+        {
+            "airport": code,
+            "generated_at": utc_now().isoformat(),
+            "rows": history_for_airport(code, hours=hours),
+        }
+    )
+
+
+@app.route("/api/pipeline")
+def api_pipeline():
+    return jsonify({"generated_at": utc_now().isoformat(), "airports": PIPELINE_AIRPORTS})
+
+@app.route("/healthz")
+def healthz():
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute("SELECT 1")
+        conn.close()
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    return jsonify({"ok": True, "generated_at": utc_now().isoformat()})
+
+
+@app.route("/api/collect-now", methods=["POST"])
+def api_collect_now():
+    expected = COLLECT_NOW_TOKEN
+    if expected:
+        provided = request.headers.get("x-collect-token")
+        if provided != expected:
+            return jsonify({"error": "Unauthorized"}), 401
+    with _poll_lock:
+        result = collect_once()
+    return jsonify(result)
+
+
+if __name__ == "__main__":
+    start_runtime_once()
+    port = int(os.getenv("PORT", "8080"))
+    app.run(host="0.0.0.0", port=port, debug=False)
+else:
+    # Enable initialization when loaded by WSGI servers (e.g. gunicorn).
+    if os.getenv("AUTO_START_RUNTIME", "true").lower() == "true":
+        start_runtime_once()
