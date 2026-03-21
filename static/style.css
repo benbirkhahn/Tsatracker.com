@@ -283,6 +283,15 @@ select {
   border: 1px dashed #93c5fd;
   background: #eff6ff;
 }
+.adsense-auto-note {
+  border-radius: 12px;
+  border: 1px dashed #93c5fd;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 14px;
+}
 .sponsor-cta {
   display: block;
   text-decoration: none;

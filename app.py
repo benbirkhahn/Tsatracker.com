@@ -204,9 +204,15 @@ def fetch_mia_rows() -> List[Dict]:
         # Keep only open lanes when status metadata is present.
         if status and status != "open":
             continue
-        wait_val = rec.get("projectedWaitTime")
-        if wait_val is None:
-            wait_val = rec.get("projectedMinWaitMinutes")
+        min_wait = rec.get("projectedMinWaitMinutes")
+        max_wait = rec.get("projectedMaxWaitMinutes")
+        wait_val = None
+        if min_wait is not None and max_wait is not None:
+            wait_val = (float(min_wait) + float(max_wait)) / 2.0
+        elif min_wait is not None:
+            wait_val = float(min_wait)
+        elif rec.get("projectedWaitTime") is not None:
+            wait_val = float(rec.get("projectedWaitTime"))
         if qname is None or wait_val is None:
             continue
         wait_val = max(0.0, float(wait_val))
@@ -371,7 +377,7 @@ def index():
         live_airports=LIVE_AIRPORTS,
         pipeline_airports=PIPELINE_AIRPORTS,
         monetization={
-            "enable_adsense": ENABLE_ADSENSE and bool(ADSENSE_CLIENT and ADSENSE_SLOT_TOP and ADSENSE_SLOT_BOTTOM),
+            "enable_adsense": ENABLE_ADSENSE and bool(ADSENSE_CLIENT),
             "adsense_client": ADSENSE_CLIENT,
             "adsense_slot_top": ADSENSE_SLOT_TOP,
             "adsense_slot_bottom": ADSENSE_SLOT_BOTTOM,

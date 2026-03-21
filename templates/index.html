@@ -37,12 +37,7 @@
     <section class="ad-slot top-ad">
       <div class="ad-label">Advertisement</div>
       {% if monetization.enable_adsense %}
-      <ins class="adsbygoogle"
-           style="display:block"
-           data-ad-client="{{ monetization.adsense_client }}"
-           data-ad-slot="{{ monetization.adsense_slot_top }}"
-           data-ad-format="auto"
-           data-full-width-responsive="true"></ins>
+      <div class="adsense-auto-note">Google Auto Ads enabled for this page.</div>
       {% else %}
       <a class="sponsor-cta" href="{{ monetization.sponsor_cta_url }}" target="_blank" rel="noopener">
         {{ monetization.sponsor_cta_text }} — Reach travelers now
@@ -86,12 +81,7 @@
     <section class="ad-slot bottom-ad">
       <div class="ad-label">Advertisement</div>
       {% if monetization.enable_adsense %}
-      <ins class="adsbygoogle"
-           style="display:block"
-           data-ad-client="{{ monetization.adsense_client }}"
-           data-ad-slot="{{ monetization.adsense_slot_bottom }}"
-           data-ad-format="auto"
-           data-full-width-responsive="true"></ins>
+      <div class="adsense-auto-note">Google Auto Ads enabled for this page.</div>
       {% else %}
       <a class="sponsor-cta" href="{{ monetization.sponsor_cta_url }}" target="_blank" rel="noopener">
         {{ monetization.sponsor_cta_text }} — High-intent airport audience
@@ -107,8 +97,10 @@
   <script src="/static/app.js"></script>
   {% if monetization.enable_adsense %}
   <script>
-    (adsbygoogle = window.adsbygoogle || []).push({});
-    (adsbygoogle = window.adsbygoogle || []).push({});
+    (adsbygoogle = window.adsbygoogle || []).push({
+      google_ad_client: "{{ monetization.adsense_client }}",
+      enable_page_level_ads: true
+    });
   </script>
   {% endif %}
 </body>
