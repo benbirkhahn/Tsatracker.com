@@ -15,8 +15,8 @@ Reference for every airport we've investigated — how we get live TSA wait data
 | MCO | Orlando International | ✅ Live | Static key (env / bundle) |
 | JAX | Jacksonville International | ✅ Live | Public |
 | DFW | Dallas/Fort Worth | ✅ Live | Static key (embedded in bundle) |
-| ATL | Hartsfield-Jackson Atlanta | 🔬 Research | Cloudflare-blocked |
-| DEN | Denver International | 🔬 Research | Cloudflare-blocked |
+| ATL | Hartsfield-Jackson Atlanta | 🔬 Research | Cloudflare-blocked (all paths) |
+| DEN | Denver International | 🔬 Research | API middleware found; upstream not yet configured |
 
 ---
 

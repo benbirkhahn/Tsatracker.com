@@ -58,7 +58,16 @@ PIPELINE_AIRPORTS = [
         "code": "DEN",
         "name": "Denver International",
         "status": "IN_RESEARCH",
-        "notes": "flydenver.com blocked by Cloudflare challenge (all endpoints 403). Requires headless browser or alternative data source.",
+        "notes": (
+            "api.denverairport.com is DEN's live Elixir/Phoenix API middleware and the route "
+            "/wait-times/checkpoint/DEN exists — but currently returns "
+            "{\"success\":true,\"msg\":\"Missing Backfil URL\"}, meaning DEN has not yet wired "
+            "their upstream wait-time source into the system. flydenver.com itself is fully "
+            "Cloudflare-blocked (403 on all paths including robots.txt). Re-probe "
+            "api.denverairport.com periodically; once DEN configures their backend the "
+            "endpoint should return live checkpoint data with no further changes needed. "
+            "See airport_research/pipeline/DEN.md for full investigation log."
+        ),
     },
 ]
 
