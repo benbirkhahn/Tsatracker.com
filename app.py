@@ -37,6 +37,7 @@ LIVE_AIRPORTS = {
     "CLT": {"name": "Charlotte Douglas International (CLT)", "mode": "LIVE_KEY_REQUIRED"},
     "MCO": {"name": "Orlando International (MCO)", "mode": "LIVE_KEY_REQUIRED"},
     "JAX": {"name": "Jacksonville International (JAX)", "mode": "LIVE_PUBLIC"},
+    "DFW": {"name": "Dallas/Fort Worth International (DFW)", "mode": "LIVE_KEY_EMBEDDED"},
 }
 AIRPORT_FACTORS = {
     "ATL": 1.25, "BOS": 1.05, "CLT": 1.0, "DEN": 1.15, "DFW": 1.2, "DTW": 0.95,
@@ -46,7 +47,20 @@ AIRPORT_FACTORS = {
     "TPA": 0.9, "JAX": 0.9,
 }
 
-PIPELINE_AIRPORTS = []
+PIPELINE_AIRPORTS = [
+    {
+        "code": "ATL",
+        "name": "Hartsfield-Jackson Atlanta International",
+        "status": "IN_RESEARCH",
+        "notes": "atl.com/times/ blocked by Cloudflare challenge (all endpoints 403). Requires headless browser or alternative data source.",
+    },
+    {
+        "code": "DEN",
+        "name": "Denver International",
+        "status": "IN_RESEARCH",
+        "notes": "flydenver.com blocked by Cloudflare challenge (all endpoints 403). Requires headless browser or alternative data source.",
+    },
+]
 
 app = Flask(__name__)
 _mia_cache = {"key": None, "endpoint": None, "fetched_at": None}
@@ -580,6 +594,45 @@ def fetch_jax_rows() -> List[Dict]:
     return rows
 
 
+_DFW_API = "https://api.dfwairport.mobi/wait-times/checkpoint/DFW"
+_DFW_HEADERS = {
+    "Api-Key": "87856E0636AA4BF282150FCBE1AD63DE",
+    "Api-Version": "170",
+    "Accept": "application/json",
+}
+
+
+def fetch_dfw_rows() -> List[Dict]:
+    resp = requests.get(_DFW_API, headers={**UA, **_DFW_HEADERS}, timeout=20)
+    resp.raise_for_status()
+    body = resp.json()
+    wait_times = body.get("data", {}).get("wait_times", [])
+    if not wait_times:
+        raise RuntimeError("DFW: empty wait_times in response")
+    stamp = utc_now().isoformat()
+    rows = []
+    for wt in wait_times:
+        if not wt.get("isDisplayable"):
+            continue
+        name = wt.get("name", "")
+        lane = wt.get("lane", "")
+        checkpoint = f"{name} ({lane})" if lane else name
+        wait_secs = wt.get("waitSeconds")
+        wait_minutes = round(wait_secs / 60, 1) if wait_secs is not None else 0.0
+        rows.append(
+            {
+                "airport_code": "DFW",
+                "checkpoint": checkpoint,
+                "wait_minutes": wait_minutes,
+                "source": _DFW_API,
+                "captured_at": stamp,
+            }
+        )
+    if not rows:
+        raise RuntimeError("DFW: no displayable checkpoints parsed")
+    return rows
+
+
 def collect_once() -> Dict:
     result = {"ok": [], "errors": []}
     collectors = [
@@ -589,6 +642,7 @@ def collect_once() -> Dict:
         ("CLT", fetch_clt_rows),
         ("MCO", fetch_mco_rows),
         ("JAX", fetch_jax_rows),
+        ("DFW", fetch_dfw_rows),
     ]
     all_rows = []
     for code, fn in collectors:
