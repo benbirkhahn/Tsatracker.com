@@ -10,11 +10,6 @@
   --green: #22c55e;
   --amber: #f59e0b;
 }
-.chart-empty {
-  font-size: 12px;
-  color: #64748b;
-  margin-bottom: 8px;
-}
 
 * { box-sizing: border-box; }
 body {
@@ -24,6 +19,7 @@ body {
   background: var(--bg);
 }
 
+/* ── HEADER ── */
 .header {
   position: sticky;
   top: 0;
@@ -35,6 +31,13 @@ body {
   background: var(--navy);
   color: #fff;
   box-shadow: 0 2px 12px rgba(15, 23, 42, 0.35);
+}
+.header-home-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
 }
 .logo-shield { font-size: 28px; }
 .header-title { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; }
@@ -50,120 +53,95 @@ body {
   border: 1px solid rgba(96, 165, 250, 0.4);
 }
 
+/* ── LAYOUT ── */
 .main {
-  max-width: 1120px;
+  max-width: 960px;
   margin: 0 auto;
-  padding: 20px 14px 50px;
+  padding: 0 14px 50px;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 14px;
+/* ── HERO SECTION ── */
+.hero-section {
+  text-align: center;
+  padding: 48px 20px 32px;
+  margin-bottom: 8px;
 }
-@media (max-width: 960px) {
-  .grid { grid-template-columns: 1fr; }
+.hero-headline {
+  font-size: 38px;
+  font-weight: 900;
+  color: #0f172a;
+  margin: 0 0 12px;
+  letter-spacing: -0.5px;
+  line-height: 1.15;
 }
-
+.hero-sub {
+  font-size: 17px;
+  color: #475569;
+  margin: 0 0 28px;
+}
+.hero-search-wrap {
+  max-width: 500px;
+  margin: 0 auto 18px;
+}
+.airport-search-hero {
+  width: 100%;
+  border-radius: 16px;
+  border: 2px solid #bfdbfe;
+  background: #fff;
+  color: #0f172a;
+  font-size: 18px;
+  padding: 16px 20px;
+  outline: none;
+  box-shadow: 0 2px 16px rgba(59, 130, 246, 0.1);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.airport-search-hero:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.18);
+}
+.airport-chips-hero {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.airport-chips-hero .airport-chip {
+  font-size: 15px;
+  font-weight: 800;
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: 2px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a8a;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+.airport-chips-hero .airport-chip:hover {
+  background: #dbeafe;
+  border-color: #60a5fa;
+  transform: translateY(-1px);
+}
+.airport-chips-hero .airport-chip.active {
+  background: #1d4ed8;
+  color: #fff;
+  border-color: #1d4ed8;
+  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.35);
+}
+/* ── CARDS ── */
 .card {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow: 0 1px 6px rgba(15, 23, 42, 0.06);
-  padding: 16px;
-}
-.lookup-card { margin-bottom: 12px; }
-.content-card { margin-bottom: 12px; }
-.content-columns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-.content-columns h3 {
-  margin: 0 0 8px;
-  font-size: 15px;
-  color: #1e293b;
-}
-.content-list {
-  margin: 0;
-  padding-left: 18px;
-  color: #334155;
-  line-height: 1.55;
-  font-size: 13px;
-}
-@media (max-width: 840px) {
-  .content-columns { grid-template-columns: 1fr; }
-}
-.lookup-controls {
-  display: grid;
-  gap: 10px;
-}
-.airport-search {
-  width: 100%;
-  border-radius: 12px;
-  border: 1px solid #cbd5e1;
-  background: #fff;
-  color: #0f172a;
-  font-size: 14px;
-  padding: 12px;
-  outline: none;
-}
-.airport-search:focus {
-  border-color: #60a5fa;
-  box-shadow: 0 0 0 3px rgba(59,130,246,.15);
-}
-.airport-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.airport-chip {
-  border-radius: 999px;
-  border: 1px solid #bfdbfe;
-  background: #eff6ff;
-  color: #1e3a8a;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 6px 10px;
-  cursor: pointer;
-}
-.airport-chip.active {
-  background: #1d4ed8;
-  color: #fff;
-  border-color: #1d4ed8;
-}
-.selection-summary {
-  margin-top: 8px;
-  font-size: 12px;
-  color: #64748b;
-}
-.selection-source-status {
-  margin-top: 6px;
-  font-size: 12px;
-  font-weight: 700;
-}
-.selection-source-status.is-live { color: #166534; }
-.selection-source-status.is-fallback { color: #92400e; }
-.selection-source-status.is-unknown { color: #64748b; }
-.airport-pages-links {
-  margin-top: 6px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.airport-pages-links a {
-  font-size: 12px;
-  color: #1d4ed8;
-  text-decoration: none;
-}
-.airport-pages-links a:hover {
-  text-decoration: underline;
+  padding: 20px;
+  margin-bottom: 14px;
 }
 .card-head {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 6px;
+  margin-bottom: 10px;
 }
 .card-head h2 {
   margin: 0;
@@ -174,18 +152,19 @@ body {
 .muted {
   margin: 0 0 12px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
+  line-height: 1.55;
 }
-
 .chip {
   margin-left: auto;
   border-radius: 999px;
-  padding: 5px 10px;
+  padding: 5px 11px;
   font-size: 11px;
   font-weight: 700;
   color: #334155;
   background: #f1f5f9;
   border: 1px solid #cbd5e1;
+  white-space: nowrap;
 }
 .chip-live {
   color: #166534;
@@ -197,88 +176,100 @@ body {
   background: #fef3c7;
   border-color: #fcd34d;
 }
-
+/* ── RESULTS CARD ── */
+.results-card { }
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 10px;
+  grid-template-columns: 1fr;
+  gap: 0;
 }
+
+/* ── WAIT TIME ROWS — big colored blocks, easy to read ── */
 .airport-card {
-  border: 1px solid #dbeafe;
-  background: #f8fbff;
-  border-radius: 12px;
-  padding: 10px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  width: 100%;
 }
 .airport-card h3 {
-  margin: 0 0 6px;
-  font-size: 16px;
-  font-weight: 800;
-  color: #1e3a8a;
+  margin: 0 0 14px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
 }
 .checkpoint-row {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
   align-items: center;
-  border-top: 1px dashed #dbeafe;
-  padding: 7px 0;
-  font-size: 13px;
+  border-radius: 14px;
+  padding: 14px 20px;
+  margin-bottom: 10px;
+  gap: 12px;
 }
-.checkpoint-row:first-of-type { border-top: 0; }
+.checkpoint-row.tier-low      { background: #dcfce7; }
+.checkpoint-row.tier-med      { background: #fef9c3; }
+.checkpoint-row.tier-high     { background: #ffedd5; }
+.checkpoint-row.tier-critical { background: #fee2e2; }
+.checkpoint-row.tier-closed   { background: #f1f5f9; }
 .checkpoint-name {
   flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
   min-width: 0;
   word-break: break-word;
+}
+.wait-display {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.wait-number {
+  font-size: 32px;
+  font-weight: 900;
   color: #0f172a;
+  line-height: 1;
 }
-.wait-pill {
-  white-space: nowrap;
-  border-radius: 999px;
-  padding: 3px 8px;
-  font-size: 12px;
-  font-weight: 800;
-  background: #dcfce7;
-  color: #166534;
+.wait-unit {
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
 }
-.wait-pill.low {
-  background: #dcfce7;
-  color: #166534;
-}
-.wait-pill.closed {
-  background: #e2e8f0;
-  color: #334155;
-}
-.wait-pill.med {
-  background: #fef3c7;
-  color: #92400e;
-}
-.wait-pill.high {
-  background: #ffedd5;
-  color: #c2410c;
-}
-.wait-pill.critical {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-.updated-meta {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed #dbeafe;
-  font-size: 11px;
+.wait-closed-label {
+  font-size: 16px;
+  font-weight: 700;
   color: #64748b;
 }
+.updated-meta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #64748b;
+  text-align: right;
+}
+/* ── SOURCE STATUS ── */
+.selection-source-status {
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.selection-source-status.is-live    { color: #166534; }
+.selection-source-status.is-fallback { color: #92400e; }
+.selection-source-status.is-unknown  { color: #64748b; }
 
+/* ── CHART ── */
+.chart-empty {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 8px;
+}
 .controls {
   display: flex;
   align-items: center;
   gap: 8px;
   margin: 8px 0 12px;
 }
-.controls label {
-  font-size: 13px;
-  font-weight: 700;
-  color: #334155;
-}
+.controls label { font-size: 13px; font-weight: 700; color: #334155; }
 select {
   border-radius: 10px;
   border: 1px solid #cbd5e1;
@@ -289,37 +280,76 @@ select {
   min-width: 100px;
 }
 
+/* ── COMING SOON / PIPELINE ── */
 #pipeline-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 10px;
 }
 .pipeline-item {
-  border: 1px solid #fde68a;
-  background: #fffbeb;
-  border-radius: 12px;
-  padding: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
+.pipeline-icon { font-size: 28px; flex-shrink: 0; }
+.pipeline-info { flex: 1; min-width: 0; }
+.pipeline-name { font-weight: 700; font-size: 15px; color: #0f172a; }
+.pipeline-note { font-size: 13px; color: #64748b; margin-top: 3px; }
 .status-badge {
-  display: inline-block;
-  margin-top: 6px;
   border-radius: 999px;
-  padding: 4px 9px;
-  font-size: 11px;
-  font-weight: 800;
-  color: #92400e;
-  background: #fef3c7;
-  border: 1px solid #fcd34d;
-}
-
-.ad-slot {
-  margin: 0 0 12px;
-}
-.ad-label {
-  color: #64748b;
+  padding: 5px 12px;
   font-size: 12px;
-  margin: 0 0 5px;
+  font-weight: 700;
+  color: #1d4ed8;
+  background: #dbeafe;
+  border: 1px solid #93c5fd;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
+/* ── CONTENT / SEO CARD ── */
+.content-card { }
+.content-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.content-columns h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: #1e293b;
+}
+.content-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #334155;
+  line-height: 1.65;
+  font-size: 14px;
+}
+.content-list a { color: #1d4ed8; text-decoration: none; }
+.content-list a:hover { text-decoration: underline; }
+
+/* SEO airport-page links (below hero, small) */
+.airport-pages-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+.airport-pages-links a {
+  font-size: 12px;
+  color: #64748b;
+  text-decoration: none;
+}
+.airport-pages-links a:hover { color: #1d4ed8; text-decoration: underline; }
+
+/* ── AD SLOTS ── */
+.ad-slot { margin: 0 0 14px; }
+.ad-label { color: #64748b; font-size: 12px; margin: 0 0 5px; }
 .ad-slot ins {
   min-height: 90px;
   border-radius: 12px;
@@ -346,9 +376,9 @@ select {
   padding: 14px;
 }
 .sponsor-cta:hover { background: #bbf7d0; }
-
+/* ── FOOTER ── */
 .footer {
-  max-width: 1120px;
+  max-width: 960px;
   margin: 8px auto 24px;
   padding: 0 14px;
   color: var(--muted);
@@ -362,15 +392,27 @@ select {
   gap: 8px;
   align-items: center;
 }
-.footer-links a {
-  color: #334155;
-  text-decoration: none;
-}
+.footer-links a { color: #334155; text-decoration: none; }
 .footer-links a:hover { text-decoration: underline; }
-.header-link {
-  color: #dbeafe;
-  text-decoration: none;
-}
+
+/* ── LEGAL PAGES ── */
+.header-link { color: #dbeafe; text-decoration: none; }
 .header-link:hover { text-decoration: underline; }
 .legal-card { max-width: 760px; margin: 0 auto; }
 .legal-list { margin: 0; padding-left: 18px; color: #334155; line-height: 1.6; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 700px) {
+  .hero-headline { font-size: 26px; }
+  .hero-sub { font-size: 15px; }
+  .airport-search-hero { font-size: 16px; padding: 14px 16px; }
+  .airport-chips-hero .airport-chip { font-size: 13px; padding: 9px 15px; }
+  .wait-number { font-size: 26px; }
+  .content-columns { grid-template-columns: 1fr; }
+  .pipeline-item { flex-wrap: wrap; }
+}
+@media (max-width: 480px) {
+  .hero-section { padding: 32px 16px 24px; }
+  .card { padding: 16px; }
+  .checkpoint-row { padding: 12px 14px; }
+}
