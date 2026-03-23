@@ -40,6 +40,7 @@ LIVE_AIRPORTS = {
     "DFW": {"name": "Dallas/Fort Worth International (DFW)", "mode": "LIVE_KEY_EMBEDDED"},
     "LAX": {"name": "Los Angeles International (LAX)", "mode": "LIVE_PUBLIC"},
     "JFK": {"name": "John F. Kennedy International (JFK)", "mode": "LIVE_PUBLIC"},
+    "EWR": {"name": "Newark Liberty International (EWR)", "mode": "LIVE_PUBLIC"},
 }
 AIRPORT_FACTORS = {
     "ATL": 1.25, "BOS": 1.05, "CLT": 1.0, "DEN": 1.15, "DFW": 1.2, "DTW": 0.95,
@@ -703,24 +704,22 @@ def fetch_lax_rows() -> List[Dict]:
     return rows
 
 
-_JFK_GQL = "https://api.jfkairport.com/graphql"
-_JFK_QUERY = '{ securityWaitTimes(airportCode: "JFK") { checkPoint waitTime terminal } }'
+_PANYNJ_GQL = "https://api.jfkairport.com/graphql"
 
 
-def fetch_jfk_rows() -> List[Dict]:
-    """GraphQL endpoint operated by PANYNJ (Port Authority of NY/NJ).
-    No authentication required. waitTime field is already in minutes.
-    """
+def _fetch_panynj_rows(airport_code: str) -> List[Dict]:
+    """Shared PANYNJ GraphQL fetcher for JFK and EWR."""
+    query = f'{{ securityWaitTimes(airportCode: "{airport_code}") {{ checkPoint waitTime terminal }} }}'
     resp = requests.post(
-        _JFK_GQL,
-        json={"query": _JFK_QUERY},
+        _PANYNJ_GQL,
+        json={"query": query},
         headers={**UA, "Content-Type": "application/json", "Accept": "application/json"},
         timeout=20,
     )
     resp.raise_for_status()
     items = resp.json().get("data", {}).get("securityWaitTimes", [])
     if not items:
-        raise RuntimeError("JFK: empty securityWaitTimes in response")
+        raise RuntimeError(f"{airport_code}: empty securityWaitTimes in response")
     stamp = utc_now().isoformat()
     rows: List[Dict] = []
     for item in items:
@@ -729,13 +728,23 @@ def fetch_jfk_rows() -> List[Dict]:
         wait_minutes = float(item.get("waitTime") or 0)
         label = f"Terminal {terminal} — {checkpoint}" if terminal else checkpoint
         rows.append({
-            "airport_code": "JFK",
+            "airport_code": airport_code,
             "checkpoint": label,
             "wait_minutes": wait_minutes,
-            "source": _JFK_GQL,
+            "source": _PANYNJ_GQL,
             "captured_at": stamp,
         })
     return rows
+
+
+def fetch_jfk_rows() -> List[Dict]:
+    """PANYNJ GraphQL — JFK terminals 1, 4, 5, 7, 8. No auth required."""
+    return _fetch_panynj_rows("JFK")
+
+
+def fetch_ewr_rows() -> List[Dict]:
+    """PANYNJ GraphQL — EWR terminals A, B, C. Same backend as JFK."""
+    return _fetch_panynj_rows("EWR")
 
 
 def collect_once() -> Dict:
@@ -750,6 +759,7 @@ def collect_once() -> Dict:
         ("DFW", fetch_dfw_rows),
         ("LAX", fetch_lax_rows),
         ("JFK", fetch_jfk_rows),
+        ("EWR", fetch_ewr_rows),
     ]
     all_rows = []
     for code, fn in collectors:
