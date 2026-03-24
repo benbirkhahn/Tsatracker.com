@@ -41,6 +41,7 @@ LIVE_AIRPORTS = {
     "LAX": {"name": "Los Angeles International (LAX)", "mode": "LIVE_PUBLIC"},
     "JFK": {"name": "John F. Kennedy International (JFK)", "mode": "LIVE_PUBLIC"},
     "EWR": {"name": "Newark Liberty International (EWR)", "mode": "LIVE_PUBLIC"},
+    "LGA": {"name": "LaGuardia Airport (LGA)", "mode": "LIVE_PUBLIC"},
 }
 AIRPORT_FACTORS = {
     "ATL": 1.25, "BOS": 1.05, "CLT": 1.0, "DEN": 1.15, "DFW": 1.2, "DTW": 0.95,
@@ -205,7 +206,7 @@ def home_page_seo() -> Dict:
     return build_page_seo(
         title=f"Live TSA Wait Times — {codes} | TSA Tracker",
         description=(
-            "Track live TSA wait times for major US airports including PHL, MIA, ORD, CLT, MCO, JAX, DFW, LAX, JFK and EWR. "
+            "Track live TSA wait times for major US airports including PHL, MIA, ORD, CLT, MCO, JAX, DFW, LAX, JFK, EWR and LGA. "
             "Source-labeled feeds, trend charts, and fast airport lookup."
         ),
         canonical_path="/",
@@ -762,7 +763,7 @@ _PANYNJ_GQL = "https://api.jfkairport.com/graphql"
 
 
 def _fetch_panynj_rows(airport_code: str) -> List[Dict]:
-    """Shared PANYNJ GraphQL fetcher for JFK and EWR."""
+    """Shared PANYNJ GraphQL fetcher for JFK, EWR, and LGA."""
     query = f'{{ securityWaitTimes(airportCode: "{airport_code}") {{ checkPoint waitTime terminal }} }}'
     resp = requests.post(
         _PANYNJ_GQL,
@@ -801,6 +802,11 @@ def fetch_ewr_rows() -> List[Dict]:
     return _fetch_panynj_rows("EWR")
 
 
+def fetch_lga_rows() -> List[Dict]:
+    """PANYNJ GraphQL — LGA terminals A, B, C. Same backend as JFK/EWR."""
+    return _fetch_panynj_rows("LGA")
+
+
 def collect_once() -> Dict:
     result = {"ok": [], "errors": []}
     collectors = [
@@ -814,6 +820,7 @@ def collect_once() -> Dict:
         ("LAX", fetch_lax_rows),
         ("JFK", fetch_jfk_rows),
         ("EWR", fetch_ewr_rows),
+        ("LGA", fetch_lga_rows),
     ]
     all_rows = []
     for code, fn in collectors:
