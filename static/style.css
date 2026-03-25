@@ -6,7 +6,7 @@
   --border:   #22222e;
   --border2:  #2c2c3a;
   --text:     #e8e8f0;
-  --muted:    #55556a;
+  --muted:    #9090aa;
   --amber:    #f59e0b;
   --amber-dim:#f59e0b22;
   --green:    #4ade80;
@@ -68,7 +68,7 @@ body {
 .header-nav { display: flex; align-items: center; gap: 2px; }
 .header-nav-link {
   padding: 6px 12px; border-radius: 7px;
-  font-size: 13px; font-weight: 500; color: var(--muted);
+  font-size: 13px; font-weight: 500; color: #b0b0cc;
   text-decoration: none; transition: color .12s, background .12s;
 }
 .header-nav-link:hover { color: var(--text); background: var(--surface2); }
@@ -99,7 +99,7 @@ body {
 }
 .hero-headline em { color: var(--amber); font-style: normal; }
 .hero-sub {
-  font-size: 15px; color: var(--muted); line-height: 1.55;
+  font-size: 15px; color: #a8a8c0; line-height: 1.55;
   margin-bottom: 32px; max-width: 480px;
 }
 
@@ -126,12 +126,12 @@ body {
 .airport-chips-hero { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
 .airport-chip {
   padding: 7px 14px; border-radius: 8px;
-  background: var(--surface); border: 1.5px solid var(--border2);
+  background: var(--surface); border: 1.5px solid #383852;
   font-family: var(--mono); font-size: 12px; font-weight: 600;
-  color: var(--muted); cursor: pointer; letter-spacing: .03em;
+  color: #c0c0d8; cursor: pointer; letter-spacing: .03em;
   transition: all .12s; white-space: nowrap;
 }
-.airport-chip:hover { color: var(--text); background: var(--surface2); }
+.airport-chip:hover { color: #e8e8f0; background: var(--surface2); border-color: #4a4a6a; }
 .airport-chip.active {
   background: var(--amber-dim); border-color: var(--amber);
   color: var(--amber);
@@ -227,7 +227,7 @@ body {
   text-transform: uppercase; letter-spacing: .07em;
   padding: 3px 9px; border-radius: 5px; white-space: nowrap;
 }
-.lane-std    { background: #1e1e2a; color: #6666aa; border: 1px solid #2a2a40; }
+.lane-std    { background: #1e1e2a; color: #9090cc; border: 1px solid #2a2a40; }
 .lane-pre    { background: #0f2040; color: #93c5fd; border: 1px solid #1e3a5f; }
 .lane-clr    { background: #2a1500; color: #fb923c; border: 1px solid #451a03; }
 .lane-clrpre { background: #0a2020; color: #34d399; border: 1px solid #064e3b; }
