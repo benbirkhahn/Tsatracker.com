@@ -1148,6 +1148,9 @@ def robots_txt():
     )
     return Response(body, mimetype="text/plain")
 
+@app.route("/google708d930580927d7c.html")
+def google_verify():
+    return send_from_directory(os.path.dirname(os.path.abspath(__file__)), "google708d930580927d7c.html", mimetype="text/html")
 
 @app.route("/sitemap.xml")
 def sitemap_xml():
