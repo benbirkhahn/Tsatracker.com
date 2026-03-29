@@ -1204,9 +1204,6 @@ def api_collect_now():
     return jsonify(result)
 
 
-@app.route("/ads.txt")
-def ads_txt():
-    return send_from_directory(os.path.dirname(os.path.abspath(__file__)), "ads.txt", mimetype="text/plain")
 
 
 if __name__ == "__main__":
