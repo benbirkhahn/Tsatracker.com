@@ -12,7 +12,7 @@ import requests
 from flask import Flask, Response, jsonify, render_template, request, send_from_directory
 
 APP_TZ = timezone.utc
-DB_PATH = os.getenv("DB_PATH", "data.db")
+DB_PATH = os.getenv("DB_PATH", "/data/data.db" if os.path.isdir("/data") else "data.db")
 POLL_SECONDS = int(os.getenv("POLL_SECONDS", "120"))
 COLLECT_NOW_TOKEN = os.getenv("COLLECT_NOW_TOKEN")
 ENABLE_POLLER = os.getenv("ENABLE_POLLER", "true").lower() == "true"
