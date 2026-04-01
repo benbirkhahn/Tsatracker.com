@@ -278,11 +278,13 @@ function renderAirportChips(payload, filterText = "") {
   const filtered = entries.filter(([code, info]) =>
     !q || code.toLowerCase().includes(q) || info.name.toLowerCase().includes(q)
   );
-  filtered.forEach(([code]) => {
+  filtered.forEach(([code, info]) => {
     const btn = document.createElement("button");
     btn.className = `airport-chip${selectedAirportCode === code ? " active" : ""}`;
     btn.type = "button";
     btn.textContent = code;
+    btn.title = `${code} TSA wait times — ${info.name}`;
+    btn.setAttribute("aria-label", `View live TSA wait times at ${info.name} (${code})`);
     btn.addEventListener("click", () => selectAirport(code));
     host.appendChild(btn);
   });

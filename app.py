@@ -193,12 +193,11 @@ def build_page_seo(title: str, description: str, canonical_path: str) -> Dict:
 
 
 def home_page_seo() -> Dict:
-    codes = " · ".join(LIVE_AIRPORTS.keys())
     return build_page_seo(
-        title=f"Live TSA Wait Times — {codes} | TSA Tracker",
+        title="Live TSA Wait Times at Major US Airports | TSA Tracker",
         description=(
-            "Track live TSA wait times for major US airports including PHL, MIA, ORD, CLT, MCO, JAX, DFW, LAX, JFK, EWR, LGA and SEA. "
-            "Source-labeled feeds, trend charts, and fast airport lookup."
+            "Real-time TSA security wait times for PHL, MIA, ORD, LAX, JFK, EWR, LGA, SEA, DFW and more. "
+            "Live airport security line data pulled directly from official airport systems — updated every 2 minutes."
         ),
         canonical_path="/",
     )
@@ -207,9 +206,10 @@ def home_page_seo() -> Dict:
 def airport_page_seo(code: str, airport_name: str) -> Dict:
     clean_name = airport_name.split("(")[0].strip()
     return build_page_seo(
-        title=f"{code} TSA Wait Times (Live) | {clean_name} | TSA Tracker",
+        title=f"{code} TSA Wait Times — Live Security Line Data | {clean_name} | TSA Tracker",
         description=(
-            f"Live TSA wait times for {code} ({clean_name}) with checkpoint-level updates and recent trend history."
+            f"Live TSA security checkpoint wait times at {clean_name} ({code}). "
+            f"Real-time airport security line data pulled directly from official {code} airport systems and updated every 2 minutes."
         ),
         canonical_path=airport_seo_slug(code),
     )
