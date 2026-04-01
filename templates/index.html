@@ -58,11 +58,12 @@
       </div>
       {% if is_airport_page %}
       <h1 class="hero-headline">{{ initial_airport_code }} TSA <em>Wait Times</em></h1>
-      <p class="hero-sub">How long is the security line at {{ airport_display_name }}? Data pulled directly from airport systems — not estimates. Updated every ~2 minutes.</p>
+      <p class="hero-sub">How long is the security line at {{ airport_display_name }}? Real-time TSA checkpoint data pulled directly from official airport systems — not estimates. Updated every ~2 minutes.</p>
       {% else %}
-      <h1 class="hero-headline">How long is<br>the <em>TSA line?</em></h1>
-      <p class="hero-sub">Wait times pulled directly from airport systems — not estimates, not models. Pick your airport.</p>
+      <h1 class="hero-headline">Live TSA Wait Times<br>at Major <em>US Airports</em></h1>
+      <p class="hero-sub">How long is the TSA line right now? Real-time airport security line wait times pulled directly from official airport systems — not estimates, not models. Pick your airport below.</p>
       {% endif %}
+      <p class="hero-trust">⟳ Updated about every 2 minutes — data from official airport systems</p>
 
       <div class="hero-search-wrap">
         <span class="search-prefix">⌕</span>
@@ -102,6 +103,7 @@
         <h2>Wait History</h2>
         <span class="chip">Last 12 hours</span>
       </div>
+      <p class="chart-planning-tip">Use the history below to choose when to arrive at the airport. If you see consistent red between 4–7 PM, plan to arrive earlier — or check a less-busy checkpoint.</p>
       <div class="controls">
         <label for="airport-select">Airport</label>
         <select id="airport-select"></select>
@@ -137,50 +139,101 @@
     <!-- ── SEO CONTENT ── -->
     {% if is_airport_page %}
     <section class="card content-card">
-      <h2>About {{ initial_airport_code }} Security Wait Times</h2>
-      <p class="muted">TSA Tracker provides live checkpoint wait times for {{ airport_display_name }} ({{ initial_airport_code }}). Data comes directly from official airport security feeds and refreshes every ~2 minutes.</p>
-      <p class="muted" style="margin-top:8px;">Wait times vary by checkpoint and time of day. Use the live data above to decide when to head to the airport.</p>
+      <h2>About {{ initial_airport_code }} TSA Security Wait Times</h2>
+      <p class="muted">TSA Tracker provides live TSA checkpoint wait times for {{ airport_display_name }} ({{ initial_airport_code }}). Data is pulled directly from official {{ initial_airport_code }} airport security feeds — not estimates — and refreshes every ~2 minutes. Use the live data and 12-hour history chart above to plan when to head to the airport.</p>
+
       <div class="content-columns">
         <div>
           <h3>Tips for {{ initial_airport_code }} travelers</h3>
           <ul class="content-list">
-            <li>Green = short wait. Yellow = moderate. Red = get there early!</li>
-            <li>Check the chart above to see how busy it's been over the last 12 hours.</li>
-            <li>Wait times refresh every ~2 minutes — reload for the latest.</li>
+            <li>Green = short wait (under 15 min). Yellow = moderate. Red = long lines — arrive earlier than planned.</li>
+            <li>Use the history chart to spot peak hours at {{ initial_airport_code }} and choose a less busy time to pass through security.</li>
+            <li>TSA wait times at {{ initial_airport_code }} refresh every ~2 minutes — reload for the very latest reading.</li>
+            <li>If {{ initial_airport_code }} shows PreCheck or CLEAR lane data, those lines are almost always shorter than the standard lane.</li>
           </ul>
         </div>
         <div>
-          <h3>Other live airports</h3>
+          <h3>See live TSA wait times for other airports</h3>
+          <p class="muted" style="margin-bottom:8px;">Flying from a different city? Check real-time security line wait times at other major US airports:</p>
           <ul class="content-list">
             {% for code, info in live_airports.items() %}
             {% if code != initial_airport_code %}
-            <li><a href="{{ airport_pages | selectattr('code', 'equalto', code) | map(attribute='href') | first }}">{{ code }} — {{ info.name }}</a></li>
+            <li><a href="{{ airport_pages | selectattr('code', 'equalto', code) | map(attribute='href') | first }}">{{ code }} TSA wait times</a> — {{ info.name }}</li>
             {% endif %}
             {% endfor %}
           </ul>
+        </div>
+      </div>
+
+      <div class="faq-section">
+        <h2>{{ initial_airport_code }} TSA Wait Times — FAQ</h2>
+        <div class="faq-item">
+          <h3>How accurate is the {{ initial_airport_code }} TSA wait time data?</h3>
+          <p>TSA Tracker pulls data directly from {{ airport_display_name }}'s official airport security feed, not crowdsourced estimates. The checkpoint readings reflect actual measured wait times updated approximately every 2 minutes.</p>
+        </div>
+        <div class="faq-item">
+          <h3>What time should I get to {{ initial_airport_code }}?</h3>
+          <p>Check the 12-hour history chart above to see when {{ initial_airport_code }} TSA lines are typically busiest. Generally, TSA recommends arriving 2 hours before domestic flights and 3 hours before international — but if our live data shows long lines during your window, add extra time.</p>
+        </div>
+        <div class="faq-item">
+          <h3>What are the peak hours at {{ initial_airport_code }} security?</h3>
+          <p>Peak TSA wait times at most airports fall between 5–9 AM and 4–7 PM on weekdays, and Sunday afternoons. Use the history chart on this page to see the specific pattern for {{ initial_airport_code }} today.</p>
+        </div>
+        <div class="faq-item">
+          <h3>How often does TSA Tracker update {{ initial_airport_code }} wait times?</h3>
+          <p>{{ initial_airport_code }} TSA wait times on TSA Tracker update approximately every 2 minutes, pulling fresh data directly from the airport's live security feed.</p>
         </div>
       </div>
     </section>
     {% else %}
     <section class="card content-card">
       <h2>About TSA Tracker</h2>
-      <p class="muted">TSA Tracker shows live TSA security line wait times for major US airports. Data comes directly from official airport security feeds and updates approximately every 2 minutes.</p>
+      <p class="muted">TSA Tracker shows real-time TSA security line wait times for major US airports. Unlike apps that use estimates or crowd-sourced reports, our data comes directly from official airport security feeds and refreshes approximately every 2 minutes — so you always see the actual airport security line wait times, not guesses.</p>
       <div class="content-columns">
         <div>
           <h3>How it works</h3>
           <ul class="content-list">
-            <li>Search or tap an airport above to see how long the security line is right now.</li>
+            <li>Search or tap an airport above to see how long the TSA security line is right now.</li>
             <li>Green = short wait (under 15 min). Yellow = moderate. Red = long — plan ahead!</li>
-            <li>Check the chart to see how busy it's been over the last 12 hours.</li>
+            <li>Check the 12-hour history chart to see peak times and decide when to head to the airport.</li>
           </ul>
         </div>
         <div>
           <h3>Live airports</h3>
           <ul class="content-list">
-            {% for p in airport_pages %}
-            <li><a href="{{ p.href }}">{{ p.code }} wait times</a> — {{ live_airports[p.code].name }}</li>
-            {% endfor %}
+            <li><a href="/airports/phl-tsa-wait-times">TSA checkpoint wait times at Philadelphia International (PHL)</a></li>
+            <li><a href="/airports/mia-tsa-wait-times">TSA checkpoint wait times at Miami International (MIA)</a></li>
+            <li><a href="/airports/ord-tsa-wait-times">TSA security lines at Chicago O'Hare (ORD)</a></li>
+            <li><a href="/airports/lax-tsa-wait-times">TSA security line wait times at Los Angeles International (LAX)</a></li>
+            <li><a href="/airports/jfk-tsa-wait-times">Live TSA wait times at John F. Kennedy International (JFK)</a></li>
+            {% for p in airport_pages %}{% if p.code not in ['PHL','MIA','ORD','LAX','JFK'] %}
+            <li><a href="{{ p.href }}">{{ p.code }} TSA wait times</a> — {{ live_airports[p.code].name }}</li>
+            {% endif %}{% endfor %}
           </ul>
+        </div>
+      </div>
+
+      <div class="faq-section">
+        <h2>Frequently Asked Questions</h2>
+        <div class="faq-item">
+          <h3>How accurate are TSA wait time apps?</h3>
+          <p>TSA Tracker pulls data directly from official airport systems — not crowdsourced reports or estimates. This means our wait times reflect actual checkpoint readings from the airport's own infrastructure, updated every ~2 minutes.</p>
+        </div>
+        <div class="faq-item">
+          <h3>How often are TSA wait times updated?</h3>
+          <p>TSA Tracker refreshes every approximately 2 minutes, pulling the latest readings from each airport's live data feed. The timestamp shown on each checkpoint tells you exactly how fresh the data is.</p>
+        </div>
+        <div class="faq-item">
+          <h3>What time should I get to the airport?</h3>
+          <p>It depends on the airport and time of day. Use the 12-hour history chart above to see when lines peak at your airport. As a general rule, TSA recommends arriving 2 hours before domestic flights and 3 hours before international — but if you see red in the chart during your travel window, add extra time.</p>
+        </div>
+        <div class="faq-item">
+          <h3>Does TSA PreCheck make a big difference?</h3>
+          <p>Yes — TSA PreCheck lines are almost always shorter. Where airports report lane-level data, TSA Tracker shows separate wait times for Standard, PreCheck, and CLEAR lanes so you can compare directly.</p>
+        </div>
+        <div class="faq-item">
+          <h3>Which airports have live TSA wait time data?</h3>
+          <p>TSA Tracker currently has live feeds for PHL, MIA, ORD, LAX, JFK, EWR, LGA, SEA, DFW, CLT, MCO, and JAX. We're actively working to add more airports — check the "Coming Soon" section for what's in progress.</p>
         </div>
       </div>
     </section>
@@ -235,6 +288,20 @@
       }
     }
   </script>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "TSA Tracker",
+      "url": "{{ seo.site_url }}",
+      "description": "Real-time TSA security wait times for major US airports, pulled directly from official airport systems.",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer support",
+        "url": "{{ seo.site_url }}/contact"
+      }
+    }
+  </script>
   {% if is_airport_page %}
   <script type="application/ld+json">
     {
@@ -253,6 +320,95 @@
         "name": "TSA Tracker",
         "url": "{{ seo.site_url }}"
       }
+    }
+  </script>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How accurate is the {{ initial_airport_code }} TSA wait time data?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "TSA Tracker pulls data directly from {{ airport_display_name }}'s official airport security feed, not crowdsourced estimates. The checkpoint readings reflect actual measured wait times updated approximately every 2 minutes."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What time should I get to {{ initial_airport_code }}?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Check the 12-hour history chart on TSA Tracker to see when {{ initial_airport_code }} TSA lines are typically busiest. Generally, TSA recommends arriving 2 hours before domestic flights and 3 hours before international — but if live data shows long lines during your window, add extra time."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What are the peak hours at {{ initial_airport_code }} security?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Peak TSA wait times at most airports fall between 5–9 AM and 4–7 PM on weekdays, and Sunday afternoons. Use the history chart on TSA Tracker to see the specific pattern for {{ initial_airport_code }} today."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How often does TSA Tracker update {{ initial_airport_code }} wait times?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "{{ initial_airport_code }} TSA wait times on TSA Tracker update approximately every 2 minutes, pulling fresh data directly from the airport's live security feed."
+          }
+        }
+      ]
+    }
+  </script>
+  {% else %}
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How accurate are TSA wait time apps?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "TSA Tracker pulls data directly from official airport systems — not crowdsourced reports or estimates. Wait times reflect actual checkpoint readings from the airport's own infrastructure, updated every ~2 minutes."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How often are TSA wait times updated?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "TSA Tracker refreshes every approximately 2 minutes, pulling the latest readings from each airport's live data feed."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What time should I get to the airport?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It depends on the airport and time of day. Use the 12-hour history chart to see when lines peak at your airport. TSA recommends arriving 2 hours before domestic flights and 3 hours before international."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does TSA PreCheck make a big difference?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes — TSA PreCheck lines are almost always shorter. Where airports report lane-level data, TSA Tracker shows separate wait times for Standard, PreCheck, and CLEAR lanes so you can compare directly."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which airports have live TSA wait time data?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "TSA Tracker currently has live feeds for PHL, MIA, ORD, LAX, JFK, EWR, LGA, SEA, DFW, CLT, MCO, and JAX. More airports are actively being added."
+          }
+        }
+      ]
     }
   </script>
   {% endif %}

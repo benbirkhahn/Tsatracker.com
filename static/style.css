@@ -360,6 +360,27 @@ select {
   white-space: nowrap; flex-shrink: 0;
 }
 
+/* ── HERO TRUST LINE ── */
+.hero-trust {
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+  letter-spacing: .04em; margin: 10px 0 0; opacity: .7;
+}
+
+/* ── CHART PLANNING TIP ── */
+.chart-planning-tip {
+  font-size: 12px; color: var(--muted); margin: 0 0 12px; line-height: 1.6;
+}
+
+/* ── FAQ SECTION ── */
+.faq-section { margin-top: 24px; border-top: 1px solid var(--border); padding-top: 20px; }
+.faq-section h2 { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 16px; }
+.faq-item { margin-bottom: 16px; }
+.faq-item h3 {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  text-transform: none; letter-spacing: 0; margin-bottom: 4px; font-family: inherit;
+}
+.faq-item p { font-size: 13px; color: var(--muted); line-height: 1.65; margin: 0; }
+
 /* ── CONTENT / SEO CARD ── */
 .content-card h2 { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
 .content-card h3 {
