@@ -807,7 +807,9 @@ def fetch_den_rows() -> List[Dict]:
             out.append({
                 "checkpoint": f"{loc_title} - {lane_title}",
                 "wait_minutes": mins,
-                "fetched_at": stamp
+                "airport_code": "DEN",
+                "source": "flyfruition",
+                "captured_at": stamp,
             })
     return out
 
