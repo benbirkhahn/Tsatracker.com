@@ -773,6 +773,45 @@ def fetch_lax_rows() -> List[Dict]:
 _PANYNJ_GQL = "https://api.jfkairport.com/graphql"
 
 
+
+def fetch_den_rows() -> List[Dict]:
+    """FlyFruition API for Denver (DEN) - Requires x-api-key."""
+    key = os.environ.get("DEN_API_KEY")
+    if not key:
+        return []
+
+    url = "https://app.flyfruition.com/api/public/tsa"
+    headers = {**UA, "x-api-key": key}
+    resp = requests.get(url, headers=headers, timeout=20)
+    resp.raise_for_status()
+    payload = resp.json()
+
+    out = []
+    stamp = utc_now().isoformat()
+    for location in payload:
+        loc_title = location.get("title", "Security")
+        for lane in location.get("lanes", []):
+            if lane.get("hide_lane", False):
+                continue
+
+            lane_title = lane.get("title", "Standard")
+            wait_str = str(lane.get("wait_time", "0"))
+
+            m = re.search(r"(\d+)-(\d+)", wait_str)
+            if m:
+                mins = int(m.group(2))
+            else:
+                m = re.search(r"(\d+)", wait_str)
+                mins = int(m.group(1)) if m else 0
+
+            out.append({
+                "checkpoint": f"{loc_title} - {lane_title}",
+                "wait_minutes": mins,
+                "fetched_at": stamp
+            })
+    return out
+
+
 def _fetch_panynj_rows(airport_code: str) -> List[Dict]:
     """Shared PANYNJ GraphQL fetcher for JFK, EWR, and LGA.
 
@@ -914,6 +953,7 @@ def collect_once() -> Dict:
         ("EWR", fetch_ewr_rows),
         ("LGA", fetch_lga_rows),
         ("SEA", fetch_sea_rows),
+        ("DEN", fetch_den_rows),
     ]
     all_rows = []
     for code, fn in collectors:
