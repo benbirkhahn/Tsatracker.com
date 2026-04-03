@@ -123,7 +123,7 @@ _clt_cache = {
 }
 _mco_cache = {
     "endpoint": "https://api.goaa.aero/wait-times/checkpoint/MCO",
-    "key": os.getenv("MCO_API_KEY", "8eaac7209c824616a8fe58d22268cd59"),
+    "key": os.getenv("MCO_API_KEY"),
     "version": os.getenv("MCO_API_VERSION", "140"),
 }
 _poll_lock = threading.Lock()
@@ -674,8 +674,8 @@ def fetch_jax_rows() -> List[Dict]:
 
 _DFW_API = "https://api.dfwairport.mobi/wait-times/checkpoint/DFW"
 _DFW_HEADERS = {
-    "Api-Key": "87856E0636AA4BF282150FCBE1AD63DE",
-    "Api-Version": "170",
+    "Api-Key": os.getenv("DFW_API_KEY"),
+    "Api-Version": os.getenv("DFW_API_VERSION", "170"),
     "Accept": "application/json",
 }
 
