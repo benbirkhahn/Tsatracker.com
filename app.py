@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import logging
+import hmac
 import os
 import re
 import sqlite3
@@ -1344,10 +1345,13 @@ def healthz():
 @app.route("/api/collect-now", methods=["POST"])
 def api_collect_now():
     expected = COLLECT_NOW_TOKEN
-    if expected:
-        provided = request.headers.get("x-collect-token")
-        if provided != expected:
-            return jsonify({"error": "Unauthorized"}), 401
+    if not expected:
+        return jsonify({"error": "Forbidden"}), 403
+
+    provided = request.headers.get("x-collect-token")
+    if not provided or not hmac.compare_digest(provided, expected):
+        return jsonify({"error": "Unauthorized"}), 401
+
     with _poll_lock:
         result = collect_once()
     return jsonify(result)
