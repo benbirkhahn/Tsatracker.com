@@ -1077,12 +1077,28 @@ def latest_for_code(airport_code: str) -> List[Dict]:
 def normalized_current_wait_for_code(code: str) -> Dict:
     rows = latest_for_code(code)
     if rows:
-        active = [r for r in rows if float(r.get("wait_minutes", 0)) > 0]
-        sample = active if active else rows
-        values = [clamp_wait_minutes(float(r.get("wait_minutes", 0))) for r in sample]
-        standard = round(sum(values) / len(values), 1) if values else 0.0
-        has_pre = any("pre" in str(r.get("checkpoint", "")).lower() for r in rows)
-        latest_ts = max(rows, key=lambda r: r.get("captured_at", ""))["captured_at"]
+        active_values = []
+        all_values = []
+        has_pre = False
+        latest_ts = ""
+
+        for r in rows:
+            wait_val = float(r.get("wait_minutes", 0))
+            clamped_val = clamp_wait_minutes(wait_val)
+            all_values.append(clamped_val)
+            if wait_val > 0:
+                active_values.append(clamped_val)
+
+            if not has_pre and "pre" in str(r.get("checkpoint", "")).lower():
+                has_pre = True
+
+            captured_at = r.get("captured_at", "")
+            if captured_at > latest_ts:
+                latest_ts = captured_at
+
+        sample_values = active_values if active_values else all_values
+        standard = round(sum(sample_values) / len(sample_values), 1) if sample_values else 0.0
+
         return {
             "available": True,
             "sourceType": "live_direct",
