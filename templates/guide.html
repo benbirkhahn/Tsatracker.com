@@ -20,31 +20,43 @@
   {% endif %}
   <style>
     .guide-toc {
-      background: #f8f9fa;
+      background: var(--surface2);
       border-radius: 10px;
       padding: 18px 22px;
       margin: 24px 0 32px;
-      border-left: 3px solid #3b82f6;
+      border-left: 3px solid var(--amber);
     }
-    .guide-toc h3 { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; color: #6b7280; }
+    .guide-toc h3 { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; color: var(--muted); }
     .guide-toc ol { margin: 0; padding-left: 20px; }
     .guide-toc li { margin-bottom: 5px; font-size: 0.95rem; }
-    .guide-toc a { color: #3b82f6; text-decoration: none; }
+    .guide-toc a { color: var(--amber); text-decoration: none; }
     .guide-toc a:hover { text-decoration: underline; }
     .guide-tip-box {
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
+      background: var(--surface2);
+      border: 1px solid #2a2a40;
+      border-left: 3px solid var(--amber);
       border-radius: 8px;
       padding: 14px 18px;
       margin: 16px 0;
     }
-    .guide-tip-box strong { color: #1d4ed8; }
-    .guide-stat { font-size: 1.5rem; font-weight: 700; color: #3b82f6; }
+    .guide-tip-box strong { color: var(--amber); }
+    .guide-stat { font-size: 1.5rem; font-weight: 700; color: var(--amber); }
     .airport-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin: 16px 0; }
-    .airport-mini-card { background: #f8f9fa; border-radius: 8px; padding: 12px 14px; }
-    .airport-mini-card .code { font-weight: 700; font-size: 1.1rem; margin-bottom: 2px; }
-    .airport-mini-card .name { font-size: 0.85rem; color: #6b7280; margin-bottom: 6px; }
-    .airport-mini-card a { font-size: 0.85rem; color: #3b82f6; text-decoration: none; }
+    .airport-mini-card { background: var(--surface2); border: 1px solid #2a2a40; border-radius: 8px; padding: 12px 14px; }
+    .airport-mini-card .code { font-weight: 700; font-size: 1.1rem; margin-bottom: 2px; color: var(--text); }
+    .airport-mini-card .name { font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; }
+    .airport-mini-card a { font-size: 0.85rem; color: var(--amber); text-decoration: none; }
+    /* Override content-card defaults for long-form prose */
+    article.content-card h1 { color: var(--text); line-height: 1.2; }
+    article.content-card h2 { font-size: 1.35rem !important; font-family: inherit !important; text-transform: none !important; letter-spacing: 0 !important; color: var(--text) !important; }
+    article.content-card h3 { font-size: 1.05rem !important; font-family: inherit !important; text-transform: none !important; letter-spacing: 0 !important; color: var(--text) !important; }
+    article.content-card p { font-size: 0.95rem; line-height: 1.75; color: var(--text); }
+    article.content-card a { color: var(--amber); text-decoration: none; }
+    article.content-card a:hover { text-decoration: underline; }
+    article.content-card ul.content-list { font-size: 0.95rem; }
+    .faq-section h2 { font-size: 1.35rem !important; font-family: inherit !important; text-transform: none !important; letter-spacing: 0 !important; }
+    .faq-item h3 { font-size: 1rem !important; font-family: inherit !important; text-transform: none !important; letter-spacing: 0 !important; color: var(--text) !important; }
+    .faq-item p { font-size: 0.9rem !important; }
   </style>
 </head>
 <body>
@@ -66,11 +78,11 @@
     <article class="card content-card" style="max-width:800px;margin:0 auto;" itemscope itemtype="https://schema.org/Article">
 
       <div style="margin-bottom:8px;">
-        <span style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#6b7280;">Travel Guide</span>
+        <span style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);">Travel Guide</span>
       </div>
       <h1 itemprop="headline" style="font-size:2rem;font-weight:700;margin-bottom:10px;line-height:1.2;">TSA Wait Times Explained: How to Get Through Airport Security Faster in 2025</h1>
       <p class="muted" style="margin-bottom:6px;">A complete, practical guide to understanding TSA security lines, how wait times are measured, and the most effective ways to minimize your time at the checkpoint.</p>
-      <p style="font-size:0.85rem;color:#9ca3af;margin-bottom:28px;"><em>By the TSA Tracker team · Updated April 2025</em></p>
+      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:28px;"><em>By the TSA Tracker team · Updated April 2025</em></p>
 
       <div class="guide-toc">
         <h3>In This Guide</h3>
@@ -358,10 +370,10 @@
         </div>
       </div>
 
-      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:18px 22px;margin-top:36px;">
+      <div style="background:var(--surface2);border:1px solid #2a2a40;border-radius:10px;padding:18px 22px;margin-top:36px;">
         <p style="font-weight:700;margin-bottom:6px;">Ready to check your airport?</p>
-        <p>TSA Tracker shows live, official wait times for 12 major US airports. Check before you leave.</p>
-        <a href="/" style="display:inline-block;margin-top:10px;background:#22c55e;color:white;font-weight:700;padding:10px 20px;border-radius:7px;text-decoration:none;">See Live Wait Times →</a>
+        <p style="color:var(--muted);">TSA Tracker shows live, official wait times for 12 major US airports. Check before you leave.</p>
+        <a href="/" style="display:inline-block;margin-top:10px;background:var(--amber);color:#0d0d14;font-weight:700;padding:10px 20px;border-radius:7px;text-decoration:none;">See Live Wait Times →</a>
       </div>
 
     </article>

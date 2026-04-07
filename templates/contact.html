@@ -10,6 +10,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Oswald:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .content-card h1 { color: var(--text); line-height: 1.2; }
+    .content-card h2 { font-size: 1.2rem !important; font-family: inherit !important; text-transform: none !important; letter-spacing: 0 !important; color: var(--text) !important; }
+    .content-card p { font-size: 0.95rem; line-height: 1.7; color: var(--text); }
+    .content-card p.muted { color: var(--muted); }
+    .content-card a { color: var(--amber); text-decoration: none; }
+    .content-card a:hover { text-decoration: underline; }
+  </style>
 </head>
 <body>
   <header class="header">
@@ -50,9 +58,9 @@
       <h2 style="font-size:1.2rem;font-weight:700;margin:24px 0 8px;">Press and Media</h2>
       <p>Journalists or media organizations with questions about TSA Tracker, our data methodology, or airport security wait times in general are welcome to reach out via email. We're happy to provide data, context, or background for stories related to airport travel.</p>
 
-      <div style="background:#f8f9fa;border-radius:10px;padding:20px 24px;margin-top:28px;">
+      <div style="background:var(--surface2);border:1px solid #2a2a40;border-radius:10px;padding:20px 24px;margin-top:28px;">
         <p style="font-weight:600;margin-bottom:4px;">Best way to reach us:</p>
-        <p><a href="mailto:benbirkhahn10@gmail.com" style="font-size:1.05rem;">benbirkhahn10@gmail.com</a></p>
+        <p><a href="mailto:benbirkhahn10@gmail.com" style="font-size:1.05rem;color:var(--amber);">benbirkhahn10@gmail.com</a></p>
         <p class="muted" style="margin-top:6px;font-size:0.9rem;">Response time: 1–2 business days</p>
       </div>
 
