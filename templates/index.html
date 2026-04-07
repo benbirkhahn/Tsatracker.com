@@ -283,6 +283,10 @@
 
   <script>
     window.INITIAL_AIRPORT_CODE = "{{ initial_airport_code }}";
+    // Nav active state
+    document.querySelectorAll(".header-nav-link").forEach(function(a) {
+      if (a.getAttribute("href") === "/") a.classList.add("active");
+    });
   </script>
   <script src="/static/app.js"></script>
 

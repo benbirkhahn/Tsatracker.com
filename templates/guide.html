@@ -57,6 +57,14 @@
     .faq-section h2 { font-size: 1.35rem !important; font-family: inherit !important; text-transform: none !important; letter-spacing: 0 !important; }
     .faq-item h3 { font-size: 1rem !important; font-family: inherit !important; text-transform: none !important; letter-spacing: 0 !important; color: var(--text) !important; }
     .faq-item p { font-size: 0.9rem !important; }
+    @media (max-width: 600px) {
+      .airport-card-grid { grid-template-columns: 1fr 1fr; }
+      article.content-card { padding: 16px; }
+      article.content-card h1 { font-size: 1.5rem !important; }
+    }
+    @media (max-width: 400px) {
+      .airport-card-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
