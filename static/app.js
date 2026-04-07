@@ -318,6 +318,28 @@ async function selectAirport(code) {
   }
 }
 
+// Silent background refresh — only re-fetches /api/live and repaints
+// the wait-time cards for the currently selected airport.
+// Does NOT reset selection, does NOT touch the chart, does NOT scroll.
+async function silentRefresh() {
+  try {
+    const resp = await fetch("/api/live");
+    if (!resp.ok) return; // server error — skip this cycle, try again next time
+    const fresh = await resp.json();
+    // Preserve live_airports list (used by chips/dropdown) — only update data
+    livePayloadCache = fresh;
+    // Re-render chips to keep active state in sync
+    const search = document.getElementById("airport-search");
+    renderAirportChips(livePayloadCache, search ? search.value : "");
+    // Re-render wait cards for the currently selected airport (no-op if none)
+    if (selectedAirportCode) {
+      renderLiveCards(livePayloadCache, selectedAirportCode);
+    }
+  } catch (_e) {
+    // Network error — silently skip, try again next cycle
+  }
+}
+
 async function bootstrap() {
   const [liveResp, pipeResp] = await Promise.all([fetch("/api/live"), fetch("/api/pipeline")]);
   livePayloadCache = await liveResp.json();
@@ -355,6 +377,9 @@ async function bootstrap() {
   if (initialCode && livePayloadCache.live_airports?.[initialCode]) {
     await selectAirport(initialCode);
   }
+
+  // Kick off silent background refresh every 2 minutes (matching server poll interval)
+  setInterval(silentRefresh, 2 * 60 * 1000);
 }
 
 bootstrap();

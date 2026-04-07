@@ -72,6 +72,7 @@ body {
   text-decoration: none; transition: color .12s, background .12s;
 }
 .header-nav-link:hover { color: var(--text); background: var(--surface2); }
+.header-nav-link.active { color: var(--amber); background: var(--amber-dim); }
 
 /* ── MAIN LAYOUT ── */
 .main {
@@ -423,6 +424,9 @@ select {
   .cp-block { padding: 14px 16px 14px 18px; }
   .content-columns { grid-template-columns: 1fr; }
   .footer { padding: 0 20px; }
+  /* Content pages: full-width card on mobile */
+  .content-card { padding: 16px !important; margin: 0 !important; border-radius: 12px !important; }
+  .content-card h1 { font-size: 1.5rem !important; }
 }
 @media (max-width: 400px) {
   .big-num { font-size: 36px; }

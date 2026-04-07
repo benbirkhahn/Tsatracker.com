@@ -141,6 +141,11 @@
     </div>
   </footer>
 
+  <script>
+    document.querySelectorAll(".header-nav-link").forEach(function(a) {
+      if (a.getAttribute("href") === "/about") a.classList.add("active");
+    });
+  </script>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
