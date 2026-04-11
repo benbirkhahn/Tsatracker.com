@@ -101,7 +101,46 @@
       </div>
       <div id="selection-source-status" class="selection-source-status"></div>
       <div id="selection-summary" style="display:none;"></div>
-      <div id="live-cards"></div>
+      <div id="live-cards">
+        {% if is_airport_page and initial_data %}
+        <div class="ssr-fallback" style="padding: 1rem; color: var(--text-muted);">
+           <h2 style="font-size: 1.25rem; margin-bottom: 0.5rem;">Live Checkpoint Status for {{ initial_airport_code }}</h2>
+           <ul style="margin-bottom: 1.5rem; list-style: none; padding-left: 0;">
+            {% if initial_checkpoints %}
+              {% for cp in initial_checkpoints %}
+                <li style="margin-bottom: 0.25rem;"><strong>{{ cp.checkpoint }} {% if cp.lane_type %}({{ cp.lane_type }}){% endif %}:</strong> {% if cp.wait_minutes > 0 %}{{ cp.wait_minutes|round(1) }} min{% else %}Closed{% endif %}</li>
+              {% endfor %}
+            {% else %}
+               <li><strong>Average Estimated Wait:</strong> {{ initial_data.currentWait.standardDescription }}</li>
+            {% endif %}
+           </ul>
+           <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Typical Hourly Forecast</h3>
+           <ul style="list-style: none; padding-left: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.5rem;">
+               {% for f in initial_data.hourlyForecast %}
+                  {% if loop.index % 2 == 0 %}
+                  <li style="background: var(--bg-surface); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">{{ f.timeslot }}: {{ f.waittime|round }}m</li>
+                  {% endif %}
+               {% endfor %}
+           </ul>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- ── PARKING AFFILIATE BANNER ── -->
+    <section class="parking-affiliate-banner" style="margin: var(--spacing) auto; max-width: 800px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; text-align: center;">
+      <div style="background: #0066ff; color: #fff; padding: 0.75rem; font-weight: 600; font-size: 1.1rem;">
+        Save up to 50% on Airport Parking
+      </div>
+      <div style="padding: 1.5rem;">
+        <p style="margin-bottom: 1rem; color: var(--text-color);">
+          Don't pay drive-up rates at {% if is_airport_page %}{{ initial_airport_code }}{% else %}the airport{% endif %}. Compare lots and book your spot in advance.
+        </p>
+        <!-- TODO: Replace the href below with your SpotHero/ParkWhiz affiliate link -->
+        <a href="#" style="display: inline-block; background: #0066ff; color: #fff; padding: 0.75rem 1.5rem; text-decoration: none; border-radius: 6px; font-weight: 500;" target="_blank" rel="noopener">
+          Find Parking Deals {% if is_airport_page %}at {{ initial_airport_code }}{% endif %}
+        </a>
+      </div>
     </section>
 
     <!-- ── HISTORY CHART ── -->

@@ -232,9 +232,16 @@ def legal_page_seo(slug: str) -> Dict:
 def index_template_context(initial_airport_code: str, seo: Dict) -> Dict:
     is_airport_page = bool(initial_airport_code and initial_airport_code in LIVE_AIRPORTS)
     airport_display_name = ""
+    initial_data = None
+    initial_checkpoints = []
     if is_airport_page:
         raw_name = LIVE_AIRPORTS[initial_airport_code]["name"]
         airport_display_name = raw_name.split("(")[0].strip()
+        try:
+            initial_data = normalized_current_wait_for_code(initial_airport_code)
+            initial_checkpoints = latest_for_code(initial_airport_code)
+        except Exception as e:
+            logger.error("Error fetching initial data for %s: %s", initial_airport_code, e)
     return {
         "live_airports": LIVE_AIRPORTS,
         "pipeline_airports": PIPELINE_AIRPORTS,
@@ -243,6 +250,8 @@ def index_template_context(initial_airport_code: str, seo: Dict) -> Dict:
         "airport_display_name": airport_display_name,
         "airport_pages": [{"code": c, "href": airport_seo_slug(c), "name": v["name"]} for c, v in LIVE_AIRPORTS.items()],
         "seo": seo,
+        "initial_data": initial_data,
+        "initial_checkpoints": initial_checkpoints,
         "monetization": {
             "enable_adsense": ENABLE_ADSENSE and bool(ADSENSE_CLIENT),
             "adsense_client": ADSENSE_CLIENT,
