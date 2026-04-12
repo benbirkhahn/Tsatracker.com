@@ -107,7 +107,9 @@
         <div class="ssr-fallback" style="padding: 1rem; color: var(--text-muted);">
            <h2 style="font-size: 1.25rem; margin-bottom: 0.5rem;">Live Checkpoint Status for {{ initial_airport_code }}</h2>
            <ul style="margin-bottom: 1.5rem; list-style: none; padding-left: 0;">
+            {% set max_wait = 0 %}
             {% if initial_checkpoints %}
+              {% set max_wait = initial_checkpoints | map(attribute='wait_minutes') | max | default(0) %}
               {% for cp in initial_checkpoints %}
                 <li style="margin-bottom: 0.25rem;"><strong>{{ cp.checkpoint }} {% if cp.lane_type %}({{ cp.lane_type }}){% endif %}:</strong> {% if cp.wait_minutes > 0 %}{{ cp.wait_minutes|round(1) }} min{% else %}Closed{% endif %}</li>
               {% endfor %}
@@ -115,6 +117,23 @@
                <li><strong>Average Estimated Wait:</strong> {{ initial_data.currentWait.standardDescription }}</li>
             {% endif %}
            </ul>
+
+           {% if max_wait >= 20 %}
+           <!-- Dynamic Travel Tip Server Rendered -->
+           <div style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin: 16px 0; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span style="color: #fbbf24; font-size: 24px;">⚠️</span>
+                    <div>
+                        <p style="color: #fff; font-weight: bold; font-size: 14px; margin: 0 0 4px 0;">Long lines detected!</p>
+                        <p style="color: #94a3b8; font-size: 12px; margin: 0;">Don't wait for a taxi. Book a private ride and skip the curb line.</p>
+                    </div>
+                </div>
+                <a href="https://www.dpbolvw.net/click-101725878-13456041" target="_blank" rel="noopener noreferrer" style="display: block; text-align: center; background: #2563eb; color: #fff; font-weight: bold; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-size: 14px; margin-top: 12px;">
+                    Get $4 Off Your Ride Home
+                </a>
+                <img src="https://www.awltovhc.com/image-101725878-13456041" width="1" height="1" border="0" alt="" style="display: none;" />
+           </div>
+           {% endif %}
            <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Typical Hourly Forecast</h3>
            <ul style="list-style: none; padding-left: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.5rem;">
                {% for f in initial_data.hourlyForecast %}
@@ -128,20 +147,11 @@
       </div>
     </section>
 
-    <!-- ── PARKING AFFILIATE BANNER ── -->
-    <section class="parking-affiliate-banner" style="margin: var(--spacing) auto; max-width: 800px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; text-align: center;">
-      <div style="background: #0066ff; color: #fff; padding: 0.75rem; font-weight: 600; font-size: 1.1rem;">
-        Save up to 50% on Airport Parking
-      </div>
-      <div style="padding: 1.5rem;">
-        <p style="margin-bottom: 1rem; color: var(--text-color);">
-          Don't pay drive-up rates at {% if is_airport_page %}{{ initial_airport_code }}{% else %}the airport{% endif %}. Compare lots and book your spot in advance.
-        </p>
-        <!-- TODO: Replace the href below with your SpotHero/ParkWhiz affiliate link -->
-        <a href="#" style="display: inline-block; background: #0066ff; color: #fff; padding: 0.75rem 1.5rem; text-decoration: none; border-radius: 6px; font-weight: 500;" target="_blank" rel="noopener">
-          Find Parking Deals {% if is_airport_page %}at {{ initial_airport_code }}{% endif %}
-        </a>
-      </div>
+    <!-- ── TRANSPORTATION DISPLAY AD ── -->
+    <section class="affiliate-banner" style="margin: var(--spacing) auto; display: flex; justify-content: center; max-width: 800px; padding: 1rem 0;">
+      <a href="https://www.dpbolvw.net/click-101725878-13456041" target="_blank" rel="noopener noreferrer" style="display: block; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); transition: transform 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+        <img src="https://www.tqlkg.com/image-101725878-15551465" width="300" height="250" alt="Skip the airport taxi lines - Book Carmel Car & Limo" style="display: block; border: none; max-width: 100%; height: auto;">
+      </a>
     </section>
 
     <!-- ── HISTORY CHART ── -->
