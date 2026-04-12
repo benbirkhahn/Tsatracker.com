@@ -158,6 +158,31 @@ function renderLiveCards(payload, selectedCode) {
   }
 
   host.appendChild(card);
+
+  // Dynamic Travel Tip Component (converting panic to conversion)
+  let maxWait = 0;
+  rows.forEach(r => {
+    if (r.wait_minutes > maxWait) maxWait = r.wait_minutes;
+  });
+
+  if (maxWait >= 20) {
+    const tip = document.createElement("div");
+    tip.style.cssText = "background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin: 16px 0; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);";
+    tip.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="color: #fbbf24; font-size: 24px;">⚠️</span>
+        <div>
+          <p style="color: #fff; font-weight: bold; font-size: 14px; margin: 0 0 4px 0;">Long lines detected!</p>
+          <p style="color: #94a3b8; font-size: 12px; margin: 0;">Don't wait for a taxi. Book a private ride and skip the curb line.</p>
+        </div>
+      </div>
+      <a href="https://www.dpbolvw.net/click-101725878-13456041" target="_blank" rel="noopener noreferrer" style="display: block; text-align: center; background: #2563eb; color: #fff; font-weight: bold; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-size: 14px; margin-top: 12px; transition: background 0.2s;">
+        Get $4 Off Your Ride Home
+      </a>
+      <img src="https://www.awltovhc.com/image-101725878-13456041" width="1" height="1" border="0" alt="" style="display: none;" />
+    `;
+    host.appendChild(tip);
+  }
 }
 
 function renderPipeline(rows) {
