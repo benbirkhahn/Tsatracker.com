@@ -22,7 +22,7 @@ ADSENSE_SLOT_TOP = os.getenv("ADSENSE_SLOT_TOP", "").strip()
 ADSENSE_SLOT_BOTTOM = os.getenv("ADSENSE_SLOT_BOTTOM", "").strip()
 SPONSOR_CTA_URL = os.getenv("SPONSOR_CTA_URL", "mailto:ads@secureline-live.com").strip()
 SPONSOR_CTA_TEXT = os.getenv("SPONSOR_CTA_TEXT", "Advertise here").strip()
-SITE_URL = os.getenv("SITE_URL", "https://secureline-live.onrender.com").strip().rstrip("/")
+SITE_URL = os.getenv("SITE_URL", "https://tsatracker.com").strip().rstrip("/")
 _publisher_token = ADSENSE_CLIENT.replace("ca-", "").strip() if ADSENSE_CLIENT else ""
 ADS_TXT_LINE = os.getenv(
     "ADS_TXT_LINE",
@@ -220,6 +220,7 @@ def legal_page_seo(slug: str) -> Dict:
         "privacy": ("Privacy Policy", "Read TSA Tracker's privacy policy and data handling details."),
         "terms": ("Terms of Service", "Read TSA Tracker's terms for using TSA wait-time services."),
         "contact": ("Contact", "Contact TSA Tracker for support, data questions, or partnerships."),
+        "methodology": ("Methodology", "How TSA Tracker sources, validates, and updates airport TSA wait time data."),
     }
     title, description = mapping[slug]
     return build_page_seo(
@@ -1142,6 +1143,16 @@ def guide_tsa_wait_times():
     return render_template("guide.html", seo=seo, monetization=monetization)
 
 
+@app.route("/methodology")
+def methodology_page():
+    seo = build_page_seo(
+        title="TSA Data Methodology | TSA Tracker",
+        description="How TSA Tracker sources, validates, and updates airport checkpoint wait times, including source transparency and known limitations.",
+        canonical_path="/methodology",
+    )
+    return render_template("methodology.html", seo=seo, live_airports=LIVE_AIRPORTS)
+
+
 @app.route("/api/live")
 def api_live():
     public_airports = {code: {"name": meta["name"]} for code, meta in LIVE_AIRPORTS.items()}
@@ -1212,7 +1223,7 @@ def sitemap_xml():
     pages = (
         [("/", "1.0", "hourly")]
         + [(airport_seo_slug(c), "0.9", "always") for c in LIVE_AIRPORTS.keys()]
-        + [("/about", "0.6", "monthly"), ("/privacy", "0.3", "monthly"), ("/terms", "0.3", "monthly"), ("/contact", "0.4", "monthly"), ("/guide/tsa-wait-times", "0.7", "monthly")]
+        + [("/about", "0.6", "monthly"), ("/methodology", "0.8", "weekly"), ("/privacy", "0.3", "monthly"), ("/terms", "0.3", "monthly"), ("/contact", "0.4", "monthly"), ("/guide/tsa-wait-times", "0.7", "monthly")]
     )
     entries = []
     for path, priority, changefreq in pages:
