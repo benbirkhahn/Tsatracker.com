@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ seo.title }}</title>
+  <meta name="description" content="{{ seo.description }}">
+  <link rel="canonical" href="{{ seo.canonical_url }}">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="{{ seo.title }}">
+  <meta property="og:description" content="{{ seo.description }}">
+  <meta property="og:url" content="{{ seo.canonical_url }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Oswald:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .content-card h1 { color: var(--text); line-height: 1.2; }
+    .content-card h2 { font-size: 1.2rem !important; font-family: inherit !important; text-transform: none !important; letter-spacing: 0 !important; color: var(--text) !important; }
+    .content-card h3 { font-size: 1rem !important; font-family: inherit !important; text-transform: none !important; letter-spacing: 0 !important; color: var(--text) !important; }
+    .content-card p { font-size: 0.95rem; line-height: 1.7; color: var(--text); }
+    .content-card p.muted { color: var(--muted); }
+    .content-card a { color: var(--amber); text-decoration: none; }
+    .content-card a:hover { text-decoration: underline; }
+    .content-card ul.content-list { font-size: 0.95rem; }
+    .source-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin-top: 14px; }
+    .source-card { background: var(--surface2); border: 1px solid #2a2a40; border-radius: 8px; padding: 12px 14px; }
+    .source-card .code { font-weight: 700; font-size: 1.05rem; margin-bottom: 4px; }
+    .source-card .mode { display: inline-block; margin-top: 8px; font-size: 0.75rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+  </style>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-9MN7W14PC1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-9MN7W14PC1');
+  </script>
+</head>
+<body>
+  <header class="header">
+    <a href="/" class="header-home-link">
+      <span class="logo-shield">✈️</span>
+      <div>
+        <div class="logo-name">TSA Tracker</div>
+        <div class="logo-tag">Live airport data</div>
+      </div>
+    </a>
+    <nav class="header-nav">
+      <a href="/" class="header-nav-link">Home</a>
+      <a href="/about" class="header-nav-link">About</a>
+      <a href="/methodology" class="header-nav-link active">Methodology</a>
+    </nav>
+  </header>
+  <main class="main">
+    <section class="card content-card" style="max-width:860px;margin:0 auto;">
+      <h1 style="font-size:2rem;font-weight:700;margin-bottom:6px;">TSA Tracker Data Methodology</h1>
+      <p class="muted" style="margin-bottom:28px;"><em>Last updated: April 2026</em></p>
+      <p>This page explains exactly how TSA Tracker collects and displays wait-time data, what counts as “live,” where estimates may appear, and what limitations users should understand before making travel decisions.</p>
+      <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">1. Data Source Policy</h2>
+      <p>We only list an airport as “live” when we can pull data from an official airport-controlled system. We do not fabricate coverage, and we do not mark an airport live based solely on historical averages.</p>
+      <ul class="content-list" style="margin-top:6px;">
+        <li><strong>Accepted source types:</strong> official airport APIs, official airport pages with machine-readable wait-time data, or airport-operated data endpoints embedded in their own website/app.</li>
+        <li><strong>Rejected source types:</strong> crowdsourced check-ins, unofficial scrapes of user comments, and third-party predictions with no official feed backing.</li>
+      </ul>
+      <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">2. Collection Cadence and Freshness</h2>
+      <p>TSA Tracker polls active airport feeds approximately every 2 minutes. Each record includes a timestamp for when the reading was captured. If a live source becomes unavailable, we retain transparency by labeling data state in our API and fallback behavior.</p>
+      <ul class="content-list" style="margin-top:6px;">
+        <li>Normal polling interval: ~120 seconds.</li>
+        <li>Data staleness window for “latest snapshot”: 15 minutes.</li>
+        <li>History window shown on the site: last 12 hours.</li>
+      </ul>
+      <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">3. How “Current Wait” Is Calculated</h2>
+      <p>When an airport exposes multiple checkpoints and lanes, TSA Tracker aggregates active rows into a single “current wait” summary while still preserving lane/checkpoint breakdown in the live cards. Closed lanes (0-minute rows) are excluded from the average if open-lane rows exist.</p>
+      <ul class="content-list" style="margin-top:6px;">
+        <li>If open-lane data is available, average uses open lanes only.</li>
+        <li>If all rows are zero or closed, we still return a valid response with closed/low values.</li>
+        <li>Lane categories are normalized to Standard, PreCheck, Clear, and Clear+PreCheck where available.</li>
+      </ul>
+      <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">4. Forecasting and Fallback Behavior</h2>
+      <p>Hourly forecast values are planning aids, not promises. They blend airport-specific historical factors with the latest observed wait value. If no fresh live data is available, the site provides an estimated fallback and marks that state in API metadata.</p>
+      <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">5. Current Live Airport Coverage</h2>
+      <p>The airports below are currently wired to live integrations in production:</p>
+      <div class="source-card-grid">
+        {% for code, meta in live_airports.items() %}
+        <div class="source-card">
+          <div class="code">{{ code }}</div>
+          <div>{{ meta.name }}</div>
+          <div class="mode">{{ meta.mode | replace('_', ' ') }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">6. Known Limitations</h2>
+      <ul class="content-list" style="margin-top:6px;">
+        <li>Airport feeds may lag, break, or temporarily report stale values.</li>
+        <li>Some airports expose aggregate checkpoint estimates instead of lane-level readings.</li>
+        <li>Wait times can change rapidly due to staffing shifts, weather disruptions, and irregular ops.</li>
+      </ul>
+      <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">7. Editorial and Correction Policy</h2>
+      <p>When users report inaccuracies, we investigate source behavior and parser logic, then patch collection code where needed. We prioritize transparent source coverage over claiming broad but low-confidence airport support. To report a data issue, contact <a href="mailto:benbirkhahn10@gmail.com">benbirkhahn10@gmail.com</a> with airport code, timestamp, and what you observed.</p>
+    </section>
+  </main>
+  <footer class="footer">
+    <div>TSA Tracker — live security wait times. Data refreshes every ~2 minutes.</div>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <span>·</span>
+      <a href="/about">About</a>
+      <span>·</span>
+      <a href="/methodology">Methodology</a>
+      <span>·</span>
+      <a href="/guide/tsa-wait-times">TSA Guide</a>
+      <span>·</span>
+      <a href="/privacy">Privacy</a>
+      <span>·</span>
+      <a href="/terms">Terms</a>
+      <span>·</span>
+      <a href="/contact">Contact</a>
+    </div>
+  </footer>
+</body>
+</html>
