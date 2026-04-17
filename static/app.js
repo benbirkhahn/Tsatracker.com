@@ -1,6 +1,23 @@
 let chart;
 let livePayloadCache = null;
 let selectedAirportCode = null;
+let chartJsPromise = null;
+
+function loadChartJs() {
+  if (chartJsPromise) return chartJsPromise;
+  if (window.Chart) {
+    chartJsPromise = Promise.resolve(window.Chart);
+    return chartJsPromise;
+  }
+  chartJsPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js";
+    script.onload = () => resolve(window.Chart);
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+  return chartJsPromise;
+}
 
 function fmtMinutes(v) {
   const n = Number(v);
@@ -179,7 +196,6 @@ function renderLiveCards(payload, selectedCode) {
       <a href="https://www.dpbolvw.net/click-101725878-13456041" target="_blank" rel="noopener noreferrer" style="display: block; text-align: center; background: #2563eb; color: #fff; font-weight: bold; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-size: 14px; margin-top: 12px; transition: background 0.2s;">
         Get $4 Off Your Ride Home
       </a>
-      <img src="https://www.awltovhc.com/image-101725878-13456041" width="1" height="1" border="0" alt="" style="display: none;" />
     `;
     host.appendChild(tip);
   }
@@ -218,7 +234,8 @@ function normalizeHistory(rows) {
     .map((x) => ({ label: x.ts.toISOString().slice(11, 16), value: x.c ? x.sum / x.c : 0 }));
 }
 
-function drawChart(points, airportCode) {
+async function drawChart(points, airportCode) {
+  await loadChartJs();
   const ctx = document.getElementById("history-chart");
   if (chart) chart.destroy();
   chart = new Chart(ctx, {
