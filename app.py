@@ -16,17 +16,27 @@ DB_PATH = os.getenv("DB_PATH", "/data/data.db" if os.path.isdir("/data") else "d
 POLL_SECONDS = int(os.getenv("POLL_SECONDS", "120"))
 COLLECT_NOW_TOKEN = os.getenv("COLLECT_NOW_TOKEN")
 ENABLE_POLLER = os.getenv("ENABLE_POLLER", "true").lower() == "true"
-ENABLE_ADSENSE = os.getenv("ENABLE_ADSENSE", "true").lower() == "true"
-ADSENSE_CLIENT = os.getenv("ADSENSE_CLIENT", "ca-pub-3769301792129016").strip()
+ENABLE_ADSENSE = os.getenv("ENABLE_ADSENSE", "false").lower() == "true"
+ADSENSE_CLIENT = os.getenv("ADSENSE_CLIENT", "").strip()
 ADSENSE_SLOT_TOP = os.getenv("ADSENSE_SLOT_TOP", "").strip()
 ADSENSE_SLOT_BOTTOM = os.getenv("ADSENSE_SLOT_BOTTOM", "").strip()
+
+# Emerald Ad Network (Performance ads)
+EMERALD_ID = os.getenv("EMERALD_ID", "NTE5NTA4").strip()
+EMERALD_TAG = os.getenv("EMERALD_TAG", "519508").strip()
+
 SPONSOR_CTA_URL = os.getenv("SPONSOR_CTA_URL", "mailto:ads@tsatracker.com").strip()
 SPONSOR_CTA_TEXT = os.getenv("SPONSOR_CTA_TEXT", "Advertise here").strip()
+
+# Travelpayouts / Klook
+TRAVELPAYOUTS_ID = os.getenv("TRAVELPAYOUTS_ID", "").strip()
+TRAVELPAYOUTS_TOKEN = os.getenv("TRAVELPAYOUTS_TOKEN", "").strip()
+KLOOK_AFFILIATE_URL = os.getenv("KLOOK_AFFILIATE_URL", f"https://www.klook.com/?marker={TRAVELPAYOUTS_ID}" if TRAVELPAYOUTS_ID else "https://www.klook.com/").strip()
+
 # Affiliate monetization links (override via env vars with your affiliate IDs)
 UBER_AFFILIATE_URL = os.getenv("UBER_AFFILIATE_URL", "https://www.uber.com/").strip()
 LYFT_AFFILIATE_URL = os.getenv("LYFT_AFFILIATE_URL", "https://www.lyft.com/").strip()
 PARKING_AFFILIATE_URL = os.getenv("PARKING_AFFILIATE_URL", "https://parking.com/").strip()
-KLOOK_AFFILIATE_URL = os.getenv("KLOOK_AFFILIATE_URL", "https://klook.tpo.li/nu6sgjUi").strip()
 TRAVEL_INSURANCE_URL = os.getenv("TRAVEL_INSURANCE_URL", "https://www.travelinsurance.com/").strip()
 SITE_URL = os.getenv("SITE_URL", "https://tsatracker.com").strip().rstrip("/")
 _publisher_token = ADSENSE_CLIENT.replace("ca-", "").strip() if ADSENSE_CLIENT else ""
@@ -264,6 +274,8 @@ def index_template_context(initial_airport_code: str, seo: Dict) -> Dict:
             "adsense_client": ADSENSE_CLIENT,
             "adsense_slot_top": ADSENSE_SLOT_TOP,
             "adsense_slot_bottom": ADSENSE_SLOT_BOTTOM,
+            "emerald_id": EMERALD_ID,
+            "emerald_tag": EMERALD_TAG,
             "sponsor_cta_url": SPONSOR_CTA_URL,
             "sponsor_cta_text": SPONSOR_CTA_TEXT,
             "uber_url": UBER_AFFILIATE_URL,
