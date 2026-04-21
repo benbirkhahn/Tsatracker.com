@@ -63,12 +63,12 @@
         {{ live_airports|length }} airports · real-time
       </div>
       {% if is_airport_page %}
-      <h1 class="hero-headline">{{ initial_airport_code }} TSA <em>Wait Times</em></h1>
-      <p class="hero-sub">How long is the security line at {{ airport_display_name }}? Real-time TSA checkpoint data
+      <h1 class="hero-headline" id="hero-title">{{ initial_airport_code }} TSA <em>Wait Times</em></h1>
+      <p class="hero-sub" id="hero-sub">How long is the security line at {{ airport_display_name }}? Real-time TSA checkpoint data
         pulled directly from official airport systems — not estimates. Updated every ~2 minutes.</p>
       {% else %}
-      <h1 class="hero-headline">Live TSA Wait Times<br>at Major <em>US Airports</em></h1>
-      <p class="hero-sub">How long is the TSA line right now? Real-time airport security line wait times pulled directly
+      <h1 class="hero-headline" id="hero-title">Live TSA Wait Times<br>at Major <em>US Airports</em></h1>
+      <p class="hero-sub" id="hero-sub">How long is the TSA line right now? Real-time airport security line wait times pulled directly
         from official airport systems — not estimates, not models. Pick your airport below.</p>
       {% endif %}
       <p class="hero-trust">⟳ Updated about every 2 minutes — data from official airport systems</p>
@@ -276,10 +276,27 @@
       </div>
     </section>
 
-    <section class="card widget-card" style="padding:0; background:transparent; border:none; box-shadow:none; margin-top: 2rem;">
-      <div class="section-divider">Find your next flight from {{ initial_airport_code }}</div>
-      <div style="min-height: 280px; background: var(--surface); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); box-shadow: var(--shadow);">
-        <script charset="utf-8" src="https://tp.media/content?currency=usd&promo_id=4464&shmarker={{ monetization.travelpayouts_id }}&campaign_id=121&trs=205623&target_host=tsatracker.com&type=compact&limit=4&powered_by=false&marker={{ monetization.travelpayouts_id }}"></script>
+    <section class="card widget-card" style="padding:0; background:transparent; border:none; box-shadow:none; margin-top: 2.5rem;">
+      <div class="section-divider">Track Your Next Adventure</div>
+      <div class="custom-flight-search">
+        <div class="search-header">
+          <span class="search-icon">✈️</span>
+          <div class="search-text">
+            <h4>Find Cheap Flights from <span id="flight-origin-text">{{ initial_airport_code }}</span></h4>
+            <p>Guaranteed lowest prices via Kiwi.com</p>
+          </div>
+        </div>
+        <form action="https://kiwi.tp.st/results" method="GET" target="_blank" class="search-form-inline">
+          <input type="hidden" name="marker" value="{{ monetization.travelpayouts_id }}">
+          <input type="hidden" name="origin" id="flight-origin-input" value="{{ initial_airport_code }}">
+          <div class="form-row">
+            <div class="input-wrap">
+              <label>Destination</label>
+              <input type="text" name="destination" placeholder="Where to?" required>
+            </div>
+            <button type="submit" class="search-btn-premium">Search Flights →</button>
+          </div>
+        </form>
       </div>
     </section>
 

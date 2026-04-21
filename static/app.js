@@ -358,14 +358,34 @@ async function selectAirport(code, shouldPush = true) {
   const select = document.getElementById("airport-select");
   if (select) select.value = code;
 
+  // Update Hero Titles & Document Title
+  document.title = `${code} TSA Wait Times — TSA Tracker`;
+  const heroTitle = document.getElementById("hero-title");
+  if (heroTitle) heroTitle.innerHTML = `${code} TSA <em>Wait Times</em>`;
+  
   // Update airport header
   const meta = livePayloadCache.live_airports?.[code];
   const apHeader = document.getElementById("airport-header");
   if (apHeader) apHeader.style.display = "";
+  
+  const h2Name = document.getElementById("current-airport-name");
+  if (h2Name && meta) h2Name.textContent = meta.name;
+
   const apCode = document.getElementById("ap-code");
   if (apCode) apCode.textContent = code;
   const apName = document.getElementById("ap-name");
   if (apName && meta) apName.textContent = meta.name;
+
+  const heroSub = document.getElementById("hero-sub");
+  if (heroSub && meta) {
+    heroSub.textContent = `How long is the security line at ${meta.name}? Real-time TSA checkpoint data pulled directly from official airport systems — not estimates. Updated every ~2 minutes.`;
+  }
+
+  // Update Flight Search Logic
+  const flightText = document.getElementById("flight-origin-text");
+  if (flightText) flightText.textContent = code;
+  const flightInput = document.getElementById("flight-origin-input");
+  if (flightInput) flightInput.value = code;
 
   updateSelectionSourceStatus(code);
   renderAirportChips(livePayloadCache, document.getElementById("airport-search").value);
