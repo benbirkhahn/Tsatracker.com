@@ -51,6 +51,39 @@ UBER_AFFILIATE_URL = os.getenv("UBER_AFFILIATE_URL", "https://www.uber.com/").st
 LYFT_AFFILIATE_URL = os.getenv("LYFT_AFFILIATE_URL", "https://www.lyft.com/").strip()
 PARKING_AFFILIATE_URL = os.getenv("PARKING_AFFILIATE_URL", "https://parking.com/").strip()
 
+def get_monetization_context(airport_code: str = "") -> Dict:
+    """Returns a dictionary of all monetization and affiliate data."""
+    is_airport_page = bool(airport_code and airport_code in LIVE_AIRPORTS)
+    city = LIVE_AIRPORTS[airport_code].get("city", "") if is_airport_page else ""
+    
+    return {
+        "enable_adsense": ENABLE_ADSENSE and bool(ADSENSE_CLIENT),
+        "adsense_client": ADSENSE_CLIENT,
+        "adsense_slot_top": ADSENSE_SLOT_TOP,
+        "adsense_slot_bottom": ADSENSE_SLOT_BOTTOM,
+        "emerald_id": EMERALD_ID,
+        "emerald_tag": EMERALD_TAG,
+        "travelpayouts_id": TRAVELPAYOUTS_ID,
+        "sponsor_cta_url": SPONSOR_CTA_URL,
+        "sponsor_cta_text": SPONSOR_CTA_TEXT,
+        "uber_url": UBER_AFFILIATE_URL,
+        "lyft_url": LYFT_AFFILIATE_URL,
+        "parking_url": PARKING_AFFILIATE_URL,
+        "airhelp_url": AIRHELP_AFFILIATE_URL,
+        "lounge_url": LOUNGE_AFFILIATE_URL,
+        "local_offer": LOCAL_OFFERS.get(airport_code),
+        "klook_url": (
+            f"https://www.klook.com/en-US/search?query={city.replace(' ', '%20')}&marker={TRAVELPAYOUTS_ID}"
+            if is_airport_page and city and TRAVELPAYOUTS_ID
+            else KLOOK_AFFILIATE_URL
+        ),
+        "kiwi_url": (
+            f"https://www.kiwi.com/en/search/tiles/{airport_code.lower()}/anywhere?marker={TRAVELPAYOUTS_ID}"
+            if is_airport_page and TRAVELPAYOUTS_ID
+            else KIWI_AFFILIATE_URL
+        ),
+    }
+
 # Top Airport Personalized Offers (Revenue Boosters)
 LOCAL_OFFERS = {
     "JFK": {
@@ -305,33 +338,7 @@ def index_template_context(initial_airport_code: str, seo: Dict) -> Dict:
         "seo": seo,
         "initial_data": initial_data,
         "initial_checkpoints": initial_checkpoints,
-        "monetization": {
-            "enable_adsense": ENABLE_ADSENSE and bool(ADSENSE_CLIENT),
-            "adsense_client": ADSENSE_CLIENT,
-            "adsense_slot_top": ADSENSE_SLOT_TOP,
-            "adsense_slot_bottom": ADSENSE_SLOT_BOTTOM,
-            "emerald_id": EMERALD_ID,
-            "emerald_tag": EMERALD_TAG,
-            "travelpayouts_id": TRAVELPAYOUTS_ID,
-            "sponsor_cta_url": SPONSOR_CTA_URL,
-            "sponsor_cta_text": SPONSOR_CTA_TEXT,
-            "uber_url": UBER_AFFILIATE_URL,
-            "lyft_url": LYFT_AFFILIATE_URL,
-            "parking_url": PARKING_AFFILIATE_URL,
-            "airhelp_url": AIRHELP_AFFILIATE_URL,
-            "lounge_url": LOUNGE_AFFILIATE_URL,
-            "local_offer": LOCAL_OFFERS.get(initial_airport_code),
-            "klook_url": (
-                f"https://www.klook.com/en-US/search?query={LIVE_AIRPORTS[initial_airport_code]['city'].replace(' ', '%20')}&marker={TRAVELPAYOUTS_ID}"
-                if is_airport_page and initial_airport_code in LIVE_AIRPORTS and LIVE_AIRPORTS[initial_airport_code].get("city") and TRAVELPAYOUTS_ID
-                else KLOOK_AFFILIATE_URL
-            ),
-            "kiwi_url": (
-                f"https://www.kiwi.com/en/search/tiles/{initial_airport_code.lower()}/anywhere?marker={TRAVELPAYOUTS_ID}"
-                if is_airport_page and TRAVELPAYOUTS_ID
-                else KIWI_AFFILIATE_URL
-            ),
-        },
+        "monetization": get_monetization_context(initial_airport_code),
     }
 
 
