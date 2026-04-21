@@ -1173,7 +1173,7 @@ def about_page():
         description="TSA Tracker pulls live TSA checkpoint wait times directly from official airport systems — not estimates, not crowd-sourced guesses. Learn how it works, which airports are covered, and why it's the most accurate source for airport security wait times.",
         canonical_path="/about",
     )
-    return render_template("about.html", seo=seo)
+    return render_template("about.html", seo=seo, monetization=get_monetization_context())
 
 
 @app.route("/privacy")
@@ -1183,7 +1183,7 @@ def privacy():
         description="TSA Tracker's privacy policy — how we collect, use, and protect your information when you use our live airport security wait time service.",
         canonical_path="/privacy",
     )
-    return render_template("privacy.html", seo=seo)
+    return render_template("privacy.html", seo=seo, monetization=get_monetization_context())
 
 
 @app.route("/terms")
@@ -1193,7 +1193,7 @@ def terms():
         description="TSA Tracker terms of service — the rules and conditions for using our live airport TSA wait time service.",
         canonical_path="/terms",
     )
-    return render_template("terms.html", seo=seo)
+    return render_template("terms.html", seo=seo, monetization=get_monetization_context())
 
 
 @app.route("/contact")
@@ -1203,7 +1203,7 @@ def contact():
         description="Get in touch with the TSA Tracker team — questions, feedback, bug reports, airport data requests, and partnership inquiries.",
         canonical_path="/contact",
     )
-    return render_template("contact.html", seo=seo)
+    return render_template("contact.html", seo=seo, monetization=get_monetization_context())
 
 
 @app.route("/guide/tsa-wait-times")
@@ -1213,15 +1213,7 @@ def guide_tsa_wait_times():
         description="A complete guide to TSA security wait times — how data is measured, peak hours to avoid, TSA PreCheck vs. CLEAR vs. standard lanes, airport-specific tips, and how to use live wait time data effectively.",
         canonical_path="/guide/tsa-wait-times",
     )
-    monetization = {
-        "enable_adsense": ENABLE_ADSENSE,
-        "adsense_client": ADSENSE_CLIENT,
-        "adsense_slot_top": ADSENSE_SLOT_TOP,
-        "adsense_slot_bottom": ADSENSE_SLOT_BOTTOM,
-        "sponsor_cta_url": SPONSOR_CTA_URL,
-        "sponsor_cta_text": SPONSOR_CTA_TEXT,
-    }
-    return render_template("guide.html", seo=seo, monetization=monetization)
+    return render_template("guide.html", seo=seo, monetization=get_monetization_context())
 
 
 @app.route("/methodology")
@@ -1231,7 +1223,7 @@ def methodology_page():
         description="How TSA Tracker sources, validates, and updates airport checkpoint wait times, including source transparency and known limitations.",
         canonical_path="/methodology",
     )
-    return render_template("methodology.html", seo=seo, live_airports=LIVE_AIRPORTS)
+    return render_template("methodology.html", seo=seo, live_airports=LIVE_AIRPORTS, monetization=get_monetization_context())
 
 
 @app.route("/api/live")
