@@ -387,6 +387,44 @@ async function selectAirport(code, shouldPush = true) {
   const flightInput = document.getElementById("flight-origin-input");
   if (flightInput) flightInput.value = code;
 
+  // --- START DYNAMIC AD UPDATE ---
+  const marker = (window.MONETIZATION_CONFIG && window.MONETIZATION_CONFIG.tpMarker) || "719940";
+  const offers = window.LOCAL_OFFERS || {};
+  const currentOffer = offers[code];
+  const cityName = (meta && meta.city) || "";
+
+  // Update Featured "Local" Offer (e.g. JFK AirTrain vs ORD L-Train)
+  const featuredContainer = document.getElementById("ad-featured-container");
+  if (featuredContainer) {
+    if (currentOffer) {
+      featuredContainer.style.display = "block";
+      document.getElementById("ad-featured-link").href = currentOffer.url;
+      document.getElementById("ad-featured-icon").innerText = currentOffer.icon;
+      document.getElementById("ad-featured-title").innerText = currentOffer.title;
+      document.getElementById("ad-featured-sub").innerText = currentOffer.sub;
+    } else {
+      featuredContainer.style.display = "none";
+    }
+  }
+
+  // Update Kiwi Link
+  const kiwiLink = document.getElementById("ad-kiwi-link");
+  const kiwiTitle = document.getElementById("ad-kiwi-title");
+  if (kiwiLink) {
+    kiwiLink.href = `https://www.kiwi.com/en/search/tiles/${code.toLowerCase()}/anywhere?marker=${marker}`;
+    if (kiwiTitle) kiwiTitle.innerText = `Cheap Flights from ${code}`;
+  }
+
+  // Update Klook Link
+  const klookLink = document.getElementById("ad-klook-link");
+  const klookTitle = document.getElementById("ad-klook-title");
+  if (klookLink) {
+    const klookTarget = `https://www.klook.com/en-US/search?query=${encodeURIComponent(cityName)}`;
+    klookLink.href = `https://tp.media/r?marker=${marker}&u=${encodeURIComponent(klookTarget)}`;
+    if (klookTitle) klookTitle.innerText = `Activities in ${cityName || 'selection'}`;
+  }
+  // --- END DYNAMIC AD UPDATE ---
+
   updateSelectionSourceStatus(code);
   renderAirportChips(livePayloadCache, document.getElementById("airport-search").value);
   renderLiveCards(livePayloadCache, code);

@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import sqlite3
+import json
 import threading
 import time
 from datetime import datetime, timedelta, timezone
@@ -339,6 +340,7 @@ def index_template_context(initial_airport_code: str, seo: Dict) -> Dict:
         "initial_data": initial_data,
         "initial_checkpoints": initial_checkpoints,
         "monetization": get_monetization_context(initial_airport_code),
+        "LOCAL_OFFERS_JSON": json.dumps(LOCAL_OFFERS),
     }
 
 
