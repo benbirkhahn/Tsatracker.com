@@ -12,8 +12,18 @@ import requests
 from flask import Flask, Response, jsonify, render_template, request, send_from_directory
 
 APP_TZ = timezone.utc
-DB_PATH = os.getenv("DB_PATH", "/data/data.db" if os.path.isdir("/data") else "data.db")
-POLL_SECONDS = int(os.getenv("POLL_SECONDS", "120"))
+# Bulletproof DB Path: Check for Render Disk, fallback to local
+_raw_db_path = os.getenv("DB_PATH", "").strip()
+if _raw_db_path:
+    DB_PATH = _raw_db_path
+elif os.path.isdir("/data") and os.access("/data", os.W_OK):
+    DB_PATH = "/data/data.db"
+else:
+    DB_PATH = "data.db"
+
+# Safe int conversion
+_poll_env = os.getenv("POLL_SECONDS", "").strip()
+POLL_SECONDS = int(_poll_env) if _poll_env.isdigit() else 120
 COLLECT_NOW_TOKEN = os.getenv("COLLECT_NOW_TOKEN")
 ENABLE_POLLER = os.getenv("ENABLE_POLLER", "true").lower() == "true"
 ENABLE_ADSENSE = os.getenv("ENABLE_ADSENSE", "false").lower() == "true"
