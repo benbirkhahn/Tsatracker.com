@@ -32,8 +32,8 @@ ADSENSE_SLOT_TOP = os.getenv("ADSENSE_SLOT_TOP", "").strip()
 ADSENSE_SLOT_BOTTOM = os.getenv("ADSENSE_SLOT_BOTTOM", "").strip()
 
 # Emerald Ad Network (Performance ads)
-EMERALD_ID = os.getenv("EMERALD_ID", "NTE5NTA4").strip()
-EMERALD_TAG = os.getenv("EMERALD_TAG", "519508").strip()
+EMERALD_ID = os.getenv("EMERALD_ID", "519508").strip()
+EMERALD_TAG = os.getenv("EMERALD_TAG", "1").strip()
 
 SPONSOR_CTA_URL = os.getenv("SPONSOR_CTA_URL", "mailto:ads@tsatracker.com").strip()
 SPONSOR_CTA_TEXT = os.getenv("SPONSOR_CTA_TEXT", "Advertise here").strip()
@@ -73,12 +73,12 @@ def get_monetization_context(airport_code: str = "") -> Dict:
         "lounge_url": LOUNGE_AFFILIATE_URL,
         "local_offer": LOCAL_OFFERS.get(airport_code),
         "klook_url": (
-            f"https://www.klook.com/en-US/search?query={city.replace(' ', '%20')}&marker={TRAVELPAYOUTS_ID}"
+            f"https://klook.tp.st/results?query={city.replace(' ', '+')}&marker={TRAVELPAYOUTS_ID}"
             if is_airport_page and city and TRAVELPAYOUTS_ID
             else KLOOK_AFFILIATE_URL
         ),
         "kiwi_url": (
-            f"https://www.kiwi.com/en/search/tiles/{airport_code.lower()}/anywhere?marker={TRAVELPAYOUTS_ID}"
+            f"https://kiwi.tp.st/results?origin={airport_code.lower()}&marker={TRAVELPAYOUTS_ID}"
             if is_airport_page and TRAVELPAYOUTS_ID
             else KIWI_AFFILIATE_URL
         ),
@@ -89,20 +89,20 @@ LOCAL_OFFERS = {
     "JFK": {
         "title": "JFK AirTrain & Transfers",
         "sub": "Fastest way to Manhattan — pre-book",
-        "url": f"https://www.klook.com/en-US/activity/7150-jfk-airport-private-transfers-new-york/?marker={TRAVELPAYOUTS_ID}",
+        "url": f"https://klook.tp.st/activity/7150-jfk-airport-private-transfers-new-york?marker={TRAVELPAYOUTS_ID}",
         "icon": "🚈"
     },
     "ORD": {
         "title": "Chicago L Train & Shuttles",
         "sub": "Direct to the Loop — book transfer",
-        "url": f"https://www.klook.com/en-US/search?query=Chicago%20Transfer&marker={TRAVELPAYOUTS_ID}",
+        "url": f"https://klook.tp.st/results?query=Chicago+Transfer&marker={TRAVELPAYOUTS_ID}",
         "icon": "🚆"
     },
     "MCO": {
         "title": "Disney & Universal Shuttles",
         "sub": "Skip the taxi line — pre-book now",
-        "url": f"https://www.klook.com/en-US/activity/55263-mco-airport-shuttle-orlando/?marker={TRAVELPAYOUTS_ID}",
-        "icon": "🏰"
+        "url": f"https://klook.tp.st/results?query=Orlando+Shuttle&marker={TRAVELPAYOUTS_ID}",
+        "icon": "🚐"
     }
 }
 TRAVEL_INSURANCE_URL = os.getenv("TRAVEL_INSURANCE_URL", "https://www.travelinsurance.com/").strip()
