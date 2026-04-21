@@ -5,6 +5,14 @@
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script data-cfasync="false" src="https://cmp.gatekeeperconsent.com/min.js"></script>
+  <script data-cfasync="false" src="https://the.gatekeeperconsent.com/cmp.min.js"></script>
+  <script async src="//www.ezojs.com/ezoic/sa.min.js"></script>
+  <script>
+    window.ezstandalone = window.ezstandalone || {};
+    ezstandalone.cmd = ezstandalone.cmd || [];
+  </script>
+  <script src="//ezoicanalytics.com/analytics.js"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="google-site-verification" content="BrgIHs-VGqw0TKjsx0U-HzG_tED2LE_9kwy3qR58ObQ" />
@@ -60,6 +68,11 @@
     </nav>
   </header>
 
+  <!-- Ezoic Placeholder [101] - Top Leaderboard -->
+  <div style="width:100%; text-align:center; padding: 10px 0;">
+    <div id="ezoic-pub-ad-placeholder-101"> </div>
+  </div>
+
   <main class="main">
 
     <!-- ── HERO ── -->
@@ -93,6 +106,11 @@
         {% endfor %}
       </div>
     </section>
+
+    <!-- Ezoic Placeholder [102] - Mid Content -->
+    <div style="width:100%; text-align:center; padding: 10px 0;">
+      <div id="ezoic-pub-ad-placeholder-102"> </div>
+    </div>
 
     <!-- ── WAIT TIME RESULTS ── -->
     <section class="results-card" id="results-section">
@@ -485,6 +503,11 @@
 
   </main>
 
+    <!-- Ezoic Placeholder [103] - Bottom Anchor -->
+    <div style="width:100%; text-align:center; margin: 24px 0;">
+      <div id="ezoic-pub-ad-placeholder-103"> </div>
+    </div>
+
   <footer class="footer">
     <div>TSA Tracker — live security wait times. Data refreshes every ~2 minutes.</div>
     <div class="footer-links">
@@ -682,6 +705,13 @@
   </script>
   {% endif %}
 
+  <script>
+    if (window.ezstandalone) {
+      ezstandalone.cmd.push(function() {
+          ezstandalone.showAds([101, 102, 103]);
+      });
+    }
+  </script>
 </body>
 
 </html>

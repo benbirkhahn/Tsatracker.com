@@ -1392,6 +1392,11 @@ def community_status():
 
 
 
+@app.route('/ads.txt')
+def ads_txt():
+    """Serves the ads.txt file via Ezoic's dynamic manager."""
+    return redirect("https://srv.adstxtmanager.com/19390/tsatracker.com", code=301)
+
 if __name__ == "__main__":
     start_runtime_once()
     port = int(os.getenv("PORT", "8080"))
