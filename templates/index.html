@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
@@ -24,8 +25,14 @@
   <meta name="twitter:image" content="{{ seo.site_url }}/static/og-image.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Oswald:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Oswald:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
+  <link rel="preload" as="style"
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Oswald:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    onload="this.onload=null;this.rel='stylesheet'">
+  <noscript>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Oswald:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet">
+  </noscript>
   <link rel="stylesheet" href="/static/style.css">
   <script nowprocket data-noptimize="1" data-cfasync="false" data-wpfc-render="false" seraph-accel-crit="1" data-no-defer="1">
     (function () {
@@ -36,6 +43,7 @@
     })();
   </script>
 </head>
+
 <body>
 
   <header class="header">
@@ -63,17 +71,19 @@
       </div>
       {% if is_airport_page %}
       <h1 class="hero-headline">{{ initial_airport_code }} TSA <em>Wait Times</em></h1>
-      <p class="hero-sub">How long is the security line at {{ airport_display_name }}? Real-time TSA checkpoint data pulled directly from official airport systems — not estimates. Updated every ~2 minutes.</p>
+      <p class="hero-sub">How long is the security line at {{ airport_display_name }}? Real-time TSA checkpoint data
+        pulled directly from official airport systems — not estimates. Updated every ~2 minutes.</p>
       {% else %}
       <h1 class="hero-headline">Live TSA Wait Times<br>at Major <em>US Airports</em></h1>
-      <p class="hero-sub">How long is the TSA line right now? Real-time airport security line wait times pulled directly from official airport systems — not estimates, not models. Pick your airport below.</p>
+      <p class="hero-sub">How long is the TSA line right now? Real-time airport security line wait times pulled directly
+        from official airport systems — not estimates, not models. Pick your airport below.</p>
       {% endif %}
       <p class="hero-trust">⟳ Updated about every 2 minutes — data from official airport systems</p>
 
       <div class="hero-search-wrap">
         <span class="search-prefix">⌕</span>
         <input id="airport-search" class="airport-search-hero" type="search"
-               placeholder="Search airports — LAX, JFK, SEA…" autocomplete="off">
+          placeholder="Search airports — LAX, JFK, SEA…" autocomplete="off">
       </div>
 
       <div id="airport-chips" class="airport-chips-hero"></div>
@@ -110,39 +120,55 @@
       <div id="live-cards">
         {% if is_airport_page and initial_data %}
         <div class="ssr-fallback" style="padding: 1rem; color: var(--text-muted);">
-           <h2 style="font-size: 1.25rem; margin-bottom: 0.5rem;">Live Checkpoint Status for {{ initial_airport_code }}</h2>
-           <ul style="margin-bottom: 1.5rem; list-style: none; padding-left: 0;">
+          {% if monetization.local_offer %}
+          <div class="pro-tip-box" style="margin-top: 1rem; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 12px; padding: 1.25rem; display: flex; gap: 1rem; align-items: center;">
+            <div style="font-size: 1.75rem;">{{ monetization.local_offer.icon }}</div>
+            <div>
+              <div style="font-weight: 700; color: #f59e0b; font-size: 0.9rem; margin-bottom: 0.2rem; text-transform: uppercase; letter-spacing: 0.03em;">Pro Tip for {{ initial_airport_code }}</div>
+              <div style="font-size: 0.95rem; color: #fff; line-height: 1.4;">{{ monetization.local_offer.sub }}. <a href="{{ monetization.local_offer.url }}" target="_blank" style="color: #f59e0b; font-weight: 600; text-decoration: underline;">Book {{ monetization.local_offer.title }} →</a></div>
+            </div>
+          </div>
+          {% endif %}
+          <h2 style="font-size: 1.25rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">Live Checkpoint Status for {{ initial_airport_code }}
+          </h2>
+          <ul style="margin-bottom: 1.5rem; list-style: none; padding-left: 0;">
             {% set max_wait = 0 %}
             {% if initial_checkpoints %}
-              {% set max_wait = initial_checkpoints | map(attribute='wait_minutes') | max | default(0) %}
-              {% for cp in initial_checkpoints %}
-                <li style="margin-bottom: 0.25rem;"><strong>{{ cp.checkpoint }} {% if cp.lane_type %}({{ cp.lane_type }}){% endif %}:</strong> {% if cp.wait_minutes > 0 %}{{ cp.wait_minutes|round(1) }} min{% else %}Closed{% endif %}</li>
-              {% endfor %}
+            {% set max_wait = initial_checkpoints | map(attribute='wait_minutes') | max | default(0) %}
+            {% for cp in initial_checkpoints %}
+            <li style="margin-bottom: 0.25rem;"><strong>{{ cp.checkpoint }} {% if cp.lane_type %}({{ cp.lane_type }}){%
+                endif %}:</strong> {% if cp.wait_minutes > 0 %}{{ cp.wait_minutes|round(1) }} min{% else %}Closed{%
+              endif %}</li>
+            {% endfor %}
             {% else %}
-               <li><strong>Average Estimated Wait:</strong> {{ initial_data.currentWait.standardDescription }}</li>
+            <li><strong>Average Estimated Wait:</strong> {{ initial_data.currentWait.standardDescription }}</li>
             {% endif %}
-           </ul>
+          </ul>
 
-           {% if max_wait >= 20 %}
-           <!-- Dynamic Travel Tip Server Rendered -->
-           <div style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin: 16px 0; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <span style="color: #fbbf24; font-size: 24px;">⚠️</span>
-                    <div>
-                        <p style="color: #fff; font-weight: bold; font-size: 14px; margin: 0 0 4px 0;">Long lines detected!</p>
-                        <p style="color: #94a3b8; font-size: 12px; margin: 0;">If your departure is flexible, consider waiting for a lower-traffic window shown in the 12-hour chart below.</p>
-                    </div>
-                </div>
-           </div>
-           {% endif %}
-           <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Typical Hourly Forecast</h3>
-           <ul style="list-style: none; padding-left: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.5rem;">
-               {% for f in initial_data.hourlyForecast %}
-                  {% if loop.index % 2 == 0 %}
-                  <li style="background: var(--bg-surface); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">{{ f.timeslot }}: {{ f.waittime|round }}m</li>
-                  {% endif %}
-               {% endfor %}
-           </ul>
+          {% if max_wait >= 20 %}
+          <!-- Dynamic Travel Tip Server Rendered -->
+          <div
+            style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin: 16px 0; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="color: #fbbf24; font-size: 24px;">⚠️</span>
+              <div>
+                <p style="color: #fff; font-weight: bold; font-size: 14px; margin: 0 0 4px 0;">Long lines detected!</p>
+                <p style="color: #94a3b8; font-size: 12px; margin: 0;">If your departure is flexible, consider waiting
+                  for a lower-traffic window shown in the 12-hour chart below.</p>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+          <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Typical Hourly Forecast</h3>
+          <ul
+            style="list-style: none; padding-left: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.5rem;">
+            {% for f in initial_data.hourlyForecast %}
+            {% if loop.index % 2 == 0 %}
+            <li style="background: var(--bg-surface); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">
+              {{ f.timeslot }}: {{ f.waittime|round }}m</li>
+            {% endif %}
+            {% endfor %}
+          </ul>
         </div>
         {% endif %}
       </div>
@@ -151,7 +177,8 @@
     <!-- ── TRAVEL PLANNING CHECKLIST ── -->
     <section class="card content-card" style="max-width:860px;margin: var(--spacing) auto;">
       <h2>Pre-Departure Security Checklist</h2>
-      <p class="muted">Use this quick checklist before heading to the airport so live wait-time data is actionable for your trip.</p>
+      <p class="muted">Use this quick checklist before heading to the airport so live wait-time data is actionable for
+        your trip.</p>
       <ul class="content-list">
         <li>Check your airport's current wait time and 12-hour trend 30–60 minutes before leaving.</li>
         <li>Confirm your terminal and security entrance before rideshare drop-off or parking.</li>
@@ -167,7 +194,8 @@
         <h2>Wait History</h2>
         <span class="chip">Last 12 hours</span>
       </div>
-      <p class="chart-planning-tip">Use the history below to choose when to arrive at the airport. If you see consistent red between 4–7 PM, plan to arrive earlier — or check a less-busy checkpoint.</p>
+      <p class="chart-planning-tip">Use the history below to choose when to arrive at the airport. If you see consistent
+        red between 4–7 PM, plan to arrive earlier — or check a less-busy checkpoint.</p>
       <div class="controls">
         <label for="airport-select">Airport</label>
         <select id="airport-select"></select>
@@ -180,58 +208,58 @@
     <section class="ad-slot top-ad">
       <div class="ad-label">Advertisement</div>
       <div class="ad-slot-frame">
-      {% if monetization.enable_adsense %}
-      <ins class="adsbygoogle"
-           style="display:block"
-           data-ad-client="{{ monetization.adsense_client }}"
-           data-ad-slot="{{ monetization.adsense_slot_top }}"
-           data-ad-format="auto"
-           data-full-width-responsive="true"></ins>
-      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-      {% else %}
-      {% if monetization.local_offer %}
-      <div class="featured-offer-container" style="margin-bottom: 12px;">
-        <a class="affiliate-cta featured-offer" href="{{ monetization.local_offer.url }}" target="_blank" rel="noopener">
-          <span class="affiliate-icon">{{ monetization.local_offer.icon }}</span>
-          <div class="affiliate-content">
-            <span class="affiliate-title">{{ monetization.local_offer.title }}</span>
-            <span class="affiliate-sub">{{ monetization.local_offer.sub }}</span>
-          </div>
-          <span class="featured-tag">Featured</span>
-        </a>
-      </div>
-      {% endif %}
-      <div class="affiliate-cta-grid">
-        <a class="affiliate-cta kiwi" href="{{ monetization.kiwi_url }}" target="_blank" rel="noopener">
-          <span class="affiliate-icon">✈️</span>
-          <div class="affiliate-content">
-            <span class="affiliate-title">Cheap Flights {% if is_airport_page %}from {{ initial_airport_code }}{% endif %}</span>
-            <span class="affiliate-sub">Kiwi — lowest price guarantee</span>
-          </div>
-        </a>
-        <a class="affiliate-cta klook" href="{{ monetization.klook_url }}" target="_blank" rel="noopener">
-          <span class="affiliate-icon">🎫</span>
-          <div class="affiliate-content">
-            <span class="affiliate-title">Activities {% if airport_city %}in {{ airport_city }}{% else %}& more{% endif %}</span>
-            <span class="affiliate-sub">Klook — skip-the-line deals</span>
-          </div>
-        </a>
-        <a class="affiliate-cta airhelp" href="{{ monetization.airhelp_url }}" target="_blank" rel="noopener">
-          <span class="affiliate-icon">✈️</span>
-          <div class="affiliate-content">
-            <span class="affiliate-title">Flight delayed?</span>
-            <span class="affiliate-sub">Claim up to $600 back</span>
-          </div>
-        </a>
-        <a class="affiliate-cta lounge" href="{{ monetization.lounge_url }}" target="_blank" rel="noopener">
-          <span class="affiliate-icon">🛋️</span>
-          <div class="affiliate-content">
-            <span class="affiliate-title">Lines too long?</span>
-            <span class="affiliate-sub">Get Lounge Access now</span>
-          </div>
-        </a>
-      </div>
-      {% endif %}
+        {% if monetization.enable_adsense %}
+        <ins class="adsbygoogle" style="display:block" data-ad-client="{{ monetization.adsense_client }}"
+          data-ad-slot="{{ monetization.adsense_slot_top }}" data-ad-format="auto"
+          data-full-width-responsive="true"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+        {% else %}
+        {% if monetization.local_offer %}
+        <div class="featured-offer-container" style="margin-bottom: 12px;">
+          <a class="affiliate-cta featured-offer" href="{{ monetization.local_offer.url }}" target="_blank"
+            rel="noopener">
+            <span class="affiliate-icon">{{ monetization.local_offer.icon }}</span>
+            <div class="affiliate-content">
+              <span class="affiliate-title">{{ monetization.local_offer.title }}</span>
+              <span class="affiliate-sub">{{ monetization.local_offer.sub }}</span>
+            </div>
+            <span class="featured-tag">Featured</span>
+          </a>
+        </div>
+        {% endif %}
+        <div class="affiliate-cta-grid">
+          <a class="affiliate-cta kiwi" href="{{ monetization.kiwi_url }}" target="_blank" rel="noopener">
+            <span class="affiliate-icon">✈️</span>
+            <div class="affiliate-content">
+              <span class="affiliate-title">Cheap Flights {% if is_airport_page %}from {{ initial_airport_code }}{%
+                endif %}</span>
+              <span class="affiliate-sub">Kiwi — lowest price guarantee</span>
+            </div>
+          </a>
+          <a class="affiliate-cta klook" href="{{ monetization.klook_url }}" target="_blank" rel="noopener">
+            <span class="affiliate-icon">🎫</span>
+            <div class="affiliate-content">
+              <span class="affiliate-title">Activities {% if airport_city %}in {{ airport_city }}{% else %}& more{%
+                endif %}</span>
+              <span class="affiliate-sub">Klook — skip-the-line deals</span>
+            </div>
+          </a>
+          <a class="affiliate-cta airhelp" href="{{ monetization.airhelp_url }}" target="_blank" rel="noopener">
+            <span class="affiliate-icon">✈️</span>
+            <div class="affiliate-content">
+              <span class="affiliate-title">Flight delayed?</span>
+              <span class="affiliate-sub">Claim up to $600 back</span>
+            </div>
+          </a>
+          <a class="affiliate-cta lounge" href="{{ monetization.lounge_url }}" target="_blank" rel="noopener">
+            <span class="affiliate-icon">🛋️</span>
+            <div class="affiliate-content">
+              <span class="affiliate-title">Lines too long?</span>
+              <span class="affiliate-sub">Get Lounge Access now</span>
+            </div>
+          </a>
+        </div>
+        {% endif %}
       </div>
     </section>
 
@@ -240,12 +268,16 @@
       <div class="section-divider">Community Verification</div>
       <div class="report-content">
         <div id="live-community-status" class="muted" style="font-size: 12px; margin-bottom: 12px; display: none;">
-          <span class="pulse-mini"></span> Community members recently reported lines as <span id="community-level" style="font-weight:700; color:#fff;">...</span>
+          <span class="pulse-mini"></span> Community members recently reported lines as <span id="community-level"
+            style="font-weight:700; color:#fff;">...</span>
         </div>
-        <p class="muted" style="font-size: 13px; margin-bottom: 16px;">At the airport? Help fellow travelers by reporting the current line status.</p>
+        <p class="muted" style="font-size: 13px; margin-bottom: 16px;">At the airport? Help fellow travelers by
+          reporting the current line status.</p>
         <div class="report-actions">
-          <button class="report-btn short" onclick="reportWait('short')" aria-label="Report short wait time">Short</button>
-          <button class="report-btn med" onclick="reportWait('med')" aria-label="Report moderate wait time">Moderate</button>
+          <button class="report-btn short" onclick="reportWait('short')"
+            aria-label="Report short wait time">Short</button>
+          <button class="report-btn med" onclick="reportWait('med')"
+            aria-label="Report moderate wait time">Moderate</button>
           <button class="report-btn long" onclick="reportWait('long')" aria-label="Report long wait time">Long</button>
         </div>
       </div>
@@ -255,8 +287,11 @@
     {% if is_airport_page %}
     <section class="card widget-card" style="padding: 10px; background: transparent; border: none; box-shadow: none;">
       <div class="section-divider">Find your next flight</div>
-      <div style="background: var(--surface); border-radius: 12px; padding: 2px; overflow: hidden; border: 1px solid var(--border);">
-        <script src="https://tp.media/content?currency=usd&promo_id=4464&shmarker={{ monetization.travelpayouts_id }}&campaign_id=121&trs=205623&target_host=tsatracker.com&type=compact&limit=4&powered_by=false&marker={{ monetization.travelpayouts_id }}" charset="utf-8"></script>
+      <div
+        style="background: var(--surface); border-radius: 12px; padding: 2px; overflow: hidden; border: 1px solid var(--border);">
+        <script
+          src="https://tp.media/content?currency=usd&promo_id=4464&shmarker={{ monetization.travelpayouts_id }}&campaign_id=121&trs=205623&target_host=tsatracker.com&type=compact&limit=4&powered_by=false&marker={{ monetization.travelpayouts_id }}"
+          charset="utf-8"></script>
       </div>
     </section>
     {% endif %}
@@ -271,23 +306,32 @@
     {% if is_airport_page %}
     <section class="card content-card">
       <h2>About {{ initial_airport_code }} TSA Security Wait Times</h2>
-      <p class="muted">TSA Tracker provides live TSA checkpoint wait times for {{ airport_display_name }} ({{ initial_airport_code }}). Data is pulled directly from official {{ initial_airport_code }} airport security feeds — not estimates — and refreshes every ~2 minutes. Use the live data and 12-hour history chart above to plan when to head to the airport.</p>
+      <p class="muted">TSA Tracker provides live TSA checkpoint wait times for {{ airport_display_name }} ({{
+        initial_airport_code }}). Data is pulled directly from official {{ initial_airport_code }} airport security
+        feeds — not estimates — and refreshes every ~2 minutes. Use the live data and 12-hour history chart above to
+        plan when to head to the airport.</p>
 
       <div class="content-columns">
         <div>
           <h3>Tips for {{ initial_airport_code }} travelers</h3>
           <ul class="content-list">
-            <li>Green = short wait (under 15 min). Yellow = moderate. Red = long lines — arrive earlier than planned.</li>
-            <li>Use the history chart to spot peak hours at {{ initial_airport_code }} and choose a less busy time to pass through security.</li>
-            <li>TSA wait times at {{ initial_airport_code }} refresh every ~2 minutes — reload for the very latest reading.</li>
-            <li>If {{ initial_airport_code }} shows PreCheck or CLEAR lane data, those lines are almost always shorter than the standard lane.</li>
+            <li>Green = short wait (under 15 min). Yellow = moderate. Red = long lines — arrive earlier than planned.
+            </li>
+            <li>Use the history chart to spot peak hours at {{ initial_airport_code }} and choose a less busy time to
+              pass through security.</li>
+            <li>TSA wait times at {{ initial_airport_code }} refresh every ~2 minutes — reload for the very latest
+              reading.</li>
+            <li>If {{ initial_airport_code }} shows PreCheck or CLEAR lane data, those lines are almost always shorter
+              than the standard lane.</li>
           </ul>
         </div>
         <div>
           <h3>Travel activities & services</h3>
-          <p class="muted" style="margin-bottom:8px;">Planning things to do at your destination? Book skip-the-line tickets, airport transfers, and activities:</p>
+          <p class="muted" style="margin-bottom:8px;">Planning things to do at your destination? Book skip-the-line
+            tickets, airport transfers, and activities:</p>
           <ul class="content-list">
-            <li><a href="{{ monetization.klook_url }}" target="_blank" rel="noopener">Klook: Skip-the-line tickets, airport transfers & tours</a> — often cheaper than booking direct</li>
+            <li><a href="{{ monetization.klook_url }}" target="_blank" rel="noopener">Klook: Skip-the-line tickets,
+                airport transfers & tours</a> — often cheaper than booking direct</li>
           </ul>
         </div>
       </div>
@@ -295,11 +339,13 @@
       <div class="content-columns" style="margin-top: 16px;">
         <div>
           <h3>See live TSA wait times for other airports</h3>
-          <p class="muted" style="margin-bottom:8px;">Flying from a different city? Check real-time security line wait times at other major US airports:</p>
+          <p class="muted" style="margin-bottom:8px;">Flying from a different city? Check real-time security line wait
+            times at other major US airports:</p>
           <ul class="content-list">
             {% for code, info in live_airports.items() %}
             {% if code != initial_airport_code %}
-            <li><a href="{{ airport_pages | selectattr('code', 'equalto', code) | map(attribute='href') | first }}">{{ code }} TSA wait times</a> — {{ info.name }}</li>
+            <li><a href="{{ airport_pages | selectattr('code', 'equalto', code) | map(attribute='href') | first }}">{{
+                code }} TSA wait times</a> — {{ info.name }}</li>
             {% endif %}
             {% endfor %}
           </ul>
@@ -310,26 +356,35 @@
         <h2>{{ initial_airport_code }} TSA Wait Times — FAQ</h2>
         <div class="faq-item">
           <h3>How accurate is the {{ initial_airport_code }} TSA wait time data?</h3>
-          <p>TSA Tracker pulls data directly from {{ airport_display_name }}'s official airport security feed, not crowdsourced estimates. The checkpoint readings reflect actual measured wait times updated approximately every 2 minutes.</p>
+          <p>TSA Tracker pulls data directly from {{ airport_display_name }}'s official airport security feed, not
+            crowdsourced estimates. The checkpoint readings reflect actual measured wait times updated approximately
+            every 2 minutes.</p>
         </div>
         <div class="faq-item">
           <h3>What time should I get to {{ initial_airport_code }}?</h3>
-          <p>Check the 12-hour history chart above to see when {{ initial_airport_code }} TSA lines are typically busiest. Generally, TSA recommends arriving 2 hours before domestic flights and 3 hours before international — but if our live data shows long lines during your window, add extra time.</p>
+          <p>Check the 12-hour history chart above to see when {{ initial_airport_code }} TSA lines are typically
+            busiest. Generally, TSA recommends arriving 2 hours before domestic flights and 3 hours before international
+            — but if our live data shows long lines during your window, add extra time.</p>
         </div>
         <div class="faq-item">
           <h3>What are the peak hours at {{ initial_airport_code }} security?</h3>
-          <p>Peak TSA wait times at most airports fall between 5–9 AM and 4–7 PM on weekdays, and Sunday afternoons. Use the history chart on this page to see the specific pattern for {{ initial_airport_code }} today.</p>
+          <p>Peak TSA wait times at most airports fall between 5–9 AM and 4–7 PM on weekdays, and Sunday afternoons. Use
+            the history chart on this page to see the specific pattern for {{ initial_airport_code }} today.</p>
         </div>
         <div class="faq-item">
           <h3>How often does TSA Tracker update {{ initial_airport_code }} wait times?</h3>
-          <p>{{ initial_airport_code }} TSA wait times on TSA Tracker update approximately every 2 minutes, pulling fresh data directly from the airport's live security feed.</p>
+          <p>{{ initial_airport_code }} TSA wait times on TSA Tracker update approximately every 2 minutes, pulling
+            fresh data directly from the airport's live security feed.</p>
         </div>
       </div>
     </section>
     {% else %}
     <section class="card content-card">
       <h2>About TSA Tracker</h2>
-      <p class="muted">TSA Tracker shows real-time TSA security line wait times for major US airports. Unlike apps that use estimates or crowd-sourced reports, our data comes directly from official airport security feeds and refreshes approximately every 2 minutes — so you always see the actual airport security line wait times, not guesses. <a href="/guide/tsa-wait-times">Read our full guide to TSA wait times →</a></p>
+      <p class="muted">TSA Tracker shows real-time TSA security line wait times for major US airports. Unlike apps that
+        use estimates or crowd-sourced reports, our data comes directly from official airport security feeds and
+        refreshes approximately every 2 minutes — so you always see the actual airport security line wait times, not
+        guesses. <a href="/guide/tsa-wait-times">Read our full guide to TSA wait times →</a></p>
       <div class="content-columns">
         <div>
           <h3>How it works</h3>
@@ -342,11 +397,14 @@
         <div>
           <h3>Live airports</h3>
           <ul class="content-list">
-            <li><a href="/airports/phl-tsa-wait-times">TSA checkpoint wait times at Philadelphia International (PHL)</a></li>
+            <li><a href="/airports/phl-tsa-wait-times">TSA checkpoint wait times at Philadelphia International (PHL)</a>
+            </li>
             <li><a href="/airports/mia-tsa-wait-times">TSA checkpoint wait times at Miami International (MIA)</a></li>
             <li><a href="/airports/ord-tsa-wait-times">TSA security lines at Chicago O'Hare (ORD)</a></li>
-            <li><a href="/airports/lax-tsa-wait-times">TSA security line wait times at Los Angeles International (LAX)</a></li>
-            <li><a href="/airports/jfk-tsa-wait-times">Live TSA wait times at John F. Kennedy International (JFK)</a></li>
+            <li><a href="/airports/lax-tsa-wait-times">TSA security line wait times at Los Angeles International
+                (LAX)</a></li>
+            <li><a href="/airports/jfk-tsa-wait-times">Live TSA wait times at John F. Kennedy International (JFK)</a>
+            </li>
             {% for p in airport_pages %}{% if p.code not in ['PHL','MIA','ORD','LAX','JFK'] %}
             <li><a href="{{ p.href }}">{{ p.code }} TSA wait times</a> — {{ live_airports[p.code].name }}</li>
             {% endif %}{% endfor %}
@@ -358,23 +416,30 @@
         <h2>Frequently Asked Questions</h2>
         <div class="faq-item">
           <h3>How accurate are TSA wait time apps?</h3>
-          <p>TSA Tracker pulls data directly from official airport systems — not crowdsourced reports or estimates. This means our wait times reflect actual checkpoint readings from the airport's own infrastructure, updated every ~2 minutes.</p>
+          <p>TSA Tracker pulls data directly from official airport systems — not crowdsourced reports or estimates. This
+            means our wait times reflect actual checkpoint readings from the airport's own infrastructure, updated every
+            ~2 minutes.</p>
         </div>
         <div class="faq-item">
           <h3>How often are TSA wait times updated?</h3>
-          <p>TSA Tracker refreshes every approximately 2 minutes, pulling the latest readings from each airport's live data feed. The timestamp shown on each checkpoint tells you exactly how fresh the data is.</p>
+          <p>TSA Tracker refreshes every approximately 2 minutes, pulling the latest readings from each airport's live
+            data feed. The timestamp shown on each checkpoint tells you exactly how fresh the data is.</p>
         </div>
         <div class="faq-item">
           <h3>What time should I get to the airport?</h3>
-          <p>It depends on the airport and time of day. Use the 12-hour history chart above to see when lines peak at your airport. As a general rule, TSA recommends arriving 2 hours before domestic flights and 3 hours before international — but if you see red in the chart during your travel window, add extra time.</p>
+          <p>It depends on the airport and time of day. Use the 12-hour history chart above to see when lines peak at
+            your airport. As a general rule, TSA recommends arriving 2 hours before domestic flights and 3 hours before
+            international — but if you see red in the chart during your travel window, add extra time.</p>
         </div>
         <div class="faq-item">
           <h3>Does TSA PreCheck make a big difference?</h3>
-          <p>Yes — TSA PreCheck lines are almost always shorter. Where airports report lane-level data, TSA Tracker shows separate wait times for Standard, PreCheck, and CLEAR lanes so you can compare directly.</p>
+          <p>Yes — TSA PreCheck lines are almost always shorter. Where airports report lane-level data, TSA Tracker
+            shows separate wait times for Standard, PreCheck, and CLEAR lanes so you can compare directly.</p>
         </div>
         <div class="faq-item">
           <h3>Which airports have live TSA wait time data?</h3>
-          <p>TSA Tracker currently has live feeds for PHL, MIA, ORD, LAX, JFK, EWR, LGA, SEA, DFW, CLT, MCO, and JAX. We're actively working to add more airports — check the "Coming Soon" section for what's in progress.</p>
+          <p>TSA Tracker currently has live feeds for PHL, MIA, ORD, LAX, JFK, EWR, LGA, SEA, DFW, CLT, MCO, and JAX.
+            We're actively working to add more airports — check the "Coming Soon" section for what's in progress.</p>
         </div>
       </div>
     </section>
@@ -384,32 +449,29 @@
     <section class="ad-slot bottom-ad">
       <div class="ad-label">Advertisement</div>
       <div class="ad-slot-frame">
-      {% if monetization.enable_adsense %}
-      <ins class="adsbygoogle"
-           style="display:block"
-           data-ad-client="{{ monetization.adsense_client }}"
-           data-ad-slot="{{ monetization.adsense_slot_bottom }}"
-           data-ad-format="auto"
-           data-full-width-responsive="true"></ins>
-      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-      {% else %}
-      <div class="affiliate-cta-grid">
-        <a class="affiliate-cta rideshare" href="{{ monetization.lyft_url }}" target="_blank" rel="noopener">
-          <span class="affiliate-icon">🚕</span>
-          <div class="affiliate-content">
-            <span class="affiliate-title">Airport pickup made easy</span>
-            <span class="affiliate-sub">Lyft — affordable rides when you land</span>
-          </div>
-        </a>
-        <a class="affiliate-cta parking" href="{{ monetization.parking_url }}" target="_blank" rel="noopener">
-          <span class="affiliate-icon">🅿️</span>
-          <div class="affiliate-content">
-            <span class="affiliate-title">Off-site parking deals</span>
-            <span class="affiliate-sub">Save up to 50% vs terminal parking</span>
-          </div>
-        </a>
-      </div>
-      {% endif %}
+        {% if monetization.enable_adsense %}
+        <ins class="adsbygoogle" style="display:block" data-ad-client="{{ monetization.adsense_client }}"
+          data-ad-slot="{{ monetization.adsense_slot_bottom }}" data-ad-format="auto"
+          data-full-width-responsive="true"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+        {% else %}
+        <div class="affiliate-cta-grid">
+          <a class="affiliate-cta rideshare" href="{{ monetization.lyft_url }}" target="_blank" rel="noopener">
+            <span class="affiliate-icon">🚕</span>
+            <div class="affiliate-content">
+              <span class="affiliate-title">Airport pickup made easy</span>
+              <span class="affiliate-sub">Lyft — affordable rides when you land</span>
+            </div>
+          </a>
+          <a class="affiliate-cta parking" href="{{ monetization.parking_url }}" target="_blank" rel="noopener">
+            <span class="affiliate-icon">🅿️</span>
+            <div class="affiliate-content">
+              <span class="affiliate-title">Off-site parking deals</span>
+              <span class="affiliate-sub">Save up to 50% vs terminal parking</span>
+            </div>
+          </a>
+        </div>
+        {% endif %}
       </div>
     </section>
 
@@ -435,7 +497,7 @@
   <script>
     window.INITIAL_AIRPORT_CODE = "{{ initial_airport_code }}";
     // Nav active state
-    document.querySelectorAll(".header-nav-link").forEach(function(a) {
+    document.querySelectorAll(".header-nav-link").forEach(function (a) {
       if (a.getAttribute("href") === "/") a.classList.add("active");
     });
 
@@ -454,7 +516,7 @@
         ga.src = "https://www.googletagmanager.com/gtag/js?id=G-9MN7W14PC1";
         ga.onload = function () {
           window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
+          function gtag() { dataLayer.push(arguments); }
           gtag("js", new Date());
           gtag("config", "G-9MN7W14PC1");
         };
@@ -613,4 +675,5 @@
   {% endif %}
 
 </body>
+
 </html>
