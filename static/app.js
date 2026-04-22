@@ -618,7 +618,38 @@ async function bootstrap() {
 
   // Kick off silent background refresh every 2 minutes (matching server poll interval)
   scheduleNonCriticalTask(() => {
-    setInterval(silentRefresh, 2 * 60 * 1000);
+// Pull-to-Refresh for Mobile Users
+let touchStart = 0;
+const refreshThreshold = 80;
+
+window.addEventListener('touchstart', (e) => {
+  if (window.scrollY === 0) {
+    touchStart = e.touches[0].pageY;
+  } else {
+    touchStart = 0;
+  }
+}, { passive: true });
+
+window.addEventListener('touchend', (e) => {
+  const touchEnd = e.changedTouches[0].pageY;
+  if (touchStart > 0 && touchEnd - touchStart > refreshThreshold) {
+    // Briefly show a visual cue (the ⟳ character in the trust/indicator section)
+    const indicator = document.querySelector('.hero-trust');
+    if (indicator) {
+        indicator.style.color = 'var(--amber)';
+        indicator.textContent = '⟳ Refreshing live data...';
+        setTimeout(() => {
+            indicator.style.color = '';
+            indicator.textContent = '⟳ Updated about every 2 minutes — data from official airport systems';
+        }, 1500);
+    }
+    silentRefresh();
+  }
+}, { passive: true });
+
+// Auto-refresh every 2 min
+setInterval(silentRefresh, 120000);
+init();
     // Update the "Last Updated" text every 30 seconds
     setInterval(updateRefreshText, 30 * 1000);
   }, 1000);
