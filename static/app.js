@@ -9,30 +9,30 @@ const hasRIC = typeof window !== "undefined" && "requestIdleCallback" in window;
 
 const PHL_CONFIG = {
   "airportCode": "PHL",
-  "config": { "post_security_connected": true, "default_zoom": 15, "shuttle_active": true, "center": [39.8744, -75.2424] },
+  "config": { "post_security_connected": true, "default_zoom": 15, "shuttle_active": true, "center": [39.8785, -75.238] },
   "terminals": [
     {
-      "id": "A_WEST", "name": "A-West", "checkpoints": [4377], "coords": [39.8778, -75.2505],
+      "id": "A_WEST", "name": "A-West (Intl)", "shortName": "A", "checkpoints": [4377], "coords": [39.8825, -75.2485],
       "airlines": ["British Airways", "Aer Lingus", "Lufthansa", "Qatar Airways", "American (Intl)"],
       "notes": "Primary International Terminal."
     },
     {
-      "id": "A_EAST", "name": "A-East", "checkpoints": [4386, 4368], "coords": [39.8768, -75.2475],
+      "id": "A_EAST", "name": "Terminal A-East", "shortName": "A", "checkpoints": [4386, 4368], "coords": [39.8818, -75.2440],
       "airlines": ["American Airlines", "Aer Lingus", "Icelandair"],
       "notes": "Walkable to A-West and B."
     },
     {
-      "id": "BC_HUB", "name": "B & C", "checkpoints": [5047, 5052], "coords": [39.8755, -75.2435],
+      "id": "BC_HUB", "name": "B/C Hub", "shortName": "B/C", "checkpoints": [5047, 5052], "coords": [39.8795, -75.2395],
       "airlines": ["American Airlines"],
       "notes": "Main domestic hub for American."
     },
     {
-      "id": "DE_HUB", "name": "D & E", "checkpoints": [3971, 4126], "coords": [39.8725, -75.2395],
+      "id": "DE_HUB", "name": "D/E Connector", "shortName": "D/E", "checkpoints": [3971, 4126], "coords": [39.8765, -75.2335],
       "airlines": ["Delta", "Southwest", "United", "Frontier", "Spirit", "JetBlue", "Alaska"],
       "notes": "Use the D/E Connector."
     },
     {
-      "id": "F_REGIONAL", "name": "F", "checkpoints": [5068], "coords": [39.8705, -75.2345],
+      "id": "F_REGIONAL", "name": "Terminal F", "shortName": "F", "checkpoints": [5068], "coords": [39.8745, -75.2285],
       "airlines": ["American Eagle"],
       "notes": "Regional flights. Shuttle from C."
     }
@@ -276,12 +276,22 @@ function initTerminalMap(airportCode) {
     maxZoom: 19
   }).addTo(terminalMap);
 
+  // Line of Connectivity (Airside)
+  const pathCoords = PHL_CONFIG.terminals.map(t => t.coords);
+  L.polyline(pathCoords, {
+    color: '#555',
+    weight: 2,
+    dashArray: '5, 10',
+    opacity: 0.6,
+    interactive: false
+  }).addTo(terminalMap);
+
   // Add Terminal Markers
   PHL_CONFIG.terminals.forEach(t => {
     const icon = L.divIcon({
       className: 'terminal-marker-icon',
-      html: `<div class="terminal-marker-inner" id="marker-${t.id}">${t.name}</div>`,
-      iconSize: [32, 32]
+      html: `<div class="terminal-marker-inner" id="marker-${t.id}" data-label="${t.name}">${t.shortName}</div>`,
+      iconSize: [34, 34]
     });
 
     const marker = L.marker(t.coords, { icon: icon }).addTo(terminalMap);
