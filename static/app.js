@@ -9,30 +9,35 @@ const hasRIC = typeof window !== "undefined" && "requestIdleCallback" in window;
 
 const PHL_CONFIG = {
   "airportCode": "PHL",
-  "config": { "post_security_connected": true, "default_zoom": 15, "shuttle_active": true, "center": [39.8785, -75.238] },
+  "config": { "post_security_connected": true, "default_zoom": 16, "shuttle_active": true, "center": [39.8775, -75.244] },
   "terminals": [
     {
-      "id": "A_WEST", "name": "A-West (Intl)", "shortName": "A", "checkpoints": [4377], "coords": [39.8828, -75.2488],
+      "id": "A_WEST", "name": "A-West (Intl)", "shortName": "A", "checkpoints": [4377], "coords": [39.875023, -75.249537],
       "airlines": ["British Airways", "Aer Lingus", "Lufthansa", "Qatar Airways", "American (Intl)"],
       "notes": "Primary International Terminal."
     },
     {
-      "id": "A_EAST", "name": "Terminal A-East", "shortName": "A", "checkpoints": [4386, 4368], "coords": [39.8820, -75.2445],
+      "id": "A_EAST", "name": "Terminal A-East", "shortName": "A", "checkpoints": [4386, 4368], "coords": [39.875500, -75.246500],
       "airlines": ["American Airlines", "Aer Lingus", "Icelandair"],
       "notes": "Walkable to A-West and B."
     },
     {
-      "id": "BC_HUB", "name": "B/C Hub", "shortName": "B/C", "checkpoints": [5047, 5052], "coords": [39.8798, -75.2405],
+      "id": "BC_HUB", "name": "B/C Hub", "shortName": "B/C", "checkpoints": [5047, 5052], "coords": [39.876148, -75.243988],
       "airlines": ["American Airlines"],
       "notes": "Main domestic hub for American."
     },
     {
-      "id": "DE_HUB", "name": "D/E Connector", "shortName": "D/E", "checkpoints": [3971, 4126], "coords": [39.8768, -75.2340],
-      "airlines": ["Delta", "Southwest", "United", "Frontier", "Spirit", "JetBlue", "Alaska"],
-      "notes": "Use the D/E Connector."
+      "id": "D_HUB", "name": "Terminal D", "shortName": "D", "checkpoints": [3971], "coords": [39.877168, -75.240543],
+      "airlines": ["Delta", "United", "Alaska"],
+      "notes": "Use the D/E Connector entry."
     },
     {
-      "id": "F_REGIONAL", "name": "Terminal F", "shortName": "F", "checkpoints": [5068], "coords": [39.8740, -75.2295],
+      "id": "E_HUB", "name": "Terminal E", "shortName": "E", "checkpoints": [4126], "coords": [39.878594, -75.239604],
+      "airlines": ["Southwest", "Frontier", "Spirit", "JetBlue"],
+      "notes": "Terminal E is connected to D airside."
+    },
+    {
+      "id": "F_REGIONAL", "name": "Terminal F", "shortName": "F", "checkpoints": [5068], "coords": [39.880363, -75.239777],
       "airlines": ["American Eagle"],
       "notes": "Regional flights. Shuttle from C."
     }
@@ -279,8 +284,9 @@ function initTerminalMap(airportCode) {
   // Line of Connectivity (Airside)
   const pathCoords = PHL_CONFIG.terminals.map(t => t.coords);
   L.polyline(pathCoords, {
-    color: '#444',
+    color: '#888',
     weight: 2,
+    dashArray: '5, 8',
     opacity: 0.6,
     interactive: false
   }).addTo(terminalMap);
