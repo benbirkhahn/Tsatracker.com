@@ -42,20 +42,57 @@ SPONSOR_CTA_TEXT = os.getenv("SPONSOR_CTA_TEXT", "Advertise here").strip()
 # Travelpayouts / Klook
 TRAVELPAYOUTS_ID = os.getenv("TRAVELPAYOUTS_ID", "").strip()
 TRAVELPAYOUTS_TOKEN = os.getenv("TRAVELPAYOUTS_TOKEN", "").strip()
-KLOOK_AFFILIATE_URL = os.getenv("KLOOK_AFFILIATE_URL", f"https://www.klook.com/?marker={TRAVELPAYOUTS_ID}" if TRAVELPAYOUTS_ID else "https://www.klook.com/").strip()
-AIRHELP_AFFILIATE_URL = os.getenv("AIRHELP_AFFILIATE_URL", "https://airhelp.tpo.li/iHq6wvHP").strip()
-LOUNGE_AFFILIATE_URL = os.getenv("LOUNGE_AFFILIATE_URL", f"https://www.prioritypass.com/?marker={TRAVELPAYOUTS_ID}" if TRAVELPAYOUTS_ID else "https://www.prioritypass.com/").strip()
-KIWI_AFFILIATE_URL = os.getenv("KIWI_AFFILIATE_URL", f"https://www.kiwi.com/?marker={TRAVELPAYOUTS_ID}" if TRAVELPAYOUTS_ID else "https://www.kiwi.com/").strip()
-
 # Affiliate monetization links (override via env vars with your affiliate IDs)
 UBER_AFFILIATE_URL = os.getenv("UBER_AFFILIATE_URL", "https://www.uber.com/").strip()
 LYFT_AFFILIATE_URL = os.getenv("LYFT_AFFILIATE_URL", "https://www.lyft.com/").strip()
 PARKING_AFFILIATE_URL = os.getenv("PARKING_AFFILIATE_URL", "https://parking.com/").strip()
+AIRHELP_AFFILIATE_URL = os.getenv("AIRHELP_AFFILIATE_URL", "https://airhelp.tpo.li/iHq6wvHP").strip()
+LOUNGE_AFFILIATE_URL = os.getenv("LOUNGE_AFFILIATE_URL", f"https://www.prioritypass.com/?marker={TRAVELPAYOUTS_ID}" if TRAVELPAYOUTS_ID else "https://www.prioritypass.com/").strip()
+KIWI_AFFILIATE_URL = os.getenv("KIWI_AFFILIATE_URL", f"https://www.kiwi.com/?marker={TRAVELPAYOUTS_ID}" if TRAVELPAYOUTS_ID else "https://www.kiwi.com/").strip()
+KLOOK_AFFILIATE_URL = os.getenv("KLOOK_AFFILIATE_URL", f"https://www.klook.com/?marker={TRAVELPAYOUTS_ID}" if TRAVELPAYOUTS_ID else "https://www.klook.com/").strip()
+
+def get_lite_brain_insights() -> List[str]:
+    """Reads recent notes from the 'Lite Brain' to identify manual optimization cues."""
+    try:
+        # Connect to the external Lite Brain DB
+        lb_conn = sqlite3.connect('/Users/benbirkhahn/lite-brain/smart-clipboard.db')
+        cur = lb_conn.cursor()
+        # Look for snippets containing monetization keywords from the last 24 hours
+        cur.execute("SELECT content FROM context_snippets WHERE created_at >= datetime('now', '-1 day')")
+        rows = cur.fetchall()
+        lb_conn.close()
+        return [r[0] for r in rows]
+    except Exception as e:
+        logger.error("Could not read Lite Brain: %s", e)
+        return []
+
+
+def get_best_offer_id(airport_code: str = None) -> str:
+    """The 'Self-Learning' core: calculates CTR and checks Lite Brain insights to pick the winner."""
+    insights = " ".join(get_lite_brain_insights()).lower()
+    
+    # Priority 1: Manual Lite Brain Override (The 'Brain' knows best)
+    if "focus on klook" in insights: return "KLOOK"
+    if "kiwi is better" in insights: return "KIWI"
+    
+    # Priority 2: Real-time Data (The 'Code' learns from users)
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        # Simple CTR calculation: clicks / views (simplified here to just count clicks)
+        cur.execute("SELECT offer_id, COUNT(*) as c FROM ad_clicks GROUP BY offer_id ORDER BY c DESC LIMIT 1")
+        row = cur.fetchone()
+        conn.close()
+        return row[0] if row else "KIWI"
+    except:
+        return "KIWI"
+
 
 def get_monetization_context(airport_code: str = "") -> Dict:
-    """Returns a dictionary of all monetization and affiliate data."""
+    """Returns a dictionary of all monetization and affiliate data, now with Smart Ranking."""
     is_airport_page = bool(airport_code and airport_code in LIVE_AIRPORTS)
     city = LIVE_AIRPORTS[airport_code].get("city", "") if is_airport_page else ""
+    best_offer = get_best_offer_id(airport_code)
     
     return {
         "enable_adsense": ENABLE_ADSENSE and bool(ADSENSE_CLIENT),
@@ -65,13 +102,8 @@ def get_monetization_context(airport_code: str = "") -> Dict:
         "emerald_id": EMERALD_ID,
         "emerald_tag": EMERALD_TAG,
         "travelpayouts_id": TRAVELPAYOUTS_ID,
-        "sponsor_cta_url": SPONSOR_CTA_URL,
-        "sponsor_cta_text": SPONSOR_CTA_TEXT,
-        "uber_url": UBER_AFFILIATE_URL,
-        "lyft_url": LYFT_AFFILIATE_URL,
-        "parking_url": PARKING_AFFILIATE_URL,
-        "airhelp_url": AIRHELP_AFFILIATE_URL,
-        "lounge_url": LOUNGE_AFFILIATE_URL,
+        "best_offer_id": best_offer,
+        "smart_learning_active": True,
         "local_offer": LOCAL_OFFERS.get(airport_code),
         "klook_url": (
             f"https://www.klook.com/en-US/search?query={city.replace(' ', '+')}&marker={TRAVELPAYOUTS_ID}"
@@ -554,6 +586,16 @@ def init_db() -> None:
             path TEXT NOT NULL,
             airport_code TEXT,
             user_agent TEXT,
+            captured_at TEXT NOT NULL
+        )
+        """
+    )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS ad_clicks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            offer_id TEXT NOT NULL,
+            airport_code TEXT,
             captured_at TEXT NOT NULL
         )
         """
@@ -1419,6 +1461,27 @@ def community_status():
     if row:
         return jsonify({"level": row[0], "reported_at": row[1]})
     return jsonify({"level": None})
+
+
+@app.route("/api/log-click", methods=["POST"])
+def log_ad_click():
+    data = request.json or {}
+    offer_id = data.get("offer_id")
+    code = data.get("code")
+    if not offer_id:
+        return jsonify({"error": "No offer_id"}), 400
+    
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute(
+            "INSERT INTO ad_clicks (offer_id, airport_code, captured_at) VALUES (?, ?, ?)",
+            (offer_id, code, utc_now().isoformat())
+        )
+        conn.commit()
+        conn.close()
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 

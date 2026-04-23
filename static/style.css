@@ -681,11 +681,45 @@ body.ad-blocker-active .ad-label {
   display: none;
 }
 body.ad-blocker-active .affiliate-cta {
-  box-shadow: 0 0 15px rgba(245, 158, 11, 0.1);
-  border-color: rgba(245, 158, 11, 0.3);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  border-color: rgba(245, 158, 11, 0.2);
 }
-body.ad-blocker-active .featured-tag {
-  animation: pulse 2s infinite;
+body.ad-blocker-active .featured-offer {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+  border-color: #4338ca;
+}
+
+/* ── SMART MONETIZATION UI ── */
+.smart-badge {
+  position: absolute; bottom: 12px; right: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 4px 10px; border-radius: 99px;
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  color: #fff; display: flex; align-items: center; gap: 6px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+.ai-sparkle {
+  color: #facc15; animation: aiSparkle 1.5s ease-in-out infinite;
+}
+@keyframes aiSparkle {
+  0%, 100% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 2px #facc15); }
+  50%      { transform: scale(1.2); opacity: 0.8; filter: drop-shadow(0 0 5px #facc15); }
+}
+
+.pulse-glass {
+  position: relative; overflow: hidden;
+}
+.pulse-glass::after {
+  content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  opacity: 0; transition: opacity 0.5s; pointer-events: none;
+  animation: glassGlow 4s infinite;
+}
+@keyframes glassGlow {
+  0%, 100% { transform: translate(-10%, -10%); opacity: 0.2; }
+  50%       { transform: translate(10%, 10%); opacity: 0.4; }
 }
 
 @media (max-width: 600px) {

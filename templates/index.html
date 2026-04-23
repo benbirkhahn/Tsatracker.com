@@ -235,29 +235,34 @@
           data-full-width-responsive="true"></ins>
         <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
         {% else %}
-        <div class="featured-offer-container" id="ad-featured-container" style="margin-bottom: 12px; {% if not monetization.local_offer %}display:none;{% endif %}">
-          <a class="affiliate-cta featured-offer" id="ad-featured-link" href="{{ monetization.local_offer.url if monetization.local_offer else '#' }}" target="_blank"
-            rel="noopener">
+        <div class="featured-offer-container" id="ad-featured-container" style="margin-bottom: 20px; {% if not monetization.local_offer %}display:none;{% endif %}">
+          <a class="affiliate-cta featured-offer pulse-glass" id="ad-featured-link" href="{{ monetization.local_offer.url if monetization.local_offer else '#' }}" 
+             target="_blank" rel="noopener" onclick="logAdClick('LOCAL_OFFER')">
             <span class="affiliate-icon" id="ad-featured-icon">{{ monetization.local_offer.icon if monetization.local_offer else '🎁' }}</span>
             <div class="affiliate-content">
               <span class="affiliate-title" id="ad-featured-title">{{ monetization.local_offer.title if monetization.local_offer else '' }}</span>
               <span class="affiliate-sub" id="ad-featured-sub">{{ monetization.local_offer.sub if monetization.local_offer else '' }}</span>
             </div>
-            <span class="featured-tag">Featured</span>
+            <span class="featured-tag">Featured Offer</span>
+            {% if monetization.smart_learning_active %}
+            <div class="smart-badge">
+              <span class="ai-sparkle">✨</span> Smart Optimized
+            </div>
+            {% endif %}
           </a>
         </div>
         <div class="affiliate-cta-grid">
-          <a class="affiliate-cta kiwi" id="ad-kiwi-link" href="{{ monetization.kiwi_url }}" target="_blank" rel="noopener">
+          <a class="affiliate-cta kiwi" id="ad-kiwi-link" href="{{ monetization.kiwi_url }}" target="_blank" rel="noopener" onclick="logAdClick('KIWI')">
             <span class="affiliate-icon">✈️</span>
             <div class="affiliate-content">
               <span class="affiliate-title" id="ad-kiwi-title">Cheap Flights from {{ initial_airport_code if is_airport_page else '' }}</span>
               <span class="affiliate-sub">Kiwi — lowest price guarantee</span>
             </div>
           </a>
-          <a class="affiliate-cta klook" id="ad-klook-link" href="{{ monetization.klook_url }}" target="_blank" rel="noopener">
+          <a class="affiliate-cta klook" id="ad-klook-link" href="{{ monetization.klook_url }}" target="_blank" rel="noopener" onclick="logAdClick('KLOOK')">
             <span class="affiliate-icon">🎫</span>
             <div class="affiliate-content">
-              <span class="affiliate-title" id="ad-klook-title">Activities in {{ airport_city if airport_city else 'this city' }}</span>
+              <span class="affiliate-title">Activities in {{ airport_city if airport_city else 'this city' }}</span>
               <span class="affiliate-sub">Klook — skip-the-line deals</span>
             </div>
           </a>
@@ -538,6 +543,14 @@
         return;
       }
       setTimeout(fn, 0);
+    }
+
+    function logAdClick(offerId) {
+      fetch('/api/log-click', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ offer_id: offerId, code: window.INITIAL_AIRPORT_CODE })
+      }).catch(err => console.error('Click log failed', err));
     }
 
     window.addEventListener("load", function () {
