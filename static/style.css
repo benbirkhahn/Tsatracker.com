@@ -676,6 +676,18 @@ select {
 }
 .search-btn-premium:hover { background: #d97706; transform: translateY(-1px); }
 
+/* ── AD BLOCKER FALLBACKS ── */
+body.ad-blocker-active .ad-label {
+  display: none;
+}
+body.ad-blocker-active .affiliate-cta {
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+body.ad-blocker-active .featured-tag {
+  animation: pulse 2s infinite;
+}
+
 @media (max-width: 600px) {
   .form-row { flex-direction: column; align-items: stretch; }
   .search-btn-premium { width: 100%; border-radius: 8px; }

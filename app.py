@@ -547,6 +547,17 @@ def init_db() -> None:
         )
         """
     )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS page_views (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            path TEXT NOT NULL,
+            airport_code TEXT,
+            user_agent TEXT,
+            captured_at TEXT NOT NULL
+        )
+        """
+    )
     # Migrate existing DBs that don't yet have lane_type
     try:
         cur.execute("ALTER TABLE samples ADD COLUMN lane_type TEXT NOT NULL DEFAULT 'STANDARD'")
@@ -586,6 +597,21 @@ def db_insert_rows(rows: List[Dict]) -> None:
     )
     conn.commit()
     conn.close()
+
+
+def log_page_view(path: str, airport_code: str = None) -> None:
+    """Logs a page view to the internal database for tracking accuracy."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO page_views (path, airport_code, user_agent, captured_at) VALUES (?, ?, ?, ?)",
+            (path, airport_code, request.headers.get("User-Agent"), utc_now().isoformat()),
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.error("Failed to log page view: %s", e)
 
 
 def fetch_phl_rows() -> List[Dict]:
@@ -1161,14 +1187,17 @@ def favicon_apple():
 
 @app.route("/")
 def index():
+    log_page_view("/", None)
     return render_template("index.html", **index_template_context("", home_page_seo()))
 
 @app.route("/airports/<airport_slug>")
 def airport_page(airport_slug: str):
     m = re.fullmatch(r"([a-z]{3})-tsa-wait-times", airport_slug.strip().lower())
     if not m:
+        log_page_view(f"/airports/{airport_slug}", None)
         return jsonify({"error": "Not found"}), 404
     code = m.group(1).upper()
+    log_page_view(f"/airports/{airport_slug}", code)
     meta = LIVE_AIRPORTS.get(code)
     if not meta:
         return jsonify({"error": "Airport page unavailable"}), 404

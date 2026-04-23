@@ -552,7 +552,14 @@
           gtag("config", "G-9MN7W14PC1");
         };
         document.head.appendChild(ga);
-      }, 1200);
+
+        // Ad-blocker detection
+        setTimeout(() => {
+          if (!window.ezstandalone || !window.ezstandalone.initialized) {
+            document.body.classList.add('ad-blocker-active');
+          }
+        }, 3000);
+      }, 300);
 
       {% if monetization.enable_adsense %}
       scheduleThirdPartyLoad(function () {
