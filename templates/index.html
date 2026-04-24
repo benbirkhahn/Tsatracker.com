@@ -252,7 +252,7 @@
             <span class="toolkit-icon">🛡️</span>
             <div class="toolkit-title-group">
               <span class="toolkit-main-title">Security Shortcuts</span>
-              <span class="toolkit-sub-title">Save time at {{ initial_airport_code if is_airport_page else 'the airport' }}</span>
+              <span class="toolkit-sub-title" id="toolkit-sub-title">Save time at {{ initial_airport_code if is_airport_page else 'the airport' }}</span>
             </div>
           </div>
           <div class="toolkit-list">
@@ -302,7 +302,7 @@
           <a class="affiliate-cta klook" id="ad-klook-link" href="{{ monetization.klook_url }}" target="_blank" rel="noopener" onclick="logAdClick('KLOOK')">
             <span class="affiliate-icon">🎫</span>
             <div class="affiliate-content">
-              <span class="affiliate-title">Activities in {{ airport_city if airport_city else 'this city' }}</span>
+              <span class="affiliate-title" id="ad-klook-title">Activities in {{ airport_city if airport_city else 'this city' }}</span>
               <span class="affiliate-sub">Klook — skip-the-line deals</span>
             </div>
           </a>
