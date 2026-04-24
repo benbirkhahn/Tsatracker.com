@@ -550,14 +550,13 @@ function renderAirportChips(payload, filterText = "") {
     !q || code.toLowerCase().includes(q) || info.name.toLowerCase().includes(q)
   );
   filtered.forEach(([code, info]) => {
-    const btn = document.createElement("button");
-    btn.className = `airport-chip${selectedAirportCode === code ? " active" : ""}`;
-    btn.type = "button";
-    btn.textContent = code;
-    btn.title = `${code} TSA wait times — ${info.name}`;
-    btn.setAttribute("aria-label", `View live TSA wait times at ${info.name} (${code})`);
-    btn.addEventListener("click", () => selectAirport(code));
-    host.appendChild(btn);
+    const link = document.createElement("a");
+    link.className = `airport-chip${selectedAirportCode === code ? " active" : ""}`;
+    link.href = `/airports/${code.toLowerCase()}-tsa-wait-times`;
+    link.textContent = code;
+    link.title = `${code} TSA wait times — ${info.name}`;
+    link.setAttribute("aria-label", `View live TSA wait times at ${info.name} (${code})`);
+    host.appendChild(link);
   });
 }
 
@@ -838,7 +837,7 @@ async function bootstrap() {
     const match = Object.keys(livePayloadCache.live_airports || {}).find(
       (c) => c.toLowerCase() === q || livePayloadCache.live_airports[c].name.toLowerCase().includes(q)
     );
-    if (match) selectAirport(match);
+    if (match) window.location.href = `/airports/${match.toLowerCase()}-tsa-wait-times`;
   });
 
   renderAirportChips(livePayloadCache);
