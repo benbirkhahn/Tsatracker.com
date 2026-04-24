@@ -37,6 +37,7 @@ ADSENSE_SLOT_BOTTOM = os.getenv("ADSENSE_SLOT_BOTTOM", "").strip()
 EMERALD_ID = os.getenv("EMERALD_ID", "519508").strip()
 EMERALD_TAG = os.getenv("EMERALD_TAG", "1").strip()
 GA_MEASUREMENT_ID = os.getenv("GA_MEASUREMENT_ID", "G-9MN7W14PC1").strip()
+SKIMLINKS_SCRIPT_URL = os.getenv("SKIMLINKS_SCRIPT_URL", "https://s.skimresources.com/js/302030X1790019.skimlinks.js").strip()
 
 
 SPONSOR_CTA_URL = os.getenv("SPONSOR_CTA_URL", "mailto:ads@tsatracker.com").strip()
@@ -136,6 +137,7 @@ def get_monetization_context(airport_code: str = "") -> Dict:
         "emerald_id": EMERALD_ID,
         "emerald_tag": EMERALD_TAG,
         "ga_id": GA_MEASUREMENT_ID,
+        "skimlinks_script_url": SKIMLINKS_SCRIPT_URL,
         "travelpayouts_id": TRAVELPAYOUTS_ID,
 
         "best_offer_id": best_offer,
