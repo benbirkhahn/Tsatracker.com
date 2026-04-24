@@ -198,8 +198,6 @@ LIVE_AIRPORTS = {
     "EWR": {"name": "Newark Liberty International (EWR)", "mode": "LIVE_PUBLIC", "city": "Newark"},
     "LGA": {"name": "LaGuardia Airport (LGA)", "mode": "LIVE_PUBLIC", "city": "New York"},
     "SEA": {"name": "Seattle-Tacoma International (SEA)", "mode": "LIVE_PUBLIC", "city": "Seattle"},
-    "ATL": {"name": "Hartsfield-Jackson Atlanta International (ATL)", "mode": "LIVE_PUBLIC", "city": "Atlanta"},
-    "DEN": {"name": "Denver International (DEN)", "mode": "LIVE_KEY_EMBEDDED", "city": "Denver"},
 }
 
 
@@ -212,6 +210,18 @@ AIRPORT_FACTORS = {
 }
 
 PIPELINE_AIRPORTS = [
+    {
+        "code": "ATL",
+        "name": "Hartsfield-Jackson Atlanta International (ATL)",
+        "status": "IN_RESEARCH",
+        "public_note": "Live integration coming soon.",
+    },
+    {
+        "code": "DEN",
+        "name": "Denver International (DEN)",
+        "status": "IN_RESEARCH",
+        "public_note": "Live integration coming soon.",
+    },
 
     {
         "code": "SFO",
