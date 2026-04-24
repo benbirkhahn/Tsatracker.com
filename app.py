@@ -153,6 +153,9 @@ def get_monetization_context(airport_code: str = "") -> Dict:
         "parking_url": PARKING_AFFILIATE_URL,
         "airhelp_url": AIRHELP_AFFILIATE_URL,
         "lounge_url": LOUNGE_AFFILIATE_URL,
+        "card_chase_url": os.getenv("CARD_CHASE_URL", "https://creditcards.chase.com/").strip(),
+        "card_capitalone_url": os.getenv("CARD_CAPITALONE_URL", "https://www.capitalone.com/credit-cards/").strip(),
+        "card_amex_url": os.getenv("CARD_AMEX_URL", "https://www.americanexpress.com/us/credit-cards/").strip(),
     }
 
 # Top Airport Personalized Offers (Revenue Boosters)
@@ -1520,6 +1523,16 @@ def guide_tsa_wait_times():
     return render_template("guide.html", seo=seo, monetization=get_monetization_context())
 
 
+@app.route("/guide/tsa-precheck-clear")
+def guide_tsa_precheck_clear():
+    seo = build_page_seo(
+        title="TSA PreCheck vs CLEAR: Official Enrollment, Costs, and Best Travel Cards | TSA Tracker",
+        description="Compare TSA PreCheck, CLEAR, and Global Entry. Learn how the programs work, where to enroll with official providers, and which travel cards can help offset the cost.",
+        canonical_path="/guide/tsa-precheck-clear",
+    )
+    return render_template("precheck_clear.html", seo=seo, monetization=get_monetization_context())
+
+
 @app.route("/methodology")
 def methodology_page():
     seo = build_page_seo(
@@ -1619,7 +1632,7 @@ def sitemap_xml():
     pages = (
         [("/", "1.0", "hourly")]
         + [(airport_seo_slug(c), "0.9", "always") for c in LIVE_AIRPORTS.keys()]
-        + [("/about", "0.6", "monthly"), ("/methodology", "0.8", "weekly"), ("/privacy", "0.3", "monthly"), ("/terms", "0.3", "monthly"), ("/contact", "0.4", "monthly"), ("/guide/tsa-wait-times", "0.7", "monthly")]
+        + [("/about", "0.6", "monthly"), ("/methodology", "0.8", "weekly"), ("/privacy", "0.3", "monthly"), ("/terms", "0.3", "monthly"), ("/contact", "0.4", "monthly"), ("/guide/tsa-wait-times", "0.7", "monthly"), ("/guide/tsa-precheck-clear", "0.7", "monthly")]
     )
     entries = []
     for path, priority, changefreq in pages:
