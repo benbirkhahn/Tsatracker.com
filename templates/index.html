@@ -5,14 +5,6 @@
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-  <script data-cfasync="false" src="https://cmp.gatekeeperconsent.com/min.js"></script>
-  <script data-cfasync="false" src="https://the.gatekeeperconsent.com/cmp.min.js"></script>
-  <script async src="//www.ezojs.com/ezoic/sa.min.js"></script>
-  <script>
-    window.ezstandalone = window.ezstandalone || {};
-    ezstandalone.cmd = ezstandalone.cmd || [];
-  </script>
-  <script src="//ezoicanalytics.com/analytics.js"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="google-site-verification" content="BrgIHs-VGqw0TKjsx0U-HzG_tED2LE_9kwy3qR58ObQ" />
@@ -44,7 +36,6 @@
   <link rel="stylesheet" href="/static/style.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script async src="https://tp.st/drive/{{ monetization.emerald_id }}"></script>
     <script>
       window.MONETIZATION_CONFIG = {
         tpMarker: "{{ monetization.travelpayouts_id }}"
@@ -71,11 +62,6 @@
       <a href="/methodology" class="header-nav-link">Methodology</a>
     </nav>
   </header>
-
-  <!-- Ezoic Placeholder [101] - Top Leaderboard -->
-  <div style="width:100%; text-align:center; padding: 10px 0;">
-    <div id="ezoic-pub-ad-placeholder-101"> </div>
-  </div>
 
   <main class="main">
 
@@ -573,12 +559,6 @@
     </section>
 
   </main>
-
-    <!-- Ezoic Placeholder [103] - Bottom Anchor -->
-    <div style="width:100%; text-align:center; margin: 24px 0;">
-      <div id="ezoic-pub-ad-placeholder-103"> </div>
-    </div>
-
   <footer class="footer">
     <div>TSA Tracker — live security wait times. Data refreshes every ~2 minutes.</div>
     <div class="footer-links">
@@ -633,13 +613,6 @@
           gtag("config", "{{ monetization.ga_id }}");
         };
         document.head.appendChild(ga);
-
-        // Ad-blocker detection
-        setTimeout(() => {
-          if (!window.ezstandalone || !window.ezstandalone.initialized) {
-            document.body.classList.add('ad-blocker-active');
-          }
-        }, 3000);
       }, 300);
 
       {% if monetization.enable_adsense %}
@@ -815,13 +788,6 @@
   </script>
   {% endif %}
 
-  <script>
-    if (window.ezstandalone) {
-      ezstandalone.cmd.push(function() {
-          ezstandalone.showAds([101, 102, 103]);
-      });
-    }
-  </script>
   {% include "_affiliate_scripts.html" %}
 </body>
 
