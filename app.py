@@ -1451,11 +1451,24 @@ def methodology_page():
 @app.route("/api/live")
 def api_live():
     public_airports = {code: {"name": meta["name"]} for code, meta in LIVE_AIRPORTS.items()}
+    data = latest_snapshot()
+    for code in LIVE_AIRPORTS:
+        if data.get(code):
+            continue
+        payload = normalized_current_wait_for_code(code)
+        current = payload.get("currentWait", {})
+        data[code] = [{
+            "checkpoint": "Estimated Wait",
+            "wait_minutes": current.get("standard", 0),
+            "lane_type": "STANDARD",
+            "captured_at": current.get("timestamp", utc_now().isoformat()),
+            "source": payload.get("sourceType", "estimated_fallback"),
+        }]
     return jsonify(
         {
             "generated_at": utc_now().isoformat(),
             "live_airports": public_airports,
-            "data": latest_snapshot(),
+            "data": data,
         }
     )
 
