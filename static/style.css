@@ -152,10 +152,10 @@ body {
 .airport-pages-links a:hover { color: var(--amber); }
 
 /* ── RESULTS SECTION ── */
-.results-card { margin-bottom: 12px; }
+.results-card { margin-bottom: 10px; }
 .selection-summary {
-  margin: 0 0 16px;
-  padding: 20px 22px;
+  margin: 0 0 14px;
+  padding: 18px 20px;
   border-radius: 16px;
   background: linear-gradient(135deg, #181825 0%, #11111a 100%);
   border: 1px solid var(--border2);
@@ -186,7 +186,7 @@ body {
 /* Airport header: code/name + live badge */
 .airport-header {
   display: flex; align-items: flex-end; justify-content: space-between;
-  margin-bottom: 20px; padding-bottom: 14px;
+  margin-bottom: 14px; padding-bottom: 12px;
   border-bottom: 1px solid var(--border);
 }
 .airport-header-left { flex: 1; min-width: 0; }
@@ -354,11 +354,11 @@ body {
 
 /* ── CARD WRAPPER (chart, pipeline, content) ── */
 .card {
-  background: var(--surface);
+  background: linear-gradient(180deg, rgba(20,20,26,0.96) 0%, rgba(20,20,26,0.88) 100%);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 12px;
+  padding: 18px;
+  margin-bottom: 10px;
 }
 .card-head {
   display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
@@ -392,11 +392,11 @@ select {
 }
 
 /* ── AD SLOTS ── */
-.ad-slot { margin: 12px 0 24px; }
+.ad-slot { margin: 8px 0 18px; }
 .ad-label {
   color: var(--muted); font-size: 10px; font-family: var(--mono);
-  margin: 0 0 10px; letter-spacing: .12em; text-transform: uppercase;
-  display: block; opacity: 0.6;
+  margin: 0 0 8px; letter-spacing: .12em; text-transform: uppercase;
+  display: block; opacity: 0.45;
 }
 .ad-slot-frame {
   height: auto;
@@ -438,12 +438,12 @@ select {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 16px;
+  padding: 14px;
   border-radius: 12px;
   text-decoration: none;
   transition: all 0.2s;
   border: 1px solid;
-  min-height: 80px;
+  min-height: 74px;
   color: #fff; /* Ensure text is always white */
 }
 .affiliate-cta.rideshare {
@@ -513,8 +513,8 @@ select {
   color: var(--muted);
 }
 .featured-offer {
-  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
-  border-color: #4338ca;
+  background: linear-gradient(135deg, #19173e 0%, #262164 100%);
+  border-color: #3f3aa8;
   position: relative;
   width: 100%;
   box-sizing: border-box;
@@ -605,7 +605,7 @@ select {
 
 /* ── CHART PLANNING TIP ── */
 .chart-planning-tip {
-  font-size: 12px; color: var(--muted); margin: 0 0 12px; line-height: 1.6;
+  font-size: 12px; color: #8e8ea8; margin: 0 0 10px; line-height: 1.55;
 }
 
 /* ── FAQ SECTION ── */
@@ -621,13 +621,13 @@ select {
 .utility-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 14px;
 }
 .utility-panel {
-  background: var(--surface2);
+  background: rgba(255,255,255,0.025);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 16px;
+  padding: 14px;
 }
 .utility-title {
   font-size: 14px;
