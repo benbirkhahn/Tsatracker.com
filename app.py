@@ -29,9 +29,10 @@ POLL_SECONDS = int(_poll_env) if _poll_env.isdigit() else 120
 COLLECT_NOW_TOKEN = os.getenv("COLLECT_NOW_TOKEN")
 ENABLE_POLLER = os.getenv("ENABLE_POLLER", "true").lower() == "true"
 ENABLE_ADSENSE = os.getenv("ENABLE_ADSENSE", "false").lower() == "true"
-ADSENSE_CLIENT = os.getenv("ADSENSE_CLIENT", "").strip()
+ADSENSE_CLIENT = os.getenv("ADSENSE_CLIENT", "ca-pub-3769301792129016").strip()
 ADSENSE_SLOT_TOP = os.getenv("ADSENSE_SLOT_TOP", "").strip()
 ADSENSE_SLOT_BOTTOM = os.getenv("ADSENSE_SLOT_BOTTOM", "").strip()
+ADSENSE_SLOT_GUIDE = os.getenv("ADSENSE_SLOT_GUIDE", "8161510326").strip()
 
 # Emerald Ad Network (Performance ads)
 EMERALD_ID = os.getenv("EMERALD_ID", "519508").strip()
@@ -134,6 +135,7 @@ def get_monetization_context(airport_code: str = "") -> Dict:
         "adsense_client": ADSENSE_CLIENT,
         "adsense_slot_top": ADSENSE_SLOT_TOP,
         "adsense_slot_bottom": ADSENSE_SLOT_BOTTOM,
+        "adsense_slot_guide": ADSENSE_SLOT_GUIDE,
         "emerald_id": EMERALD_ID,
         "emerald_tag": EMERALD_TAG,
         "ga_id": GA_MEASUREMENT_ID,

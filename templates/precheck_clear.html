@@ -10,6 +10,10 @@
   <meta property="og:title" content="{{ seo.title }}">
   <meta property="og:description" content="{{ seo.description }}">
   <meta property="og:url" content="{{ seo.canonical_url }}">
+  {% if monetization.adsense_client and monetization.adsense_slot_guide %}
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ monetization.adsense_client }}"
+          crossorigin="anonymous"></script>
+  {% endif %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Oswald:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -34,6 +38,8 @@
     .cta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 16px; }
     .cta-button { display: inline-block; margin-top: 8px; background: var(--amber); color: #0d0d14; font-weight: 700; padding: 10px 16px; border-radius: 8px; text-decoration: none; }
     .cta-button:hover { text-decoration: none; filter: brightness(1.04); }
+    .inline-ad-card { background: var(--surface2); border: 1px solid #2a2a40; border-radius: 12px; padding: 14px 16px; margin: 18px 0 28px; }
+    .inline-ad-label { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 10px; }
     article.content-card h1 { color: var(--text); line-height: 1.2; }
     article.content-card h2 { font-size: 1.35rem !important; font-family: inherit !important; text-transform: none !important; letter-spacing: 0 !important; color: var(--text) !important; }
     article.content-card h3 { font-size: 1.05rem !important; font-family: inherit !important; text-transform: none !important; letter-spacing: 0 !important; color: var(--text) !important; }
@@ -78,6 +84,18 @@
           <li><a href="#bundle">When it makes sense to bundle CLEAR + PreCheck</a></li>
         </ol>
       </div>
+
+      {% if monetization.adsense_client and monetization.adsense_slot_guide %}
+      <div class="inline-ad-card">
+        <div class="inline-ad-label">Sponsored</div>
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-format="autorelaxed"
+             data-ad-client="{{ monetization.adsense_client }}"
+             data-ad-slot="{{ monetization.adsense_slot_guide }}"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+      </div>
+      {% endif %}
 
       <h2 id="difference" style="margin:32px 0 10px;">1. What each program actually does</h2>
       <div class="comparison-grid">
