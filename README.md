@@ -89,6 +89,53 @@ This repository includes a `render.yaml` Blueprint.
 
 ---
 
+## 🔎 Google Search Console Automation
+
+This repo includes a minimal CLI for two repetitive Search Console tasks:
+- submit `sitemap.xml`
+- inspect index status for a shortlist of URLs
+
+Script:
+- `scripts/gsc_automation.py`
+
+### Requirements
+1. Enable the `Search Console API` in a Google Cloud project.
+2. Create a Google `service account` and download its JSON key.
+3. Add that service account email as a user or owner on your Search Console property.
+
+### Env Vars
+| Variable | Description |
+| :--- | :--- |
+| `GSC_PROPERTY` | Search Console property, e.g. `https://tsatracker.com/` or `sc-domain:tsatracker.com` |
+| `GSC_SERVICE_ACCOUNT_FILE` | Path to the service account JSON file |
+| `GSC_SITEMAP_URL` | Absolute sitemap URL, e.g. `https://tsatracker.com/sitemap.xml` |
+| `GSC_LANGUAGE_CODE` | Optional inspection language code, e.g. `en-US` |
+
+### Usage
+Submit the sitemap:
+```bash
+python3 scripts/gsc_automation.py submit-sitemap
+```
+
+Inspect a few key URLs:
+```bash
+python3 scripts/gsc_automation.py inspect \
+  --url https://tsatracker.com/ \
+  --url https://tsatracker.com/airports/jfk-tsa-wait-times \
+  --url https://tsatracker.com/airports/lga-tsa-wait-times
+```
+
+Inspect from a file:
+```bash
+python3 scripts/gsc_automation.py inspect --urls-file urls.txt
+```
+
+### Notes
+- This script uses the official `sitemaps.submit` and `urlInspection.index.inspect` APIs.
+- It does **not** automate normal `Request indexing`; Google does not expose that as a general API for these pages.
+
+---
+
 ## 🔬 Pipeline
 Airports currently under research for future integration:
 - **ATL**, **DEN**, **SFO**, **IAH**, **LAS**, **BWI**, **DTW**, **IAD**, **DCA**.
