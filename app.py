@@ -1468,7 +1468,13 @@ def methodology_page():
 
 @app.route("/api/live")
 def api_live():
-    public_airports = {code: {"name": meta["name"]} for code, meta in LIVE_AIRPORTS.items()}
+    public_airports = {
+        code: {
+            "name": meta["name"],
+            "city": meta.get("city", ""),
+        }
+        for code, meta in LIVE_AIRPORTS.items()
+    }
     data = latest_snapshot()
     for code in LIVE_AIRPORTS:
         if data.get(code):

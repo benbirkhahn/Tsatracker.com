@@ -549,6 +549,8 @@ async function selectAirport(code, shouldPush = true) {
   if (heroSub && meta) {
     heroSub.textContent = `How long is the security line at ${meta.name}? Real-time TSA checkpoint data pulled directly from official airport systems — not estimates. Updated every ~2 minutes.`;
   }
+  const toolkitSub = document.getElementById("toolkit-sub-title");
+  if (toolkitSub) toolkitSub.textContent = `Save time at ${code}`;
 
   // Update Flight Search Logic
   const flightText = document.getElementById("flight-origin-text");
@@ -557,7 +559,6 @@ async function selectAirport(code, shouldPush = true) {
   if (flightInput) flightInput.value = code;
 
   // --- START DYNAMIC AD UPDATE ---
-  const marker = (window.MONETIZATION_CONFIG && window.MONETIZATION_CONFIG.tpMarker) || "719940";
   const offers = window.LOCAL_OFFERS || {};
   const currentOffer = offers[code];
   const cityName = (meta && meta.city) || "";
