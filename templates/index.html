@@ -412,6 +412,14 @@
           </ul>
         </div>
         <div>
+          <h3>Best arrival window for {{ initial_airport_code }} today</h3>
+          <p class="muted" style="margin-bottom:8px;">Best off-peak window: <strong>{{ arrival_guidance.best_window }}</strong>. Main risk window: <strong>{{ arrival_guidance.risk_window }}</strong>.</p>
+          <p class="muted">{{ arrival_guidance.recommendation }}</p>
+        </div>
+      </div>
+
+      <div class="content-columns" style="margin-top: 16px;">
+        <div>
           <h3>Related planning guides</h3>
           <p class="muted" style="margin-bottom:8px;">Useful if you are still deciding when to leave or how much buffer to build in:</p>
           <ul class="content-list">
@@ -459,12 +467,12 @@
           <h3>What time should I get to {{ initial_airport_code }}?</h3>
           <p>Check the 12-hour history chart above to see when {{ initial_airport_code }} TSA lines are typically
             busiest. Generally, TSA recommends arriving 2 hours before domestic flights and 3 hours before international
-            — but if our live data shows long lines during your window, add extra time.</p>
+            — but if our live data shows long lines during your window, add extra time. Today, the best flexible arrival window looks like <strong>{{ arrival_guidance.best_window }}</strong>, while <strong>{{ arrival_guidance.risk_window }}</strong> is the period to treat more carefully.</p>
         </div>
         <div class="faq-item">
           <h3>What are the peak hours at {{ initial_airport_code }} security?</h3>
           <p>Peak TSA wait times at most airports fall between 5–9 AM and 4–7 PM on weekdays, and Sunday afternoons. Use
-            the history chart on this page to see the specific pattern for {{ initial_airport_code }} today.</p>
+            the history chart on this page to see the specific pattern for {{ initial_airport_code }} today. Right now, the highest-risk window in the forecast is <strong>{{ arrival_guidance.risk_window }}</strong>.</p>
         </div>
         <div class="faq-item">
           <h3>How often does TSA Tracker update {{ initial_airport_code }} wait times?</h3>

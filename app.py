@@ -208,6 +208,39 @@ LIVE_AIRPORTS = {
 }
 
 AIRPORT_PAGE_GUIDES = {
+    "PHL": {
+        "tips": [
+            "PHL security timing can move quickly between checkpoints, so use the live cards above instead of assuming every terminal is moving the same way.",
+            "If you are flying during the first morning departure wave or late-afternoon push, check the history chart before leaving for the airport.",
+            "PHL is the kind of airport where live checkpoint data can save you from arriving much earlier than you actually need to.",
+        ],
+        "notes": [
+            "Philadelphia traffic patterns are busy enough for live checkpoint timing to matter, but still compact enough that the page is mainly about making a leave-now vs wait-a-bit decision.",
+            "This page is most useful when you pair the current checkpoint cards with your terminal confirmation before heading to the airport.",
+        ],
+    },
+    "MIA": {
+        "tips": [
+            "MIA can swing quickly when international and domestic departure banks overlap, so same-day live checkpoint data matters more than a generic airport rule.",
+            "If your trip involves checked bags or international document checks, treat yellow and red waits at MIA as a sign to build more buffer.",
+            "Use the history chart to separate a normal Miami peak from a temporary spike before deciding when to leave.",
+        ],
+        "notes": [
+            "Miami traffic is more variable than a smaller airport because international departures, leisure traffic, and connecting passengers can all pressure security at the same time.",
+            "That makes this page more of a timing tool than just a static wait-time lookup.",
+        ],
+    },
+    "ORD": {
+        "tips": [
+            "ORD is large enough that terminal and checkpoint choice matter more than the airport-wide average alone.",
+            "If you are traveling during a heavy morning or evening bank, use the live cards above to see whether your terminal is the problem or the whole airport is busy.",
+            "At ORD, the best move is usually to trust the live checkpoint spread and not the assumption that every line is equally backed up.",
+        ],
+        "notes": [
+            "Chicago O'Hare can look calm at one checkpoint and much slower at another, which is why the lane-level data is the main value on this page.",
+            "This page is especially useful for business-travel windows when ORD security can ramp up quickly.",
+        ],
+    },
     "LAX": {
         "tips": [
             "LAX security timing can vary a lot by terminal, so confirm your airline terminal before heading to the checkpoint.",
@@ -250,6 +283,61 @@ AIRPORT_PAGE_GUIDES = {
         "notes": [
             "Jacksonville is usually more straightforward than a major hub, which makes live timing especially helpful for deciding whether you can leave later.",
             "The main value of this page at JAX is avoiding unnecessary early arrival when checkpoint conditions are actually light.",
+        ],
+    },
+    "CLT": {
+        "tips": [
+            "CLT often rewards checking the live reading before leaving because one busy departure wave can change the whole feel of the airport quickly.",
+            "If your travel window overlaps an early-morning push, use the checkpoint cards and history chart together instead of relying on normal two-hour rules alone.",
+            "At Charlotte, live checkpoint conditions matter most when the airport is dealing with concentrated bank departures.",
+        ],
+        "notes": [
+            "Charlotte traffic tends to bunch around major departure windows, so the timing signal from live security data is more useful than a static airport arrival rule.",
+            "This page helps most when you are deciding whether current lines justify extra buffer right now.",
+        ],
+    },
+    "JFK": {
+        "tips": [
+            "JFK terminal traffic can behave like separate mini-airports, so treat the terminal cards above as more important than the overall airport average.",
+            "If your terminal is showing a long line while another looks calm, assume your terminal timing is the one that matters for departure planning.",
+            "JFK is one of the best examples of why live checkpoint data is more useful than generic 'arrive early' advice.",
+        ],
+        "notes": [
+            "John F. Kennedy can have very different line conditions across terminals because traffic is distributed unevenly across international and domestic departure waves.",
+            "This page is designed to help you decide whether your specific terminal is the issue or whether the whole airport is running hot.",
+        ],
+    },
+    "EWR": {
+        "tips": [
+            "EWR line conditions can change quickly by terminal, so use the terminal cards above instead of treating Newark as a single line.",
+            "If you are deciding whether to head out now, compare the current terminal spread with the 12-hour chart to see whether this looks like a normal push or an outlier.",
+            "At Newark, live checkpoint data is most useful when you are trying to avoid overreacting to a single airport-wide average.",
+        ],
+        "notes": [
+            "Newark is large enough that terminal-specific congestion matters, especially during business-travel windows and evening departures.",
+            "That makes the page strongest as a same-day decision tool rather than a generic planning article.",
+        ],
+    },
+    "LGA": {
+        "tips": [
+            "LGA is smaller than JFK, but checkpoint timing can still vary enough by terminal to make the live cards more useful than the airport average alone.",
+            "If your departure window is tight, check whether your terminal is moving normally before assuming the whole airport is backed up.",
+            "LaGuardia tends to reward quick same-day checks because the difference between a short wait and a stressful one can happen fast.",
+        ],
+        "notes": [
+            "LaGuardia works best with live monitoring because traveler volume can spike around concentrated departure windows without making the whole airport feel consistently busy.",
+            "This page is mainly about timing your arrival well, not just confirming that security exists.",
+        ],
+    },
+    "SEA": {
+        "tips": [
+            "SEA can build pressure quickly when departures stack into the same window, so use the live checkpoint reading before heading to the terminal.",
+            "If the airport is showing moderate or long waits, compare the current reading with the history chart to judge whether this is the main daily peak.",
+            "Seattle-Tacoma is a good example of an airport where live data can keep you from either underestimating or overshooting your buffer.",
+        ],
+        "notes": [
+            "Sea-Tac traffic patterns make live same-day checkpoint data more useful than generic arrival advice, especially during concentrated morning and evening windows.",
+            "This page is most valuable when you are deciding whether current conditions justify leaving earlier right now.",
         ],
     },
 }
@@ -433,6 +521,35 @@ def airport_page_seo(code: str, airport_name: str) -> Dict:
     )
 
 
+def arrival_guidance_for_airport(payload: Dict) -> Dict:
+    forecast = payload.get("hourlyForecast", []) if payload else []
+    if forecast:
+        ordered = sorted(forecast, key=lambda row: float(row.get("waittime", 0)))
+        best = ordered[0]
+        worst = ordered[-1]
+        best_label = best.get("timeslot", "late morning")
+        risk_label = worst.get("timeslot", "the busiest bank")
+    else:
+        best_label = "late morning to mid-afternoon"
+        risk_label = "early morning and late afternoon"
+
+    current = payload.get("currentWait", {}) if payload else {}
+    current_minutes = float(current.get("standard", 0) or 0)
+    current_desc = current.get("standardDescription", "current conditions")
+    if current_minutes >= 20:
+        recommendation = f"Current security timing is elevated at {current_desc}, so plan extra buffer and avoid {risk_label} if you can."
+    elif current_minutes > 0:
+        recommendation = f"Current security timing is manageable at {current_desc}, but {risk_label} is still the most likely stress window."
+    else:
+        recommendation = f"Aim for {best_label} if your departure timing is flexible, and avoid {risk_label} when possible."
+
+    return {
+        "best_window": best_label,
+        "risk_window": risk_label,
+        "recommendation": recommendation,
+    }
+
+
 def legal_page_seo(slug: str) -> Dict:
     mapping = {
         "privacy": ("Privacy Policy", "Read TSA Tracker's privacy policy and data handling details."),
@@ -489,6 +606,7 @@ def index_template_context(initial_airport_code: str, seo: Dict) -> Dict:
         "airport_display_name": airport_display_name,
         "airport_city": LIVE_AIRPORTS[initial_airport_code].get("city") if is_airport_page and initial_airport_code in LIVE_AIRPORTS else None,
         "airport_guide": AIRPORT_PAGE_GUIDES.get(initial_airport_code, {}),
+        "arrival_guidance": arrival_guidance_for_airport(initial_data) if is_airport_page else None,
         "airport_pages": [{"code": c, "href": airport_seo_slug(c), "name": v["name"]} for c, v in LIVE_AIRPORTS.items()],
         "seo": seo,
         "initial_data": initial_data,
