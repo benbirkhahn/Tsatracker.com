@@ -155,10 +155,10 @@ function latestCapturedAt(rows) {
 
 // Lane display config: label, badge CSS class, sort priority
 const LANE_CONFIG = {
-  STANDARD:       { label: "Regular",          cls: "lane-std",    order: 0 },
-  PRIORITY:       { label: "Priority",         cls: "lane-pri",    order: 1 },
-  PRECHECK:       { label: "TSA Pre\u2714",     cls: "lane-pre",    order: 2 },
-  CLEAR:          { label: "CLEAR",             cls: "lane-clr",    order: 3 },
+  STANDARD: { label: "Regular", cls: "lane-std", order: 0 },
+  PRIORITY: { label: "Priority", cls: "lane-pri", order: 1 },
+  PRECHECK: { label: "TSA Pre\u2714", cls: "lane-pre", order: 2 },
+  CLEAR: { label: "CLEAR", cls: "lane-clr", order: 3 },
   CLEAR_PRECHECK: { label: "CLEAR + Pre\u2714", cls: "lane-clrpre", order: 4 },
 };
 
@@ -182,7 +182,7 @@ function bigNumHtml(wait_minutes, tier) {
 function laneWaitText(wait_minutes, tier) {
   const mins = fmtMinutes(wait_minutes);
   if (mins === null) return `<span class="lane-wait ${tier}">Closed</span>`;
-  if (mins === 0)    return `<span class="lane-wait low">&lt;1 min</span>`;
+  if (mins === 0) return `<span class="lane-wait low">&lt;1 min</span>`;
   return `<span class="lane-wait ${tier}">${mins} ${mins === 1 ? "min" : "mins"}</span>`;
 }
 
@@ -288,7 +288,7 @@ function initTerminalMap(airportCode) {
     mapSection.style.display = "none";
     return;
   }
-  
+
   mapSection.style.display = "block";
   if (terminalMap) return; // Already init
 
@@ -373,9 +373,9 @@ function highlightTerminalForAirline(airline) {
     if (el) el.classList.add('highlight', 'active-terminal-glow');
 
     terminalMap.setView(terminal.coords, 16);
-    
+
     const routing = PHL_CONFIG.routing_logic.find(r => r.from === terminal.id);
-    
+
     let content = `
       <div style="margin-bottom:12px;">
         <span style="font-size: 11px; color: var(--amber); font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">Recommended Priority</span>
@@ -426,7 +426,7 @@ function normalizeHistory(rows) {
   const bucket = {};
   rows.forEach((r) => {
     const t = new Date(r.captured_at);
-    const key = `${t.getUTCFullYear()}-${t.getUTCMonth()+1}-${t.getUTCDate()} ${t.getUTCHours()}:${t.getUTCMinutes()}`;
+    const key = `${t.getUTCFullYear()}-${t.getUTCMonth() + 1}-${t.getUTCDate()} ${t.getUTCHours()}:${t.getUTCMinutes()}`;
     if (!bucket[key]) bucket[key] = { ts: t, sum: 0, c: 0 };
     bucket[key].sum += Number(r.wait_minutes) || 0;
     bucket[key].c += 1;
@@ -467,8 +467,10 @@ async function drawChart(points, airportCode) {
           ticks: { color: "#55556a", font: { family: "'IBM Plex Mono'" } },
           grid: { color: "#22222e" },
           border: { color: "#22222e" },
-          title: { display: true, text: "Minutes", color: "#55556a",
-                   font: { family: "'IBM Plex Mono'", size: 11 } },
+          title: {
+            display: true, text: "Minutes", color: "#55556a",
+            font: { family: "'IBM Plex Mono'", size: 11 }
+          },
         },
       },
       plugins: {
@@ -494,7 +496,7 @@ async function loadHistory(airportCode) {
 
 // Source status label
 function sourceStatusLabel(sourceType) {
-  if (sourceType === "live_direct")        return ["✓ Live airport data", "is-live"];
+  if (sourceType === "live_direct") return ["✓ Live airport data", "is-live"];
   if (sourceType === "estimated_fallback") return ["~ Estimated (live data not yet available)", "is-fallback"];
   return ["", "is-unknown"];
 }
@@ -567,15 +569,9 @@ function renderAirportChips(payload, filterText = "") {
       ) {
         return;
       }
+      if (selectedAirportCode === code) return;
       event.preventDefault();
-      if (selectedAirportCode === code) {
-        const resultsEl = document.getElementById("results-section");
-        if (resultsEl) {
-          resultsEl.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
-        return;
-      }
-      selectAirport(code);
+      window.location.href = link.href;
     });
     host.appendChild(link);
   });
@@ -601,12 +597,12 @@ async function selectAirport(code, shouldPush = true) {
   document.title = `${code} TSA Wait Times — TSA Tracker`;
   const heroTitle = document.getElementById("hero-title");
   if (heroTitle) heroTitle.innerHTML = `${code} TSA <em>Wait Times</em>`;
-  
+
   // Update airport header
   const meta = livePayloadCache.live_airports?.[code];
   const apHeader = document.getElementById("airport-header");
   if (apHeader) apHeader.style.display = "";
-  
+
   const h2Name = document.getElementById("current-airport-name");
   if (h2Name && meta) h2Name.textContent = meta.name;
 
@@ -691,14 +687,14 @@ async function selectAirport(code, shouldPush = true) {
  */
 function logAdClick(offerId) {
   if (!offerId) return;
-  
+
   // Fire and forget: we don't want to block the user's navigation
   fetch("/api/log-click", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ 
-      offer_id: offerId, 
-      code: selectedAirportCode || "HOME" 
+    body: JSON.stringify({
+      offer_id: offerId,
+      code: selectedAirportCode || "HOME"
     })
   }).catch(err => console.warn("Ad log failed", err));
 }
@@ -728,18 +724,18 @@ function buildKiwiAirportUrl(code) {
 function performFlightSearch() {
   const destInput = document.getElementById("flight-destination-input");
   const dest = destInput ? destInput.value.trim() : "";
-  
+
   if (!dest) {
     alert("Please enter a destination (city or airport code)");
     return;
   }
-  
+
   const origin = selectedAirportCode || "JFK";
   const marker = (window.MONETIZATION_CONFIG && window.MONETIZATION_CONFIG.tpMarker) || "719940";
-  
+
   // Stable URL for the final destination (using /tiles/ for instant results)
   const targetUrl = `https://www.kiwi.com/en/search/tiles/${origin.toLowerCase()}/${dest.toLowerCase()}?marker=${marker}`;
-  
+
   window.open(targetUrl, "_blank");
 }
 
@@ -829,7 +825,7 @@ async function fetchCommunityStatus(code) {
   const statusEl = document.getElementById("live-community-status");
   const levelEl = document.getElementById("community-level");
   if (!code || !statusEl) return;
-  
+
   try {
     const resp = await fetch(`/api/community-status?code=${code}`);
     const data = await resp.json();
@@ -859,8 +855,7 @@ async function bootstrap() {
       (c) => c.toLowerCase() === q || livePayloadCache.live_airports[c].name.toLowerCase().includes(q)
     );
     if (match) {
-      e.preventDefault();
-      selectAirport(match);
+      window.location.href = `/airports/${match.toLowerCase()}-tsa-wait-times`;
     }
   });
 
@@ -919,12 +914,12 @@ window.addEventListener('touchend', (e) => {
     // Briefly show a visual cue (the ⟳ character in the trust/indicator section)
     const indicator = document.querySelector('.hero-trust');
     if (indicator) {
-        indicator.style.color = 'var(--amber)';
-        indicator.textContent = '⟳ Refreshing live data...';
-        setTimeout(() => {
-            indicator.style.color = '';
-            indicator.textContent = '⟳ Updated about every 2 minutes — data from official airport systems';
-        }, 1500);
+      indicator.style.color = 'var(--amber)';
+      indicator.textContent = '⟳ Refreshing live data...';
+      setTimeout(() => {
+        indicator.style.color = '';
+        indicator.textContent = '⟳ Updated about every 2 minutes — data from official airport systems';
+      }, 1500);
     }
     silentRefresh();
   }
