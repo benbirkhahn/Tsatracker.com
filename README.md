@@ -27,6 +27,7 @@ The following airports have verified, official data feeds currently integrated:
 ## 🛠 Features
 - **Real-time Polling**: Background poller refreshes data every 120 seconds.
 - **Historical Trends**: Stores samples in SQLite to generate 12-hour wait history charts.
+- **X/Twitter Alerts**: Optional abnormal-wait posting built into the poller with cooldown-based dedupe.
 - **Smart SEO**: Automatic landing pages for every airport (`/airports/phl-tsa-wait-times`) with structured JSON-LD data for search engines.
 - **Monetization Ready**: Integrated slots for Google AdSense and affiliate CTAs (Uber, Lyft, Parking, Klook).
 - **Lightweight UI**: Built with pure CSS and Vanilla JS for sub-second page loads.
@@ -86,6 +87,32 @@ This repository includes a `render.yaml` Blueprint.
 | `DB_PATH` | Path to SQLite database | `data.db` |
 | `COLLECT_NOW_TOKEN` | Secret token to trigger manual fetch via API | Required |
 | `SITE_URL` | Used for Canonical URLs/SEO | `https://tsatracker.com` |
+| `ENABLE_X_ALERTS` | Enable abnormal wait posting to X | `false` |
+| `X_API_KEY` | X app API key | Required for X alerts |
+| `X_API_SECRET` | X app API secret | Required for X alerts |
+| `X_ACCESS_TOKEN` | X user access token | Required for X alerts |
+| `X_ACCESS_TOKEN_SECRET` | X user access token secret | Required for X alerts |
+| `X_ACCOUNT_HANDLE` | Account handle used for ops/docs | `TsaTracker` |
+| `X_ALERT_MIN_WAIT` | Minimum average live wait before alert consideration | `35` |
+| `X_ALERT_EXTREME_WAIT` | Alert even without baseline if current wait exceeds this | `50` |
+| `X_ALERT_MIN_DELTA` | Minimum delta above historical baseline | `15` |
+| `X_ALERT_COOLDOWN_MINUTES` | Minimum minutes between same-airport alerts | `90` |
+| `X_ALERT_BASELINE_HOURS` | History window for baseline calculation | `6` |
+| `X_ALERT_MIN_BASELINE_SAMPLES` | Minimum sample count before using a baseline | `12` |
+
+### X/Twitter Alerts
+This repo can automatically post abnormal TSA wait spikes to an X account from the existing poller loop.
+
+Setup:
+1. Create an X developer app and generate `API key`, `API secret`, `Access token`, and `Access token secret` for the posting account.
+2. Add the env vars above in Render.
+3. Set `ENABLE_X_ALERTS=true`.
+
+Behavior:
+- Evaluates each fresh collector cycle.
+- Posts only when an airport's current average wait is materially high.
+- Uses a rolling historical baseline plus a cooldown to reduce spam.
+- Logs posted and failed attempts in the `social_posts` SQLite table.
 
 ---
 
