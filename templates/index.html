@@ -13,6 +13,7 @@
   <title>{{ seo.title }}</title>
   <meta name="description" content="{{ seo.description }}">
   <link rel="canonical" href="{{ seo.canonical_url }}">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
   <meta property="og:type" content="website">
   <meta property="og:title" content="{{ seo.title }}">
   <meta property="og:description" content="{{ seo.description }}">
@@ -35,8 +36,6 @@
       rel="stylesheet">
   </noscript>
   <link rel="stylesheet" href="/static/style.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script>
       window.MONETIZATION_CONFIG = {
         tpMarker: "{{ monetization.travelpayouts_id }}"

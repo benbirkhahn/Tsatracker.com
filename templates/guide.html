@@ -7,10 +7,18 @@
   <title>{{ seo.title }}</title>
   <meta name="description" content="{{ seo.description }}">
   <link rel="canonical" href="{{ seo.canonical_url }}">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
   <meta property="og:type" content="article">
   <meta property="og:title" content="{{ seo.title }}">
   <meta property="og:description" content="{{ seo.description }}">
   <meta property="og:url" content="{{ seo.canonical_url }}">
+  <meta property="og:image" content="{{ seo.site_url }}/static/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ seo.title }}">
+  <meta name="twitter:description" content="{{ seo.description }}">
+  <meta name="twitter:image" content="{{ seo.site_url }}/static/og-image.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Oswald:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -427,7 +435,12 @@
     "headline": "TSA Wait Times Explained: How to Get Through Airport Security Faster in 2025",
     "description": "{{ seo.description }}",
     "url": "{{ seo.canonical_url }}",
-    "dateModified": "2025-04-01",
+    "datePublished": "2025-04-01",
+    "dateModified": "2026-04-29",
+    "author": {
+      "@type": "Organization",
+      "name": "TSA Tracker"
+    },
     "publisher": {
       "@type": "Organization",
       "name": "TSA Tracker",
@@ -441,7 +454,7 @@
           "name": "How far in advance should I check TSA wait times?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Check the live wait time 30–60 minutes before you plan to leave for the airport. For peak-period flights, also check the 12-hour history chart the night before."
+            "text": "Check the live wait time 30 to 60 minutes before leaving for the airport. For peak flights, review the 12-hour history chart the night before."
           }
         },
         {
@@ -449,7 +462,7 @@
           "name": "Is TSA wait time data the same as what the TSA publishes?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "TSA Tracker data comes from individual airports, not directly from the TSA. Each airport authority collects and publishes its own checkpoint data, which TSA Tracker aggregates."
+            "text": "No. TSA Tracker uses each airport's official checkpoint data feed, then aggregates those readings into one live view."
           }
         },
         {
@@ -457,7 +470,7 @@
           "name": "How do I sign up for TSA PreCheck?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Visit tsa.gov/precheck/enroll to apply. You'll complete an online form, schedule an in-person appointment, provide identity documents, and be fingerprinted. Applications are typically processed in 3–5 business days."
+            "text": "Apply at tsa.gov/precheck/enroll, complete the online form, schedule an appointment, bring your identity documents, and finish fingerprinting. Most applications are processed in 3 to 5 business days."
           }
         }
       ]
