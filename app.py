@@ -4,11 +4,13 @@ import os
 import re
 import sqlite3
 import json
+import math
+import statistics
 import threading
 import time
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import requests
 from flask import Flask, Response, jsonify, redirect, render_template, request, send_from_directory
@@ -188,6 +190,24 @@ LOCAL_OFFERS = {
 }
 TRAVEL_INSURANCE_URL = os.getenv("TRAVEL_INSURANCE_URL", "https://www.travelinsurance.com/").strip()
 SITE_URL = os.getenv("SITE_URL", "https://tsatracker.com").strip().rstrip("/")
+ENABLE_X_ALERTS = os.getenv("ENABLE_X_ALERTS", "false").lower() == "true"
+X_API_KEY = os.getenv("X_API_KEY", "").strip()
+X_API_SECRET = os.getenv("X_API_SECRET", "").strip()
+X_ACCESS_TOKEN = os.getenv("X_ACCESS_TOKEN", "").strip()
+X_ACCESS_TOKEN_SECRET = os.getenv("X_ACCESS_TOKEN_SECRET", "").strip()
+X_ACCOUNT_HANDLE = os.getenv("X_ACCOUNT_HANDLE", "TsaTracker").strip().lstrip("@")
+_x_min_wait_env = os.getenv("X_ALERT_MIN_WAIT", "").strip()
+X_ALERT_MIN_WAIT = float(_x_min_wait_env) if _x_min_wait_env else 35.0
+_x_extreme_wait_env = os.getenv("X_ALERT_EXTREME_WAIT", "").strip()
+X_ALERT_EXTREME_WAIT = float(_x_extreme_wait_env) if _x_extreme_wait_env else 50.0
+_x_min_delta_env = os.getenv("X_ALERT_MIN_DELTA", "").strip()
+X_ALERT_MIN_DELTA = float(_x_min_delta_env) if _x_min_delta_env else 15.0
+_x_cooldown_env = os.getenv("X_ALERT_COOLDOWN_MINUTES", "").strip()
+X_ALERT_COOLDOWN_MINUTES = int(_x_cooldown_env) if _x_cooldown_env.isdigit() else 90
+_x_baseline_hours_env = os.getenv("X_ALERT_BASELINE_HOURS", "").strip()
+X_ALERT_BASELINE_HOURS = int(_x_baseline_hours_env) if _x_baseline_hours_env.isdigit() else 6
+_x_min_samples_env = os.getenv("X_ALERT_MIN_BASELINE_SAMPLES", "").strip()
+X_ALERT_MIN_BASELINE_SAMPLES = int(_x_min_samples_env) if _x_min_samples_env.isdigit() else 12
 _publisher_token = ADSENSE_CLIENT.replace("ca-", "").strip() if ADSENSE_CLIENT else ""
 ADS_TXT_LINE = os.getenv(
     "ADS_TXT_LINE",
@@ -1044,6 +1064,22 @@ def init_db() -> None:
         )
         """
     )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS social_posts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            platform TEXT NOT NULL,
+            airport_code TEXT,
+            event_type TEXT NOT NULL,
+            event_key TEXT NOT NULL,
+            post_text TEXT NOT NULL,
+            external_id TEXT,
+            status TEXT NOT NULL,
+            error_message TEXT,
+            posted_at TEXT NOT NULL
+        )
+        """
+    )
     # Migrate existing DBs that don't yet have lane_type
     try:
         cur.execute("ALTER TABLE samples ADD COLUMN lane_type TEXT NOT NULL DEFAULT 'STANDARD'")
@@ -1053,6 +1089,12 @@ def init_db() -> None:
         """
         CREATE INDEX IF NOT EXISTS idx_samples_airport_time
         ON samples (airport_code, captured_at)
+        """
+    )
+    cur.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_social_posts_platform_event
+        ON social_posts (platform, event_key)
         """
     )
     conn.commit()
@@ -1691,6 +1733,7 @@ def collect_once() -> Dict:
             result["errors"].append({"airport": code, "error": str(e)})
             logger.exception("collector_failure airport=%s", code)
     db_insert_rows(all_rows)
+    maybe_post_x_alerts(all_rows)
     return result
 
 
@@ -1802,6 +1845,186 @@ def history_for_airport(airport_code: str, hours: int = 12) -> List[Dict]:
         }
         for r in rows
     ]
+
+
+def x_alerts_enabled() -> bool:
+    return ENABLE_X_ALERTS and all([X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET])
+
+
+def average_wait_from_rows(rows: List[Dict]) -> float:
+    active = [clamp_wait_minutes(float(r.get("wait_minutes", 0))) for r in rows if float(r.get("wait_minutes", 0)) > 0]
+    values = active if active else [clamp_wait_minutes(float(r.get("wait_minutes", 0))) for r in rows]
+    if not values:
+        return 0.0
+    return round(sum(values) / len(values), 1)
+
+
+def historical_baseline_wait(airport_code: str, as_of: str) -> Optional[float]:
+    end_dt = datetime.fromisoformat(as_of) - timedelta(minutes=20)
+    start_dt = end_dt - timedelta(hours=X_ALERT_BASELINE_HOURS)
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT wait_minutes
+        FROM samples
+        WHERE airport_code = ? AND captured_at >= ? AND captured_at < ?
+        ORDER BY captured_at ASC
+        """,
+        (airport_code, start_dt.isoformat(), end_dt.isoformat()),
+    )
+    values = [clamp_wait_minutes(float(row[0])) for row in cur.fetchall() if float(row[0]) > 0]
+    conn.close()
+    if len(values) < X_ALERT_MIN_BASELINE_SAMPLES:
+        return None
+    return round(float(statistics.median(values)), 1)
+
+
+def has_recent_social_post(platform: str, airport_code: str, event_type: str, now_iso: str) -> bool:
+    cutoff = (datetime.fromisoformat(now_iso) - timedelta(minutes=X_ALERT_COOLDOWN_MINUTES)).isoformat()
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT 1
+        FROM social_posts
+        WHERE platform = ? AND airport_code = ? AND event_type = ? AND status = 'posted' AND posted_at >= ?
+        LIMIT 1
+        """,
+        (platform, airport_code, event_type, cutoff),
+    )
+    found = cur.fetchone() is not None
+    conn.close()
+    return found
+
+
+def record_social_post(platform: str, airport_code: str, event_type: str, event_key: str, post_text: str, status: str, external_id: str = "", error_message: str = "", posted_at: str = "") -> None:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT OR REPLACE INTO social_posts (platform, airport_code, event_type, event_key, post_text, external_id, status, error_message, posted_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            platform,
+            airport_code,
+            event_type,
+            event_key,
+            post_text,
+            external_id,
+            status,
+            error_message[:500],
+            posted_at or utc_now().isoformat(),
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+
+def build_airport_wait_alert(code: str, rows: List[Dict]) -> Optional[Dict]:
+    if not rows:
+        return None
+    current_avg = average_wait_from_rows(rows)
+    if current_avg < X_ALERT_MIN_WAIT:
+        return None
+
+    as_of = max(r.get("captured_at", "") for r in rows)
+    baseline = historical_baseline_wait(code, as_of)
+    delta = round(current_avg - baseline, 1) if baseline is not None else None
+
+    if baseline is None and current_avg < X_ALERT_EXTREME_WAIT:
+        return None
+    if baseline is not None and current_avg < X_ALERT_EXTREME_WAIT and delta < X_ALERT_MIN_DELTA:
+        return None
+    if has_recent_social_post("x", code, "abnormal_wait", as_of):
+        return None
+
+    top_rows = sorted(rows, key=lambda row: float(row.get("wait_minutes", 0)), reverse=True)[:2]
+    checkpoint_summary = ", ".join(
+        f"{str(row.get('checkpoint', 'Checkpoint')).split('(')[0].strip()} {int(round(float(row.get('wait_minutes', 0))))}m"
+        for row in top_rows
+    )
+    link = f"{SITE_URL}{airport_seo_slug(code)}"
+    baseline_text = "well above normal" if baseline is None else f"vs {int(round(baseline))}m baseline"
+    text = (
+        f"Abnormal TSA wait at {code}: avg live wait is {int(round(current_avg))}m right now "
+        f"({baseline_text}). Top lanes: {checkpoint_summary}. Live updates: {link} #{code} #tsa"
+    )
+    if len(text) > 280:
+        text = (
+            f"Abnormal TSA wait at {code}: avg live wait is {int(round(current_avg))}m right now "
+            f"({baseline_text}). Live updates: {link} #{code} #tsa"
+        )
+
+    as_of_dt = datetime.fromisoformat(as_of)
+    bucket_minutes = math.floor(as_of_dt.minute / 30) * 30
+    event_key = f"x:abnormal_wait:{code}:{as_of_dt.strftime('%Y%m%d%H')}:{bucket_minutes:02d}"
+    return {
+        "airport_code": code,
+        "event_type": "abnormal_wait",
+        "event_key": event_key,
+        "post_text": text,
+        "posted_at": as_of,
+    }
+
+
+def post_to_x(text: str) -> str:
+    from requests_oauthlib import OAuth1
+
+    resp = requests.post(
+        "https://api.x.com/2/tweets",
+        json={"text": text},
+        auth=OAuth1(X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET),
+        timeout=20,
+    )
+    resp.raise_for_status()
+    body = resp.json()
+    post_id = body.get("data", {}).get("id")
+    if not post_id:
+        raise RuntimeError(f"X post response missing id: {body}")
+    return str(post_id)
+
+
+def maybe_post_x_alerts(rows: List[Dict]) -> None:
+    if not x_alerts_enabled() or not rows:
+        return
+
+    grouped: Dict[str, List[Dict]] = {}
+    for row in rows:
+        code = row.get("airport_code", "")
+        if code in LIVE_AIRPORTS:
+            grouped.setdefault(code, []).append(row)
+
+    for code, airport_rows in grouped.items():
+        payload = build_airport_wait_alert(code, airport_rows)
+        if not payload:
+            continue
+        try:
+            external_id = post_to_x(payload["post_text"])
+            record_social_post(
+                platform="x",
+                airport_code=payload["airport_code"],
+                event_type=payload["event_type"],
+                event_key=payload["event_key"],
+                post_text=payload["post_text"],
+                status="posted",
+                external_id=external_id,
+                posted_at=payload["posted_at"],
+            )
+            logger.info("x_alert_posted airport=%s event=%s id=%s", payload["airport_code"], payload["event_type"], external_id)
+        except Exception as e:
+            record_social_post(
+                platform="x",
+                airport_code=payload["airport_code"],
+                event_type=payload["event_type"],
+                event_key=payload["event_key"],
+                post_text=payload["post_text"],
+                status="failed",
+                error_message=str(e),
+                posted_at=payload["posted_at"],
+            )
+            logger.exception("x_alert_failed airport=%s event=%s", payload["airport_code"], payload["event_type"])
 
 
 @app.route("/favicon.ico")

@@ -5,6 +5,7 @@ let chartJsPromise = null;
 let lastUpdateTimestamp = null;
 let terminalMap = null;
 let terminalMarkers = {};
+let leafletAssetPromise = null;
 const hasRIC = typeof window !== "undefined" && "requestIdleCallback" in window;
 
 const PHL_CONFIG = {
@@ -70,6 +71,53 @@ function loadChartJs() {
     document.head.appendChild(script);
   });
   return chartJsPromise;
+}
+
+function loadLeafletAssets() {
+  if (leafletAssetPromise) return leafletAssetPromise;
+  if (window.L) {
+    leafletAssetPromise = Promise.resolve(window.L);
+    return leafletAssetPromise;
+  }
+
+  leafletAssetPromise = new Promise((resolve, reject) => {
+    const cssId = "leaflet-css";
+    const jsId = "leaflet-js";
+
+    const finish = () => {
+      if (window.L) {
+        resolve(window.L);
+      } else {
+        reject(new Error("Leaflet failed to load"));
+      }
+    };
+
+    if (!document.getElementById(cssId)) {
+      const link = document.createElement("link");
+      link.id = cssId;
+      link.rel = "stylesheet";
+      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      link.integrity = "sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=";
+      link.crossOrigin = "";
+      document.head.appendChild(link);
+    }
+
+    if (document.getElementById(jsId)) {
+      finish();
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = jsId;
+    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    script.integrity = "sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=";
+    script.crossOrigin = "";
+    script.onload = finish;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+
+  return leafletAssetPromise;
 }
 
 function fmtMinutes(v) {
@@ -282,7 +330,7 @@ function renderLiveCards(payload, selectedCode) {
   }
 }
 
-function initTerminalMap(airportCode) {
+async function initTerminalMap(airportCode, rows) {
   const mapSection = document.getElementById("terminal-map-section");
   if (airportCode !== "PHL") {
     mapSection.style.display = "none";
@@ -290,6 +338,12 @@ function initTerminalMap(airportCode) {
   }
 
   mapSection.style.display = "block";
+  try {
+    await loadLeafletAssets();
+  } catch (err) {
+    console.warn("Leaflet load failed", err);
+    return;
+  }
   if (terminalMap) return; // Already init
 
   const cfg = PHL_CONFIG.config;
@@ -340,6 +394,10 @@ function initTerminalMap(airportCode) {
   airlineSelect.addEventListener("change", (e) => {
     highlightTerminalForAirline(e.target.value);
   });
+
+  if (rows) {
+    updateMapTerminalStatus(rows);
+  }
 }
 
 function updateMapTerminalStatus(rows) {
@@ -665,7 +723,7 @@ async function selectAirport(code, shouldPush = true) {
   renderAirportChips(livePayloadCache, document.getElementById("airport-search").value);
   renderLiveCards(livePayloadCache, code);
   fetchCommunityStatus(code);
-  initTerminalMap(code);
+  void initTerminalMap(code, livePayloadCache);
   scheduleNonCriticalTask(() => loadHistory(code));
 
   // Scroll to results (only if the user explicitly clicked)
