@@ -1,0 +1,14 @@
+version: 1
+base: .
+graphs:
+  static:
+    include: ["<base>/static/**"]
+    exclude: []
+    ignore: []
+  dynamic:
+    include: ["<base>/graphs/**", "<base>/todo/**"]
+    exclude: ["<base>/static/**"]
+    ignore: []
+workspace: "<base>/workspaces/**/{id}.workspace.yml"
+resolution:
+  graph_search_order: ["dynamic", "static"]

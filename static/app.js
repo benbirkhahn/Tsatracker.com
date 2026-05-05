@@ -584,20 +584,48 @@ function renderHeaderSourceState(payload) {
   liveText.textContent = live ? "LIVE" : "EST";
 }
 
+function renderAirportNotice(payload) {
+  const el = document.getElementById("airport-status-banner");
+  if (!el) return;
+  const notice = payload?.airportNotice;
+  if (!notice || !notice.title || !notice.summary) {
+    el.style.display = "none";
+    el.innerHTML = "";
+    return;
+  }
+  const links = Array.isArray(notice.links) ? notice.links : [];
+  el.style.display = "";
+  el.innerHTML = `
+    <div style="font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#93c5fd;margin-bottom:6px;">Official update</div>
+    <div style="font-size:1rem;font-weight:700;margin-bottom:6px;color:#fff;">${notice.title}</div>
+    <div style="font-size:0.95rem;line-height:1.5;margin-bottom:10px;color:#d6e4ff;">${notice.summary}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;">
+      ${links.map((link) => `<a href="${link.url}" target="_blank" rel="noopener" style="color:#93c5fd;font-weight:700;text-decoration:underline;">${link.label}</a>`).join("")}
+    </div>
+  `;
+}
+
 async function updateSelectionSourceStatus(airportCode) {
   const el = document.getElementById("selection-source-status");
-  if (!airportCode) { el.textContent = ""; el.className = "selection-source-status"; return; }
+  if (!airportCode) {
+    el.textContent = "";
+    el.className = "selection-source-status";
+    renderAirportNotice(null);
+    return;
+  }
   try {
     const resp = await fetch(`/api/tsa-wait-times?code=${airportCode}`);
     const payload = await resp.json();
     const [label, cls] = sourceStatusLabel(payload.sourceType);
     el.textContent = label;
     el.className = `selection-source-status ${cls}`;
+    renderAirportNotice(payload);
     renderSelectionSummary(payload);
     renderHeaderSourceState(payload);
   } catch (_e) {
     el.textContent = "";
     el.className = "selection-source-status is-unknown";
+    renderAirportNotice(null);
   }
 }
 

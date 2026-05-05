@@ -1,0 +1,33 @@
+meta:
+  name: "Getting Started"
+
+graph_files:
+  graphs/getting_started.graph.yml: {}
+
+global_id:
+  board_getting_started: &board_getting_started
+  board_run_hello: &board_run_hello
+  board_run_smoke_01: &board_run_smoke_01
+
+global_node_edges: []
+global_board_edges: []
+
+config:
+  meta:
+    layout: freeform
+  boards:
+    - id: "board_getting_started"
+      kind: "doc"
+      pos: { x: 100, y: 150 }
+      width: 700
+      bgColor: "#e8f5e9"
+    - id: "board_run_hello"
+      kind: "doc"
+      pos: { x: 100, y: 500 }
+      width: 500
+      bgColor: "#e3f2fd"
+    - id: "board_run_smoke_01"
+      kind: "doc"
+      pos: { x: 100, y: 800 }
+      width: 500
+      bgColor: "#fff3e0"

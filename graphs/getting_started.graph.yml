@@ -1,0 +1,27 @@
+meta:
+  board_id: "board_getting_started"
+  title: "Getting Started"
+
+Goal:
+  Define user value: &goal
+
+Decision:
+  Compare options: &decide
+  Set priorities: &prioritize
+
+---
+meta:
+  board_id: "board_run_hello"
+  title: "Run Hello"
+
+Run:
+  run: 'echo "hello world"'
+
+---
+meta:
+  board_id: "board_run_smoke_01"
+  title: "Run Smoke Test"
+
+Run check:
+  run: "echo 'run sample ok\n'"
+  output: ".dcetra_runs/run_smoke.out"
