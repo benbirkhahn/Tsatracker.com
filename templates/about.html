@@ -63,22 +63,24 @@
     <section class="card content-card" style="max-width:780px;margin:0 auto;">
 
       <h1 style="font-size:2rem;font-weight:700;margin-bottom:8px;">About TSA Tracker</h1>
-      <p class="muted" style="font-size:1.05rem;margin-bottom:32px;">The only free tool that shows <strong>live TSA checkpoint wait times</strong> pulled directly from official airport systems — not crowdsourced, not estimated, not stale.</p>
+      <p class="muted" style="font-size:1.05rem;margin-bottom:32px;">TSA Tracker is a live airport utility: it shows checkpoint wait times, airport-specific guidance, and recent history so travelers can make a real timing decision instead of guessing.</p>
+
+      <h2 style="font-size:1.25rem;font-weight:700;margin:32px 0 10px;">What makes this site useful</h2>
+      <p>The value is in the combination of fresh wait readings, airport-specific context, and the trend line underneath them. The homepage answers the immediate question, the airport pages add checkpoint detail, and the guides explain how to use the data without overthinking it.</p>
 
       <h2 style="font-size:1.25rem;font-weight:700;margin:32px 0 10px;">Why We Built This</h2>
-      <p>Getting to the airport is stressful enough. But even after you arrive, the question of <em>how long is the TSA line right now?</em> is surprisingly hard to answer. Most apps guess. Some aggregate Twitter posts. A few use historical averages and call it "live."</p>
-      <p style="margin-top:10px;">TSA Tracker started from a simple frustration: we wanted to know the actual wait time at the checkpoint before heading to security. Not a model. Not a community report from 40 minutes ago. The <em>real number</em>, right now.</p>
-      <p style="margin-top:10px;">It turns out most major airports publish that data — they just don't make it easy to find. TSA Tracker finds it, normalizes it, and puts it in front of you within 2 minutes of when the airport updates it.</p>
+      <p>Getting to the airport is stressful enough. Even after you arrive, the useful question is still simple: how long is the security line right now? Most tools guess, and some blend in stale reports or broad averages that do not reflect the current checkpoint.</p>
+      <p style="margin-top:10px;">TSA Tracker exists to surface the airport’s own published reading, normalize it, and present it in a format that is easy to act on before you leave home.</p>
 
       <h2 style="font-size:1.25rem;font-weight:700;margin:32px 0 10px;">How the Data Works</h2>
-      <p>Each supported airport publishes its checkpoint wait time data through its own system — some via public JSON APIs, some through embedded data feeds on their websites. TSA Tracker polls these sources approximately every 2 minutes, parses the raw data, and stores a time-stamped snapshot for each checkpoint and lane type.</p>
-      <p style="margin-top:10px;">When you open the site, you're seeing the most recent snapshot — usually no more than 2 minutes old. The timestamp shown on each checkpoint card tells you exactly when that reading was taken, so you always know how fresh the data is.</p>
-      <p style="margin-top:10px;">The 12-hour history chart shows every snapshot we've collected during that window, so you can see patterns: when does the 7 AM rush peak? When does the afternoon lull hit? That context helps you decide <em>when</em> to leave for the airport, not just whether lines are long right now.</p>
+      <p>Each supported airport publishes its checkpoint wait time data through its own system. TSA Tracker polls those sources approximately every 2 minutes, parses the raw feed, and stores a timestamped snapshot for each checkpoint and lane type.</p>
+      <p style="margin-top:10px;">When you open the site, you are usually looking at a reading that is only a couple of minutes old. The timestamp shown on the page tells you when that specific number was captured.</p>
+      <p style="margin-top:10px;">The 12-hour history chart exists for the part most people miss: a line that looks fine right now may be entering a normal daily peak, and that changes when you should leave.</p>
 
       <h2 style="font-size:1.25rem;font-weight:700;margin:32px 0 10px;">What "Official Airport Systems" Means</h2>
-      <p>Each airport's authority or management company collects wait time data from checkpoint sensors, staffing systems, or queue-monitoring cameras. They use this data internally for operational planning and often publish it on their website for travelers. That is the data TSA Tracker reads.</p>
-      <p style="margin-top:10px;">This is meaningfully different from crowdsourced reports (where someone at the airport posts a rough estimate) or algorithmic predictions (where a model guesses based on historical patterns and flight schedules). Official airport data reflects what sensors and staff are actually measuring at that moment.</p>
-      <p style="margin-top:10px;">Not every airport publishes this data publicly. Some systems are behind API keys or require partnerships. That's why our list of live airports is limited — we only show real data, not fabricated numbers.</p>
+      <p>Each airport’s authority or management company collects wait time data from checkpoint sensors, staffing systems, or queue-monitoring cameras. TSA Tracker reads the same data the airport is using for its own traveler-facing displays or internal operations.</p>
+      <p style="margin-top:10px;">That is materially different from crowdsourced reports or predictive estimates. Those can still be useful in some settings, but they are not the same thing as a live checkpoint reading.</p>
+      <p style="margin-top:10px;">Not every airport publishes this data publicly, which is why the live list is limited to airports where the source is real and consistently reachable.</p>
 
       <h2 style="font-size:1.25rem;font-weight:700;margin:32px 0 10px;">Lane Types Explained</h2>
       <p>Where airports provide lane-level data, TSA Tracker shows separate wait times for each lane type:</p>
