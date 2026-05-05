@@ -440,6 +440,7 @@ AIRPORT_PAGE_GUIDES = {
         "notes": [
             "John F. Kennedy can have very different line conditions across terminals because traffic is distributed unevenly across international and domestic departure waves.",
             "This page is designed to help you decide whether your specific terminal is the issue or whether the whole airport is running hot.",
+            "JFK is in an active redevelopment period, and the airport has an official security wait-times suspension notice. Check the travel impacts page and advisories before you leave.",
         ],
         "terminal_notes": [
             "JFK splits departing passengers across Terminals 1, 4, 5, 7, and 8, each with its own screening flow.",
@@ -453,13 +454,15 @@ AIRPORT_PAGE_GUIDES = {
         "links": [
             {"label": "Official airport site", "url": "https://www.jfkairport.com/"},
             {"label": "Official terminal map", "url": "https://www.jfkairport.com/explore-jfk/airport-map"},
+            {"label": "JFK travel impacts / redevelopment", "url": "https://construction.jfkairport.com/jfk/en/your-travel-impacts.html"},
+            {"label": "JFK alerts and advisories", "url": "https://www.jfkairport.com/alerts-advisories"},
             {"label": "Official live wait times", "url": "https://www.jfkairport.com/to-and-from/security-wait-times"},
         ],
     },
     "EWR": {
         "tips": [
             "EWR has three main terminals (A, B, C). Terminal C is the United hub and features the most consistent security pressure.",
-            "The Port Authority recently restored live TSA-wait indicators by terminal; always check your specific terminal before heading to the airport.",
+            "Newark publishes airport wait times by terminal and gate group, so always check your specific terminal before heading to the airport.",
             "Newark offers 'CLEAR + TSA PreCheck' across all three terminals, with enrollment centers specifically in Terminals A and C.",
         ],
         "notes": [
@@ -476,9 +479,9 @@ AIRPORT_PAGE_GUIDES = {
             "Delta and many international carriers (Lufthansa, British Airways) operate out of Terminal B.",
         ],
         "links": [
-            {"label": "Official EWR Terminal Maps", "url": "https://www.newarkairport.com/at-airport/airport-maps"},
-            {"label": "Port Authority Travel Tips", "url": "https://www.panynj.gov/airports/en/aviation-safety/travel-tips.html"},
-            {"label": "EWR Terminal Guide", "url": "https://upgradedpoints.com/travel/airports/newark-liberty-airport-ewr/"},
+            {"label": "Official EWR site", "url": "https://www.newarkairport.com/"},
+            {"label": "EWR security wait times", "url": "https://www.newarkairport.com/security-wait-times"},
+            {"label": "Official EWR terminal maps", "url": "https://www.newarkairport.com/at-airport/airport-maps"},
         ],
     },
     "LGA": {
@@ -501,7 +504,9 @@ AIRPORT_PAGE_GUIDES = {
             "Terminal B is the 'general' terminal for most other major domestic carriers.",
         ],
         "links": [
-            {"label": "Official LGA Terminal B Wait Times", "url": "https://laguardiab.com/security-wait-time"},
+            {"label": "Official LGA site", "url": "https://www.laguardiaairport.com/"},
+            {"label": "LGA security wait times", "url": "https://www.laguardiaairport.com/security-wait-times"},
+            {"label": "LGA travel tips", "url": "https://www.laguardiaairport.com/static/LGA/announcements/pages/family-travel-tips.html"},
             {"label": "LGA Official Maps", "url": "https://www.laguardiaairport.com/at-airport/airport-maps"},
             {"label": "LGA Airline-Terminal List", "url": "https://www.laguardiaairport.com/flight/airlines"},
         ],
@@ -529,6 +534,17 @@ AIRPORT_PAGE_GUIDES = {
             {"label": "Official SEA Spot Saver", "url": "https://www.portseattle.org/sea/spot-saver"},
             {"label": "Official SEA Security Dashboard", "url": "https://www.portseattle.org/Security"},
             {"label": "SEA Interactive Map", "url": "https://exploresea.org/map/"},
+        ],
+    },
+}
+
+AIRPORT_STATUS_NOTICES = {
+    "JFK": {
+        "title": "Redevelopment and wait-time suspension",
+        "summary": "JFK is in an active redevelopment period, and the airport has published an official security wait-times suspension notice. Use the advisories and travel impacts pages for the current airport status.",
+        "links": [
+            {"label": "JFK travel impacts", "url": "https://construction.jfkairport.com/jfk/en/your-travel-impacts.html"},
+            {"label": "JFK alerts and advisories", "url": "https://www.jfkairport.com/alerts-advisories"},
         ],
     },
 }
@@ -765,6 +781,10 @@ def legal_page_seo(slug: str) -> Dict:
     )
 
 
+def airport_status_notice_for_code(code: str) -> Dict:
+    return AIRPORT_STATUS_NOTICES.get(code, {})
+
+
 def index_template_context(initial_airport_code: str, seo: Dict) -> Dict:
     is_airport_page = bool(initial_airport_code and initial_airport_code in LIVE_AIRPORTS)
     airport_display_name = ""
@@ -806,6 +826,7 @@ def index_template_context(initial_airport_code: str, seo: Dict) -> Dict:
         "airport_display_name": airport_display_name,
         "airport_city": LIVE_AIRPORTS[initial_airport_code].get("city") if is_airport_page and initial_airport_code in LIVE_AIRPORTS else None,
         "airport_guide": AIRPORT_PAGE_GUIDES.get(initial_airport_code, {}),
+        "airport_notice": airport_status_notice_for_code(initial_airport_code) if is_airport_page else {},
         "arrival_guidance": arrival_guidance_for_airport(initial_data) if is_airport_page else None,
         "airport_pages": [{"code": c, "href": airport_seo_slug(c), "name": v["name"]} for c, v in LIVE_AIRPORTS.items()],
         "seo": seo,
@@ -1598,13 +1619,101 @@ def fetch_jfk_rows() -> List[Dict]:
 
 
 def fetch_ewr_rows() -> List[Dict]:
-    """PANYNJ GraphQL — EWR terminals A, B, C. Same backend as JFK."""
-    return _fetch_panynj_rows("EWR")
+    """Newark Airport API — displayed wait times by terminal and gate group."""
+    url = "https://avi-prod-mpp-webapp-api.azurewebsites.net/api/v1/SecurityWaitTimesPoints/EWR"
+    resp = requests.get(
+        url,
+        headers={
+            **UA,
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Origin": "https://www.newarkairport.com",
+            "Referer": "https://www.newarkairport.com/security-wait-times",
+            "X-Requested-With": "XMLHttpRequest",
+            "api-key": "A6CE0EE926BC408B1E9D6E9EC14A5D64",
+        },
+        timeout=20,
+    )
+    if resp.status_code in (401, 403):
+        logger.warning("collector_skipped airport=EWR status=%s upstream_auth_failed", resp.status_code)
+        return []
+    resp.raise_for_status()
+    items = resp.json()
+    if not items:
+        raise RuntimeError("EWR: empty SecurityWaitTimesPoints response")
+    stamp = utc_now().isoformat()
+    rows: List[Dict] = []
+    for item in items:
+        terminal = str(item.get("terminal", "")).strip()
+        if not terminal:
+            continue
+        title = item.get("title") or f"Terminal {terminal}"
+        gate = str(item.get("gate", "")).strip()
+        checkpoint = title if not gate or gate.lower() == "all gates" else f"{title} ({gate})"
+        queue_type = str(item.get("queueType", "")).lower()
+        if queue_type in ("reg", "regular", "general"):
+            lane_type = "STANDARD"
+        elif queue_type in ("tsapre", "pre", "precheck", "tsa pre"):
+            lane_type = "PRECHECK"
+        else:
+            lane_type = "STANDARD"
+        rows.append({
+            "airport_code": "EWR",
+            "checkpoint": checkpoint,
+            "wait_minutes": float(item.get("timeInMinutes") or 0),
+            "lane_type": lane_type,
+            "source": url,
+            "captured_at": stamp,
+        })
+    return rows
 
 
 def fetch_lga_rows() -> List[Dict]:
-    """PANYNJ GraphQL — LGA terminals A, B, C. Same backend as JFK/EWR."""
-    return _fetch_panynj_rows("LGA")
+    """LaGuardia Airport API — displayed wait times by terminal and queue type."""
+    url = "https://avi-prod-mpp-webapp-api.azurewebsites.net/api/v1/SecurityWaitTimesPoints/LGA"
+    resp = requests.get(
+        url,
+        headers={
+            **UA,
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Origin": "https://www.laguardiaairport.com",
+            "Referer": "https://www.laguardiaairport.com/security-wait-times",
+            "X-Requested-With": "XMLHttpRequest",
+            "api-key": "A6CE0EE926BC408B1E9D6E9EC14A5D64",
+        },
+        timeout=20,
+    )
+    if resp.status_code in (401, 403):
+        logger.warning("collector_skipped airport=LGA status=%s upstream_auth_failed", resp.status_code)
+        return []
+    resp.raise_for_status()
+    items = resp.json()
+    if not items:
+        raise RuntimeError("LGA: empty SecurityWaitTimesPoints response")
+    stamp = utc_now().isoformat()
+    rows: List[Dict] = []
+    for item in items:
+        terminal = str(item.get("terminal", "")).strip()
+        if not terminal:
+            continue
+        title = item.get("title") or f"Terminal {terminal}"
+        queue_type = str(item.get("queueType", "")).lower()
+        if queue_type in ("reg", "regular", "general"):
+            lane_type = "STANDARD"
+        elif queue_type in ("tsapre", "pre", "precheck", "tsa pre"):
+            lane_type = "PRECHECK"
+        else:
+            lane_type = "STANDARD"
+        rows.append({
+            "airport_code": "LGA",
+            "checkpoint": title,
+            "wait_minutes": float(item.get("timeInMinutes") or 0),
+            "lane_type": lane_type,
+            "source": url,
+            "captured_at": stamp,
+        })
+    return rows
 
 
 _SEA_API = "https://www.portseattle.org/api/cwt/wait-times"
@@ -2273,7 +2382,7 @@ def api_tsa_wait_times():
             }
         ), 400
     payload = normalized_current_wait_for_code(code)
-    return jsonify({"code": code, **payload, "timestamp": utc_now().isoformat()})
+    return jsonify({"code": code, **payload, "airportNotice": airport_status_notice_for_code(code), "timestamp": utc_now().isoformat()})
 
 
 @app.route("/api/pipeline")

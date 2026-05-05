@@ -17,8 +17,8 @@ Reference for every airport we've investigated — how we get live TSA wait data
 | DFW | Dallas/Fort Worth | ✅ Live | Static key (embedded in bundle) |
 | LAX | Los Angeles International | ✅ Live | Public (HTML table scrape) |
 | JFK | John F. Kennedy International | ✅ Live | Public (GraphQL, PANYNJ) |
-| EWR | Newark Liberty International | ✅ Live | Public (GraphQL, PANYNJ) |
-| LGA | LaGuardia Airport | ✅ Live | Public (GraphQL, PANYNJ) |
+| EWR | Newark Liberty International | ✅ Live | Public (Azure API, api-key) |
+| LGA | LaGuardia Airport | ✅ Live | Public (Azure API, api-key) |
 | SEA | Seattle-Tacoma International | ✅ Live | Public (Drupal JSON API, portseattle.org) |
 | ATL | Hartsfield-Jackson Atlanta | 🔬 Research | Cloudflare-blocked (all paths) |
 | DEN | Denver International | 🔬 Research | 403 Forbidden on direct probe |
