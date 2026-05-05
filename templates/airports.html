@@ -213,6 +213,11 @@
         </div>
       </div>
 
+      <div style="background:var(--surface2);border:1px solid #2a2a40;border-radius:12px;padding:16px 18px;margin-top:8px;">
+        <p style="margin:0 0 8px;font-weight:700;color:var(--text);">How to use this page</p>
+        <p style="margin:0;color:var(--muted);line-height:1.7;">Use the airport index for the quick comparison, then open a specific airport page for checkpoint-level detail, airport-specific notes, and the official links tied to that location.</p>
+      </div>
+
       <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">Current averages</h2>
       <div class="airports-summary-grid">
         {% for airport in airport_summaries %}
@@ -236,6 +241,9 @@
         <li><a href="/about">About TSA Tracker</a> for site coverage and how the airport feeds work.</li>
         <li><a href="/contact">Contact</a> for airport requests, bug reports, and partnerships.</li>
       </ul>
+
+      <h2 style="font-size:1.2rem;font-weight:700;margin:32px 0 10px;">What the averages mean</h2>
+      <p class="muted" style="line-height:1.7;">Some airports expose direct live readings. Others fall back to an estimated value if a source is temporarily unavailable. That is why the page labels live and fallback airports separately instead of blending them into one average without context.</p>
     </section>
   </main>
 

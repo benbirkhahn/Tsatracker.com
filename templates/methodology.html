@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   {% if monetization.adsense_client %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
-  <meta name="robots" content="index, follow, max-snippet:150, max-image-preview:large">
   <title>{{ seo.title }}</title>
   <meta name="description" content="{{ seo.description }}">
   <link rel="canonical" href="{{ seo.canonical_url }}">
@@ -66,22 +65,22 @@
     <section class="card content-card" style="max-width:860px;margin:0 auto;">
       <h1 style="font-size:2rem;font-weight:700;margin-bottom:6px;">TSA Tracker Data Methodology</h1>
       <p class="muted" style="margin-bottom:28px;"><em>Last updated: April 2026</em></p>
-      <p>This page explains exactly how TSA Tracker collects and displays wait-time data, what counts as “live,” where estimates may appear, and what limitations users should understand before making travel decisions.</p>
+      <p>This page documents the data pipeline behind TSA Tracker: how live readings are collected, when fallback values appear, and what the freshness rules mean in practice.</p>
       <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">1. Data Source Policy</h2>
-      <p>We only list an airport as “live” when we can pull data from an official airport-controlled system. We do not fabricate coverage, and we do not mark an airport live based solely on historical averages.</p>
+      <p>We only list an airport as “live” when we can pull data from an official airport-controlled system. We do not fabricate coverage, and we do not mark an airport live based solely on history or a generic estimate.</p>
       <ul class="content-list" style="margin-top:6px;">
         <li><strong>Accepted source types:</strong> official airport APIs, official airport pages with machine-readable wait-time data, or airport-operated data endpoints embedded in their own website/app.</li>
         <li><strong>Rejected source types:</strong> crowdsourced check-ins, unofficial scrapes of user comments, and third-party predictions with no official feed backing.</li>
       </ul>
       <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">2. Collection Cadence and Freshness</h2>
-      <p>TSA Tracker polls active airport feeds approximately every 2 minutes. Each record includes a timestamp for when the reading was captured. If a live source becomes unavailable, we retain transparency by labeling data state in our API and fallback behavior.</p>
+      <p>TSA Tracker polls active airport feeds approximately every 2 minutes. Each record includes a capture timestamp. If a live source becomes unavailable, we keep the fallback state visible instead of silently swapping it out.</p>
       <ul class="content-list" style="margin-top:6px;">
         <li>Normal polling interval: ~120 seconds.</li>
         <li>Data staleness window for “latest snapshot”: 15 minutes.</li>
         <li>History window shown on the site: last 12 hours.</li>
       </ul>
       <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">3. How “Current Wait” Is Calculated</h2>
-      <p>When an airport exposes multiple checkpoints and lanes, TSA Tracker aggregates active rows into a single “current wait” summary while still preserving lane/checkpoint breakdown in the live cards. Closed lanes (0-minute rows) are excluded from the average if open-lane rows exist.</p>
+      <p>When an airport exposes multiple checkpoints and lanes, TSA Tracker aggregates active rows into a single “current wait” summary while still preserving lane and checkpoint breakdown in the live cards. Closed lanes are excluded from the average if open-lane rows exist.</p>
       <ul class="content-list" style="margin-top:6px;">
         <li>If open-lane data is available, average uses open lanes only.</li>
         <li>If all rows are zero or closed, we still return a valid response with closed/low values.</li>
