@@ -494,6 +494,69 @@ function normalizeHistory(rows) {
     .map((x) => ({ label: x.ts.toISOString().slice(11, 16), value: x.c ? x.sum / x.c : 0 }));
 }
 
+function getStoredHistory(airportCode) {
+  try {
+    const stored = localStorage.getItem(`history_${airportCode}`);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistoryPoint(airportCode, rows) {
+  try {
+    const now = new Date();
+    const bucket = {};
+    rows.forEach((r) => {
+      const t = new Date(r.captured_at);
+      const key = `${t.getUTCFullYear()}-${t.getUTCMonth() + 1}-${t.getUTCDate()} ${t.getUTCHours()}:${t.getUTCMinutes()}`;
+      if (!bucket[key]) bucket[key] = { ts: t, sum: 0, c: 0 };
+      bucket[key].sum += Number(r.wait_minutes) || 0;
+      bucket[key].c += 1;
+    });
+
+    const newPoints = Object.values(bucket).map((x) => ({
+      ts: x.ts.getTime(),
+      label: x.ts.toISOString().slice(11, 16),
+      value: x.c ? x.sum / x.c : 0
+    }));
+
+    let allPoints = getStoredHistory(airportCode);
+    newPoints.forEach(np => {
+      if (!allPoints.find(p => p.label === np.label)) {
+        allPoints.push(np);
+      }
+    });
+
+    // Keep only last 12 hours
+    const twelveHoursAgo = now.getTime() - (12 * 60 * 60 * 1000);
+    allPoints = allPoints.filter(p => p.ts >= twelveHoursAgo);
+
+    localStorage.setItem(`history_${airportCode}`, JSON.stringify(allPoints));
+  } catch {
+    // silently fail
+  }
+}
+
+function getMergedHistory(apiRows, airportCode) {
+  const apiNormalized = normalizeHistory(apiRows);
+  const storedPoints = getStoredHistory(airportCode);
+
+  const merged = {};
+  storedPoints.forEach(p => {
+    merged[p.label] = p;
+  });
+  apiNormalized.forEach(p => {
+    merged[p.label] = p;
+  });
+
+  return Object.values(merged).sort((a, b) => {
+    const aTime = new Date(`1970-01-01T${a.label}`).getTime();
+    const bTime = new Date(`1970-01-01T${b.label}`).getTime();
+    return aTime - bTime;
+  });
+}
+
 async function drawChart(points, airportCode) {
   await loadChartJs();
   const ctx = document.getElementById("history-chart");
@@ -547,7 +610,14 @@ async function loadHistory(airportCode) {
   }
   const resp = await fetch(`/api/history?airport=${airportCode}&hours=12`);
   const payload = await resp.json();
-  const points = normalizeHistory(payload.rows || []);
+  const apiRows = payload.rows || [];
+
+  // Save new data points to localStorage
+  saveHistoryPoint(airportCode, apiRows);
+
+  // Get merged history (stored + new)
+  const points = getMergedHistory(apiRows, airportCode);
+
   emptyEl.style.display = points.length ? "none" : "block";
   if (points.length) drawChart(points, airportCode);
 }
