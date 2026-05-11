@@ -4,3 +4,4 @@ requests-oauthlib==2.0.0
 python-dateutil==2.9.0.post0
 gunicorn==23.0.0
 google-auth==2.40.1
+supabase==2.30.0
