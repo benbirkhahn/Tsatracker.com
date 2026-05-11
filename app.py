@@ -15,6 +15,14 @@ from typing import Dict, List, Optional
 import requests
 from flask import Flask, Response, jsonify, redirect, render_template, request, send_from_directory
 
+# Import Supabase integration (optional)
+try:
+    from supabase_integration import supabase_store_samples
+    SUPABASE_ENABLED = True
+except ImportError:
+    SUPABASE_ENABLED = False
+    def supabase_store_samples(rows): pass
+
 APP_TZ = timezone.utc
 # Bulletproof DB Path: Check for Render Disk, fallback to local
 _raw_db_path = os.getenv("DB_PATH", "").strip()
@@ -1236,6 +1244,13 @@ def db_insert_rows(rows: List[Dict]) -> None:
     conn.commit()
     conn.close()
 
+    # Also store in Supabase for historical analysis
+    if SUPABASE_ENABLED:
+        try:
+            supabase_store_samples(rows)
+        except Exception as e:
+            logger.warning("Supabase store failed (non-blocking): %s", e)
+
 
 def log_page_view(path: str, airport_code: str = None) -> None:
     """Logs a page view to the internal database for tracking accuracy, now with referrer tracking."""
@@ -2388,6 +2403,70 @@ def api_history():
             "rows": history_for_airport(code, hours=hours),
         }
     )
+
+@app.route("/api/historical-average")
+def api_historical_average():
+    """
+    Get historical average wait time for a specific hour.
+    Query: /api/historical-average?airport=LAX&hour=5&days=30
+    Returns: {"airport": "LAX", "hour": 5, "avg_wait": 12.3, "days": 30}
+    """
+    if not SUPABASE_ENABLED:
+        return jsonify({"error": "Historical data not enabled"}), 503
+
+    code = request.args.get("airport", "").upper()
+    hour = request.args.get("hour", type=int)
+    days = request.args.get("days", 30, type=int)
+
+    if not code or not re.fullmatch(r"[A-Z]{3}", code):
+        return jsonify({"error": "Invalid airport code"}), 400
+    if hour is None or hour < 0 or hour > 23:
+        return jsonify({"error": "Hour must be 0-23"}), 400
+
+    try:
+        from supabase_integration import get_average_wait_at_hour
+        avg = get_average_wait_at_hour(code, hour, days)
+        return jsonify({
+            "airport": code,
+            "hour": hour,
+            "days": days,
+            "avg_wait": avg,
+            "description": wait_description(avg) if avg else "No data",
+            "timestamp": utc_now().isoformat()
+        })
+    except Exception as e:
+        logger.error("Historical average query failed: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/peak-hours")
+def api_peak_hours():
+    """
+    Get busiest hours at an airport over the past N days.
+    Query: /api/peak-hours?airport=LAX&days=30&top=3
+    Returns: [{"hour": 17, "avg_wait": 28.5, "samples": 42}, ...]
+    """
+    if not SUPABASE_ENABLED:
+        return jsonify({"error": "Historical data not enabled"}), 503
+
+    code = request.args.get("airport", "").upper()
+    days = request.args.get("days", 30, type=int)
+    top_n = request.args.get("top", 3, type=int)
+
+    if not code or not re.fullmatch(r"[A-Z]{3}", code):
+        return jsonify({"error": "Invalid airport code"}), 400
+
+    try:
+        from supabase_integration import get_peak_hours
+        peaks = get_peak_hours(code, days, top_n)
+        return jsonify({
+            "airport": code,
+            "days": days,
+            "peak_hours": peaks,
+            "timestamp": utc_now().isoformat()
+        })
+    except Exception as e:
+        logger.error("Peak hours query failed: %s", e)
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/tsa-wait-times")
 def api_tsa_wait_times():
