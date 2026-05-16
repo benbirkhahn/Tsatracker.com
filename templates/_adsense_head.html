@@ -1,0 +1,4 @@
+{% if monetization and monetization.enable_adsense and monetization.adsense_client %}
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ monetization.adsense_client }}"
+        crossorigin="anonymous"></script>
+{% endif %}
