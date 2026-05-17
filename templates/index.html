@@ -293,7 +293,10 @@
         <div class="snapshot-card">
           <div class="snapshot-label">Live airports</div>
           <div class="snapshot-value">{{ live_count }}</div>
-          <div class="snapshot-sub">{{ estimated_count }} fallback airport{{ 's' if estimated_count != 1 else '' }} are also listed</div>
+          <div class="snapshot-sub">
+            {{ estimated_count }} fallback airport{{ 's' if estimated_count != 1 else '' }}
+            {{ 'is' if estimated_count == 1 else 'are' }} also listed
+          </div>
         </div>
         <div class="snapshot-card">
           <div class="snapshot-label">Fastest right now</div>
@@ -646,7 +649,11 @@
         </div>
         <div class="utility-panel">
           <h3 class="utility-title">Find Cheap Flights</h3>
-          <p class="muted utility-copy">Search flights from <span id="flight-origin-text">{{ initial_airport_code }}</span> without leaving this page flow.</p>
+          <p class="muted utility-copy">
+            Search flights from
+            <span id="flight-origin-text">{{ initial_airport_code if initial_airport_code else 'your airport' }}</span>
+            without leaving this page flow.
+          </p>
           <div class="search-form-inline compact-search">
             <div class="form-row">
               <div class="input-wrap">
@@ -698,6 +705,26 @@
             <li>Use the live checkpoint cards first to judge current conditions, then use the history chart to see whether the line is following a normal peak.</li>
             <li>Confirm your terminal or airline before heading to security, since many airports on TSA Tracker have different wait patterns by checkpoint or terminal.</li>
             <li>Use the official airport links below if you need terminal maps, airport-specific security guidance, or the airport's own traveler tools.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="content-columns" style="margin-top: 16px;">
+        <div>
+          <h3>What matters specifically at {{ initial_airport_code }}</h3>
+          <p class="muted" style="margin-bottom:8px;">{{ airport_editorial.body }}</p>
+          <ul class="content-list">
+            {% for bullet in airport_editorial.bullets %}
+            <li>{{ bullet }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div>
+          <h3>Why this page is useful</h3>
+          <ul class="content-list">
+            <li>It separates live checkpoint readings from fallback estimates instead of hiding the difference.</li>
+            <li>It combines the current wait number with terminal, airline, and airport-layout notes for {{ initial_airport_code }}.</li>
+            <li>It points to the airport's own maps, security pages, and traveler resources when you need to verify the airport workflow directly.</li>
           </ul>
         </div>
       </div>
@@ -993,14 +1020,10 @@
       "@type": "Organization",
       "name": "TSA Tracker",
       "url": "{{ seo.site_url }}",
-      "sameAs": [
-        "https://x.com/tsatrackerr",
-        "https://twitter.com/tsatrackerr"
-      ],
       "description": "Real-time TSA security wait times for major US airports, pulled directly from official airport systems.",
       "sameAs": [
-        "https://twitter.com/tsatracker",
-        "https://www.linkedin.com/company/tsatracker"
+        "https://github.com/benbirkhahn",
+        "https://www.linkedin.com/in/benjamin-birkhahn-421870240"
       ],
       "contactPoint": {
         "@type": "ContactPoint",
@@ -1042,8 +1065,8 @@
           "@type": "Question",
           "name": "How accurate is the {{ initial_airport_code }} TSA wait time data?",
           "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "TSA Tracker pulls data directly from {{ airport_display_name }}'s official airport security feed, not crowdsourced estimates. The checkpoint readings reflect actual measured wait times updated approximately every 2 minutes."
+          "@type": "Answer",
+            "text": "{% if initial_data.sourceType == 'live_direct' %}TSA Tracker is currently pulling data directly from {{ airport_display_name }}'s official airport security feed, not crowdsourced estimates. The checkpoint readings reflect actual measured wait times updated approximately every 2 minutes.{% else %}Live checkpoint data is not currently available for {{ airport_display_name }}, so TSA Tracker is showing a planning estimate alongside airport-specific notes and official airport resources. Check the source-status language on the page before relying on the current number as a live checkpoint reading.{% endif %}"
           }
         },
         {
@@ -1066,8 +1089,8 @@
           "@type": "Question",
           "name": "How often does TSA Tracker update {{ initial_airport_code }} wait times?",
           "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "{{ initial_airport_code }} TSA wait times on TSA Tracker update approximately every 2 minutes, pulling fresh data directly from the airport's live security feed."
+          "@type": "Answer",
+            "text": "{% if initial_data.sourceType == 'live_direct' %}{{ initial_airport_code }} TSA wait times on TSA Tracker update approximately every 2 minutes, pulling fresh data directly from the airport's live security feed.{% else %}When the live {{ initial_airport_code }} feed is unavailable, TSA Tracker falls back to a planning estimate and keeps the airport-specific context on the page visible so the traveler can still judge risk windows and terminal constraints.{% endif %}"
           }
         }
       ]

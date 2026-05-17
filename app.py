@@ -728,7 +728,7 @@ def airport_page_seo(code: str, airport_name: str) -> Dict:
         title=f"{code} TSA Wait Times — Live Security Line Data | {clean_name} | TSA Tracker",
         description=(
             f"Live TSA security checkpoint wait times at {clean_name} ({code}). "
-            f"Real-time airport security line data pulled directly from official {code} airport systems and updated every 2 minutes."
+            f"Check current {code} security lines, terminal-specific notes, official airport resources, and the 12-hour trend before you leave."
         ),
         canonical_path=airport_seo_slug(code),
     )
@@ -771,6 +771,48 @@ def arrival_guidance_for_airport(payload: Dict) -> Dict:
         "best_window": best_label,
         "risk_window": risk_label,
         "recommendation": recommendation,
+    }
+
+
+def airport_page_editorial_context(code: str, payload: Optional[Dict], checkpoints: List[Dict]) -> Dict:
+    guide = AIRPORT_PAGE_GUIDES.get(code, {})
+    notice = airport_status_notice_for_code(code)
+    source_type = (payload or {}).get("sourceType", "estimated_fallback")
+    source_reason = (payload or {}).get("sourceReason", "")
+    checkpoint_count = len(checkpoints)
+    link_count = len(guide.get("links", []))
+
+    if source_type == "live_direct":
+        if checkpoint_count > 1:
+            source_summary = f"This page is currently backed by {checkpoint_count} live {code} checkpoint readings, so the terminal and checkpoint spread matters more than a single airport-wide average."
+        else:
+            source_summary = f"This page is currently backed by a live {code} airport reading. Use the current number first, then the history chart to judge whether conditions are rising or easing."
+    elif notice:
+        source_summary = notice.get("summary", f"Live checkpoint data is limited for {code} right now, so this page leans harder on airport-specific context and planning guidance.")
+    elif source_reason == "live_stale_or_unavailable":
+        source_summary = f"Live checkpoint data is temporarily unavailable for {code}, so the current number is a planning estimate and the airport-specific notes below matter more than usual."
+    else:
+        source_summary = f"This {code} page combines the current planning estimate with airport-specific notes, official airport resources, and the normal high-risk departure windows for this airport."
+
+    bullets = [source_summary]
+    for bucket in ("notes", "terminal_notes", "airline_notes", "tips"):
+        for item in guide.get(bucket, []):
+            if item not in bullets:
+                bullets.append(item)
+            if len(bullets) >= 4:
+                break
+        if len(bullets) >= 4:
+            break
+
+    body = (
+        f"This page adds {code}-specific terminal context, airline routing notes, and {link_count} official airport resource"
+        f"{'s' if link_count != 1 else ''} so the wait-time reading is actually usable for a same-day trip."
+    )
+
+    return {
+        "summary": source_summary,
+        "body": body,
+        "bullets": bullets[:4],
     }
 
 
@@ -837,6 +879,7 @@ def index_template_context(initial_airport_code: str, seo: Dict) -> Dict:
         "airport_guide": AIRPORT_PAGE_GUIDES.get(initial_airport_code, {}),
         "airport_notice": airport_status_notice_for_code(initial_airport_code) if is_airport_page else {},
         "arrival_guidance": arrival_guidance_for_airport(initial_data) if is_airport_page else None,
+        "airport_editorial": airport_page_editorial_context(initial_airport_code, initial_data, initial_checkpoints) if is_airport_page else None,
         "airport_pages": [{"code": c, "href": airport_seo_slug(c), "name": v["name"]} for c, v in LIVE_AIRPORTS.items()],
         "airport_summaries": airport_overview["airport_summaries"],
         "overall_average": airport_overview["overall_average"],

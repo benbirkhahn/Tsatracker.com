@@ -71,7 +71,7 @@
   <main class="main">
     <section class="card content-card" style="max-width:860px;margin:0 auto;">
       <h1 style="font-size:2rem;font-weight:700;margin-bottom:6px;">TSA Tracker Data Methodology</h1>
-      <p class="muted" style="margin-bottom:28px;"><em>Last updated: April 2026</em></p>
+      <p class="muted" style="margin-bottom:28px;"><em>Last updated: May 2026</em></p>
       <p>This page documents the data pipeline behind TSA Tracker: how live readings are collected, when fallback values appear, and what the freshness rules mean in practice.</p>
       <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">1. Data Source Policy</h2>
       <p>We only list an airport as “live” when we can pull data from an official airport-controlled system. We do not fabricate coverage, and we do not mark an airport live based solely on history or a generic estimate.</p>
@@ -95,6 +95,11 @@
       </ul>
       <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">4. Forecasting and Fallback Behavior</h2>
       <p>Hourly forecast values are planning aids, not promises. They blend airport-specific historical factors with the latest observed wait value. If no fresh live data is available, the site provides an estimated fallback and marks that state in API metadata.</p>
+      <ul class="content-list" style="margin-top:6px;">
+        <li>Fallback values are labeled so users can distinguish them from live airport-published readings.</li>
+        <li>We do not silently upgrade an airport to “live” based on partial history or a temporary workaround.</li>
+        <li>If an airport suspends public wait-time reporting, the page should explain that state instead of implying the live feed still exists.</li>
+      </ul>
       <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">5. Current Live Airport Coverage</h2>
       <p>The airports below are currently wired to live integrations in production:</p>
       <div class="source-card-grid">
@@ -114,6 +119,13 @@
       </ul>
       <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">7. Editorial and Correction Policy</h2>
       <p>When users report inaccuracies, we investigate source behavior and parser logic, then patch collection code where needed. We prioritize transparent source coverage over claiming broad but low-confidence airport support. To report a data issue, contact <a href="mailto:benbirkhahn10@gmail.com">benbirkhahn10@gmail.com</a> with airport code, timestamp, and what you observed.</p>
+      <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">8. What Makes an Airport Page Worth Publishing</h2>
+      <p>TSA Tracker is not trying to mass-produce city pages. A live airport page is only worth publishing when it adds specific traveler value beyond a raw number.</p>
+      <ul class="content-list" style="margin-top:6px;">
+        <li>It should identify whether the current reading is live or fallback.</li>
+        <li>It should give airport-specific notes, terminal context, or official links that help a traveler make a same-day decision.</li>
+        <li>It should explain material caveats, such as suspended feeds, terminal splits, or limited lane-level visibility.</li>
+      </ul>
     </section>
   </main>
   <footer class="footer">
