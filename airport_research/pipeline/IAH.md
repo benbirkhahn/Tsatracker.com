@@ -2,7 +2,7 @@
 
 **Status:** 🔬 In Research  
 **Pipeline status:** `IN_RESEARCH`  
-**Last investigated:** 2026-03-23  
+**Last investigated:** 2026-05-18  
 
 ---
 
@@ -33,6 +33,20 @@ Tested common endpoint patterns:
 - `https://www.fly2houston.com/api/wait-times` → 404
 - No GraphQL endpoint detected
 
+### Pass 3 (2026-05-18 — live endpoint discovery)
+
+The current page bundle exposes the live Houston Airports API host and checkpoint route:
+
+- `GET https://api.houstonairports.mobi/wait-times/checkpoint/<CHECKPOINT_ID>`
+- Required headers:
+  - `Api-Key: 9ACB3B733BE94B11A03B6E84CA87E895`
+  - `Api-Version: 100`
+
+Observed behavior:
+- The endpoint is reachable, but every tested version value returns `412` with `API version is no longer supported!`
+- Omitting `Api-Version` returns `500`
+- The browser-facing page still renders the error state instead of live wait times
+
 ---
 
 ## Most Promising Lead
@@ -44,15 +58,15 @@ The page loads wait-time data after initial HTML render, likely via:
 2. A third-party wait-time vendor (QLess, Passur, etc.)
 3. An embedded iframe or widget
 
-**To unlock:** Requires headless browser automation (Playwright, Selenium) to intercept network requests and capture the actual XHR call URL and response.
+**Current blocker:** The live endpoint is known, but the bundled API version is already rejected by the provider. IAH should stay in research until Houston publishes a supported version or refreshes the client bundle.
 
 ---
 
 ## Next Steps
 
-1. **Headless browser capture** — Use Playwright to load `fly2houston.com/iah/security` and monitor network tab for XHR requests to `/wait` or `/api/*` endpoints
-2. **Check for embedded vendor widgets** — Some airports embed QLess or Passur wait-time displays; inspect iframe sources
-3. **Re-probe if airport launches public API** — Check back periodically
+1. Refresh the page bundle and re-check the API version header.
+2. Re-probe the checkpoint endpoint if Houston publishes a supported version.
+3. Keep IAH in research until the provider-side version mismatch is resolved.
 
 ---
 
@@ -60,4 +74,4 @@ The page loads wait-time data after initial HTML render, likely via:
 
 - Part of batch onboarding (IAH, LAS, BWI, DTW, IAD, DCA) on 2026-03-23
 - All 6 airports follow same pattern: server-rendered page + dynamic JS-loaded data
-- None expose public APIs without headless browser
+- IAH now has a confirmed endpoint, but the published client version is stale

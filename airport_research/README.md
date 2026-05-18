@@ -24,7 +24,7 @@ Reference for every airport we've investigated — how we get live TSA wait data
 | SFO | San Francisco International | ✅ Live | Public HTML table scrape |
 | ATL | Hartsfield-Jackson Atlanta | 🔬 Research | Cloudflare-blocked (all paths) |
 | DEN | Denver International | 🔬 Research | 403 Forbidden on direct probe |
-| IAH | Houston Intercontinental | 🔬 Research | Live data confirmed via TTT; Next.js API endpoint not yet found |
+| IAH | Houston Intercontinental | 🔬 Research | Public checkpoint endpoint found, but current API version is rejected |
 | DTW | Detroit Metro | 🔬 Research | Live data confirmed via TTT; metroairport.com Drupal endpoint not yet found |
 | DCA | Reagan National | 🔬 Research | Live data confirmed via TTT; flyreagan.com endpoint not yet found |
 

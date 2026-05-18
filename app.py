@@ -414,6 +414,26 @@ AIRPORT_PAGE_GUIDES = {
             {"label": "DFW Terminal Guide", "url": "https://dallasfortworthairport-dfw.com/wait-times/"},
         ],
     },
+    "DEN": {
+        "tips": [
+            "DEN has separate East and West security areas, so the better line depends on your terminal routing and the time of day.",
+            "PreCheck can be materially faster at DEN, but the live cards are the better source than assuming one side is always better.",
+            "Use the official DEN security tools first if you are considering Reserve or another expedited screening option.",
+        ],
+        "notes": [
+            "Denver International uses separate checkpoint areas rather than one airport-wide line.",
+            "DEN Reserve and the airport's expedited screening guidance are official airport resources, not third-party estimates.",
+        ],
+        "terminal_notes": [
+            "East Security and West Security each have their own live wait patterns.",
+            "The better checkpoint can shift by departure bank, so compare the airport's live display before leaving.",
+        ],
+        "links": [
+            {"label": "DEN Reserve", "url": "https://www.flydenver.com/security/den-reserve/"},
+            {"label": "Expedited Security Screening Options", "url": "https://www.flydenver.com/security/expedited-security-screening-options/"},
+            {"label": "Official DEN security page", "url": "https://www.flydenver.com/security/"},
+        ],
+    },
     "MCO": {
         "tips": [
             "Orlando (MCO) is unique for its 'MCO Reserve' program, which allows you to book a security screening slot in advance (up to 7 days ahead).",
@@ -688,7 +708,7 @@ PIPELINE_AIRPORTS = [
         "status": "IN_RESEARCH",
         "public_note": "Live integration coming soon.",
         # internal: fly2houston.com/iah/security renders wait times dynamically (JS/AJAX).
-        # No public JSON API or skydive/mobi endpoint found. Wait-time data loaded client-side.
+        # Public checkpoint endpoint found at api.houstonairports.mobi, but the bundled API version is currently rejected.
         # See airport_research/pipeline/IAH.md for full investigation log.
     },
     {
@@ -2203,7 +2223,8 @@ def fetch_atl_rows() -> List[Dict]:
     """Scrape ATL wait times from the official ATL Next page.
 
     The public `atl.com/times/` page is Cloudflare-protected, but the ATL Next
-    security page renders the same live values in plain HTML.
+    security page renders the same live values in HTML blocks that are easier to
+    parse directly.
     """
     url = "https://dev.atl.com/atlsync/security-wait-times/"
     resp = requests.get(url, headers=UA, timeout=20)
@@ -2220,25 +2241,66 @@ def fetch_atl_rows() -> List[Dict]:
         "INTERNATIONAL MAIN": "International Main Checkpoint",
     }
 
-    for label, checkpoint in checkpoint_labels.items():
-        match = re.search(
-            rf"{re.escape(label)}\s+CHECKPOINT\s+(\d+)\s+Min\s+Current Wait\s+Last updated\s+(\d{{1,2}}:\d{{2}}:\d{{2}}\s+[AP]M)",
-            html,
-            re.S | re.I,
-        )
-        if not match:
-            continue
-        rows.append(
-            {
-                "airport_code": "ATL",
-                "checkpoint": checkpoint,
-                "wait_minutes": float(match.group(1)),
-                "lane_type": "STANDARD",
-                "source": url,
-                "captured_at": stamp,
-                "last_updated": match.group(2),
-            }
-        )
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        BeautifulSoup = None
+
+    if BeautifulSoup is not None:
+        soup = BeautifulSoup(html, "html.parser")
+        for label, checkpoint in checkpoint_labels.items():
+            heading = next(
+                (
+                    tag
+                    for tag in soup.find_all("h2")
+                    if " ".join(tag.get_text(" ", strip=True).split()) == label
+                ),
+                None,
+            )
+            if not heading:
+                continue
+            gauge = heading.find_next("div", class_="gauge-text")
+            if not gauge:
+                continue
+            wait_tag = gauge.find_previous("text")
+            wait_text = " ".join(wait_tag.get_text(" ", strip=True).split()) if wait_tag else ""
+            block_text = " ".join(gauge.get_text(" ", strip=True).split())
+            wait_match = re.search(r"(\d+(?:\.\d+)?)\s*Min\b", wait_text, re.I)
+            updated_match = re.search(r"Last updated\s+(.+)$", block_text, re.I)
+            if not wait_match or not updated_match:
+                continue
+            rows.append(
+                {
+                    "airport_code": "ATL",
+                    "checkpoint": checkpoint,
+                    "wait_minutes": float(wait_match.group(1)),
+                    "lane_type": "STANDARD",
+                    "source": url,
+                    "captured_at": stamp,
+                    "last_updated": updated_match.group(1).strip(),
+                }
+            )
+
+    if not rows:
+        for label, checkpoint in checkpoint_labels.items():
+            match = re.search(
+                rf"{re.escape(label)}\s+CHECKPOINT\s+(\d+)\s+Min\s+Current Wait\s+Last updated\s+(\d{{1,2}}:\d{{2}}:\d{{2}}\s+[AP]M)",
+                html,
+                re.S | re.I,
+            )
+            if not match:
+                continue
+            rows.append(
+                {
+                    "airport_code": "ATL",
+                    "checkpoint": checkpoint,
+                    "wait_minutes": float(match.group(1)),
+                    "lane_type": "STANDARD",
+                    "source": url,
+                    "captured_at": stamp,
+                    "last_updated": match.group(2),
+                }
+            )
 
     if not rows:
         raise RuntimeError("ATL: no checkpoint rows parsed from official ATL page")
