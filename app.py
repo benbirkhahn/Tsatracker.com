@@ -225,6 +225,7 @@ UA = {"User-Agent": "Mozilla/5.0 (tsa-live-site/1.0)"}
 
 LIVE_AIRPORTS = {
     "PHL": {"name": "Philadelphia International (PHL)", "mode": "LIVE_PUBLIC", "city": "Philadelphia"},
+    "BOS": {"name": "Boston Logan International Airport (BOS)", "mode": "LIVE_PUBLIC", "city": "Boston"},
     "MIA": {"name": "Miami International (MIA)", "mode": "LIVE_KEY_REQUIRED", "city": "Miami"},
     "ORD": {"name": "Chicago O'Hare International (ORD)", "mode": "LIVE_PUBLIC", "city": "Chicago"},
     "CLT": {"name": "Charlotte Douglas International (CLT)", "mode": "LIVE_KEY_REQUIRED", "city": "Charlotte"},
@@ -715,7 +716,7 @@ def home_page_seo() -> Dict:
     return build_page_seo(
         title="Live TSA Wait Times at Major US Airports | TSA Tracker",
         description=(
-            "Real-time TSA security wait times for PHL, MIA, ORD, LAX, JFK, EWR, LGA, SEA, DFW and more. "
+            "Real-time TSA security wait times for PHL, BOS, MIA, ORD, LAX, JFK, EWR, LGA, SEA, DFW and more. "
             "Live airport security line data pulled directly from official airport systems — updated every 2 minutes."
         ),
         canonical_path="/",
@@ -1794,6 +1795,86 @@ def fetch_lga_rows() -> List[Dict]:
     return rows
 
 
+def fetch_bos_rows() -> List[Dict]:
+    """Massport Logan widget API via Zensors embeddable wait-time endpoints."""
+    base = "https://embed.zensors.live/api/embeddable-widget/trpc"
+    slug = "tSTQVPRW1"
+    domain_slug = "BOS"
+    token = "9uBjlxUu2dTQydGHYGtoDYxH5TE0vHOl"
+    journey_source = f"{base}/waitTimeExplorer.update"
+
+    init_input = {
+        "0": {
+            "slug": slug,
+            "domainSlug": domain_slug,
+            "token": token,
+        }
+    }
+    init_resp = requests.get(
+        f"{base}/waitTimeExplorer.init",
+        params={"batch": "1", "input": json.dumps(init_input, separators=(",", ":"))},
+        headers={**UA, "Accept": "application/json, text/plain, */*"},
+        timeout=20,
+    )
+    init_resp.raise_for_status()
+    init_payload = init_resp.json()
+    if not init_payload or "result" not in init_payload[0]:
+        raise RuntimeError("BOS: invalid init payload")
+
+    journeys = init_payload[0]["result"]["data"].get("journeys", {})
+    if not journeys:
+        raise RuntimeError("BOS: no journeys in init payload")
+
+    rows: List[Dict] = []
+    for journey_id, meta in journeys.items():
+        update_input = {
+            "0": {
+                "journey": journey_id,
+                "slug": slug,
+                "domainSlug": domain_slug,
+                "token": token,
+            }
+        }
+        update_resp = requests.get(
+            f"{base}/waitTimeExplorer.update",
+            params={"batch": "1", "input": json.dumps(update_input, separators=(",", ":"))},
+            headers={**UA, "Accept": "application/json, text/plain, */*"},
+            timeout=20,
+        )
+        update_resp.raise_for_status()
+        update_payload = update_resp.json()
+        if not update_payload or "result" not in update_payload[0]:
+            continue
+
+        checkpoint = str(meta.get("name", "")).strip()
+        if not checkpoint:
+            continue
+        paths = update_payload[0]["result"]["data"].get("paths", {})
+        for path_key, path_meta in paths.items():
+            if not path_meta.get("open"):
+                continue
+            wait_meta = path_meta.get("waitTime") or {}
+            timestamp_ms = wait_meta.get("timestamp")
+            captured_at = (
+                datetime.fromtimestamp(timestamp_ms / 1000, UTC).isoformat()
+                if timestamp_ms
+                else utc_now().isoformat()
+            )
+            lane_type = "PRECHECK" if path_key == "precheck" else "STANDARD"
+            rows.append({
+                "airport_code": "BOS",
+                "checkpoint": checkpoint,
+                "wait_minutes": float(wait_meta.get("value") or 0),
+                "lane_type": lane_type,
+                "source": journey_source,
+                "captured_at": captured_at,
+            })
+
+    if not rows:
+        raise RuntimeError("BOS: no open checkpoint rows in response")
+    return rows
+
+
 _SEA_API = "https://www.portseattle.org/api/cwt/wait-times"
 
 _SEA_LANE_MAP = {
@@ -1966,6 +2047,7 @@ def collect_once() -> Dict:
     result = {"ok": [], "errors": []}
     collectors = [
         ("PHL", fetch_phl_rows),
+        ("BOS", fetch_bos_rows),
         ("MIA", fetch_mia_rows),
         ("ORD", fetch_ord_rows),
         ("CLT", fetch_clt_rows),
@@ -2043,7 +2125,7 @@ def normalized_current_wait_for_code(code: str) -> Dict:
         sample = active if active else rows
         values = [clamp_wait_minutes(float(r.get("wait_minutes", 0))) for r in sample]
         standard = round(sum(values) / len(values), 1) if values else 0.0
-        has_pre = any("pre" in str(r.get("checkpoint", "")).lower() for r in rows)
+        has_pre = any(str(r.get("lane_type", "")).upper() == "PRECHECK" for r in rows)
         latest_ts = max(rows, key=lambda r: r.get("captured_at", ""))["captured_at"]
         return {
             "available": True,
