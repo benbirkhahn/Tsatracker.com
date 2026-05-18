@@ -237,6 +237,7 @@ LIVE_AIRPORTS = {
     "EWR": {"name": "Newark Liberty International (EWR)", "mode": "LIVE_PUBLIC", "city": "Newark"},
     "LGA": {"name": "LaGuardia Airport (LGA)", "mode": "LIVE_PUBLIC", "city": "New York"},
     "SEA": {"name": "Seattle-Tacoma International (SEA)", "mode": "LIVE_PUBLIC", "city": "Seattle"},
+    "SFO": {"name": "San Francisco International (SFO)", "mode": "LIVE_PUBLIC", "city": "San Francisco"},
 }
 
 AIRPORT_PAGE_GUIDES = {
@@ -545,6 +546,30 @@ AIRPORT_PAGE_GUIDES = {
             {"label": "SEA Interactive Map", "url": "https://exploresea.org/map/"},
         ],
     },
+    "SFO": {
+        "tips": [
+            "SFO shows checkpoint and TSA PreCheck times by checkpoint, and every gate is accessible from any checkpoint once you clear security.",
+            "Checkpoint A and Checkpoint B are the main public-facing reference points; use the live table first, then confirm your airline terminal if the line is uneven.",
+            "The page is especially useful when PreCheck is materially shorter than the general lane, since SFO exposes both side by side.",
+        ],
+        "notes": [
+            "SFO's security page is server-rendered with the live wait-time table already in the HTML, so the collector can scrape it directly without a hidden API.",
+            "The table includes a freshness stamp. That lets us treat the data as live airport output rather than a planning estimate.",
+        ],
+        "terminal_notes": [
+            "SFO labels checkpoints by letter and notes that all gates are accessible from any checkpoint, so travelers can choose the shortest line first.",
+            "Checkpoint B has a mezzanine-level row that can differ from the main checkpoint row, so the airport is not fully uniform by entrance.",
+        ],
+        "airline_notes": [
+            "Use the checkpoint closest to your gate area, but don't assume you must screen there if another checkpoint is shorter.",
+            "The airport's own note says checkpoint letters reference the closest gates rather than limiting post-security access.",
+        ],
+        "links": [
+            {"label": "Official SFO Security Wait Times", "url": "https://www.flysfo.com/passengers/flight-info/security-wait-times"},
+            {"label": "Official SFO Check In & Security", "url": "https://www.flysfo.com/passengers/flight-info/check-in-security"},
+            {"label": "Official SFO Airport Site", "url": "https://www.flysfo.com/"},
+        ],
+    },
 }
 
 AIRPORT_STATUS_NOTICES = {
@@ -586,10 +611,9 @@ PIPELINE_AIRPORTS = [
         "name": "San Francisco International",
         "status": "IN_RESEARCH",
         "public_note": "Live integration coming soon.",
-        # internal: flysfo.com/flight-info/alerts-advisories/tsa-lines-normal-wait-times
-        # returns 200 but wait-time data is loaded dynamically (JS/AJAX) — not in static HTML.
-        # No public JSON API or skydive/mobi endpoint found. Drupal site, no Next.js bundle.
-        # See airport_research/pipeline/SFO.md for full investigation log.
+        # internal: flysfo.com/passengers/flight-info/security-wait-times exposes the table in server-rendered HTML.
+        # Scrape the public page directly; no hidden API is needed.
+        # See airport_research/live/SFO.md for the live integration notes.
     },
     {
         "code": "IAH",
@@ -1856,7 +1880,7 @@ def fetch_bos_rows() -> List[Dict]:
             wait_meta = path_meta.get("waitTime") or {}
             timestamp_ms = wait_meta.get("timestamp")
             captured_at = (
-                datetime.fromtimestamp(timestamp_ms / 1000, UTC).isoformat()
+                datetime.fromtimestamp(timestamp_ms / 1000, APP_TZ).isoformat()
                 if timestamp_ms
                 else utc_now().isoformat()
             )
@@ -1942,6 +1966,47 @@ def fetch_sea_rows() -> List[Dict]:
             })
     if not rows:
         raise RuntimeError("SEA: no open checkpoints in response")
+    return rows
+
+
+def fetch_sfo_rows() -> List[Dict]:
+    """SFO server-rendered wait-time table scrape from flysfo.com."""
+    url = "https://www.flysfo.com/passengers/flight-info/security-wait-times"
+    resp = requests.get(url, headers=UA, timeout=20)
+    resp.raise_for_status()
+    html = resp.text
+    table_match = re.search(
+        r'<table[^>]*class="[^"]*flysfo-checkpoints-table[^"]*"[^>]*>(.*?)</table>',
+        html,
+        re.S | re.I,
+    )
+    if not table_match:
+        raise RuntimeError("SFO: checkpoint table not found")
+    stamp = utc_now().isoformat()
+    rows: List[Dict] = []
+    for row_html in re.findall(r"<tr[^>]*>(.*?)</tr>", table_match.group(1), re.S | re.I):
+        cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", row_html, re.S | re.I)
+        cells = [re.sub(r"<[^>]+>", "", c).strip() for c in cells]
+        if len(cells) < 3 or cells[0].lower() == "checkpoint":
+            continue
+        checkpoint, general_wait, precheck_wait = cells[:3]
+        for lane_type, raw_wait in (("STANDARD", general_wait), ("PRECHECK", precheck_wait)):
+            raw_wait_lower = raw_wait.lower()
+            if not raw_wait_lower or raw_wait_lower in ("not available", "n/a", "no data"):
+                continue
+            match = re.search(r"(\d+(?:\.\d+)?)", raw_wait_lower)
+            if not match:
+                continue
+            rows.append({
+                "airport_code": "SFO",
+                "checkpoint": checkpoint,
+                "wait_minutes": float(match.group(1)),
+                "lane_type": lane_type,
+                "source": url,
+                "captured_at": stamp,
+            })
+    if not rows:
+        raise RuntimeError("SFO: no checkpoint rows parsed from HTML table")
     return rows
 
 
@@ -2059,6 +2124,7 @@ def collect_once() -> Dict:
         ("EWR", fetch_ewr_rows),
         ("LGA", fetch_lga_rows),
         ("SEA", fetch_sea_rows),
+        ("SFO", fetch_sfo_rows),
         ("DEN", fetch_den_rows),
         ("ATL", fetch_atl_rows),
     ]
