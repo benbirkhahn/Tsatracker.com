@@ -2241,66 +2241,28 @@ def fetch_atl_rows() -> List[Dict]:
         "INTERNATIONAL MAIN": "International Main Checkpoint",
     }
 
-    try:
-        from bs4 import BeautifulSoup
-    except ImportError:
-        BeautifulSoup = None
-
-    if BeautifulSoup is not None:
-        soup = BeautifulSoup(html, "html.parser")
-        for label, checkpoint in checkpoint_labels.items():
-            heading = next(
-                (
-                    tag
-                    for tag in soup.find_all("h2")
-                    if " ".join(tag.get_text(" ", strip=True).split()) == label
-                ),
-                None,
-            )
-            if not heading:
-                continue
-            gauge = heading.find_next("div", class_="gauge-text")
-            if not gauge:
-                continue
-            wait_tag = gauge.find_previous("text")
-            wait_text = " ".join(wait_tag.get_text(" ", strip=True).split()) if wait_tag else ""
-            block_text = " ".join(gauge.get_text(" ", strip=True).split())
-            wait_match = re.search(r"(\d+(?:\.\d+)?)\s*Min\b", wait_text, re.I)
-            updated_match = re.search(r"Last updated\s+(.+)$", block_text, re.I)
-            if not wait_match or not updated_match:
-                continue
-            rows.append(
-                {
-                    "airport_code": "ATL",
-                    "checkpoint": checkpoint,
-                    "wait_minutes": float(wait_match.group(1)),
-                    "lane_type": "STANDARD",
-                    "source": url,
-                    "captured_at": stamp,
-                    "last_updated": updated_match.group(1).strip(),
-                }
-            )
-
-    if not rows:
-        for label, checkpoint in checkpoint_labels.items():
-            match = re.search(
-                rf"{re.escape(label)}\s+CHECKPOINT\s+(\d+)\s+Min\s+Current Wait\s+Last updated\s+(\d{{1,2}}:\d{{2}}:\d{{2}}\s+[AP]M)",
-                html,
-                re.S | re.I,
-            )
-            if not match:
-                continue
-            rows.append(
-                {
-                    "airport_code": "ATL",
-                    "checkpoint": checkpoint,
-                    "wait_minutes": float(match.group(1)),
-                    "lane_type": "STANDARD",
-                    "source": url,
-                    "captured_at": stamp,
-                    "last_updated": match.group(2),
-                }
-            )
+    for label, checkpoint in checkpoint_labels.items():
+        match = re.search(
+            rf'<h2[^>]*>\s*{re.escape(label)}\s*</h2>.*?'
+            rf'<text[^>]*>(\d+(?:\.\d+)?)\s*Min</text>.*?'
+            rf'<div class="gauge-text"[^>]*>.*?'
+            rf'Last updated\s+([^<]+)</p>',
+            html,
+            re.S | re.I,
+        )
+        if not match:
+            continue
+        rows.append(
+            {
+                "airport_code": "ATL",
+                "checkpoint": checkpoint,
+                "wait_minutes": float(match.group(1)),
+                "lane_type": "STANDARD",
+                "source": url,
+                "captured_at": stamp,
+                "last_updated": match.group(2).strip(),
+            }
+        )
 
     if not rows:
         raise RuntimeError("ATL: no checkpoint rows parsed from official ATL page")
