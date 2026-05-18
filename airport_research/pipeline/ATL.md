@@ -1,13 +1,13 @@
 # ATL — Hartsfield-Jackson Atlanta International Airport
 
-**Status:** 🔬 In Research  
-**Pipeline status:** `IN_RESEARCH`  
+**Status:** ✅ Live  
+**Pipeline status:** `LIVE_DIRECT`  
 
 ---
 
-## Target URL
+## Working Source
 
-`https://www.atl.com/times/`
+`https://dev.atl.com/atlsync/security-wait-times/`
 
 ---
 
@@ -30,22 +30,17 @@ This applies to:
 
 Even with full browser-like headers (Sec-CH-UA, Sec-Fetch-*, etc.) the challenge fires.
 
+### Smoke test
+
+The ATL Next security page renders live values in plain HTML and parses cleanly with a simple HTML scrape. The page returned 5 checkpoint rows during the smoke test.
+
 ### TSA DHS endpoint
 
 `https://apps.tsa.dhs.gov/mytsa/wait_times_detail.aspx?airport=ATL` — returns 200 but is the generic MyTSA mobile app marketing page, not actual live wait time data (same 75KB HTML regardless of airport code).
 
 ### Other services
 
-No publicly accessible API found via common airport/wait-time patterns.
-
----
-
-## What's Needed to Unblock
-
-One of the following:
-1. **Headless browser session** (Playwright with Chromium) to pass the Cloudflare Turnstile challenge, then capture the real API calls in network traffic.
-2. **Alternative data source** — check if ATL uses a known third-party service (LocustLabs, Elerts, waittime.api.aero, etc.) that has a non-Cloudflare endpoint.
-3. **Direct partnership/API key** from ATL.
+The public `atl.com/times/` page is still blocked by Cloudflare, but the ATL Next page exposes the live wait times without the challenge.
 
 ---
 
@@ -53,4 +48,4 @@ One of the following:
 
 - ATL is the world's busiest airport — high-value addition.
 - `AIRPORT_FACTORS["ATL"] = 1.25` is already set for forecast scaling.
-- ATL likely uses a modern Next.js or React-based site. Once the Cloudflare challenge is bypassed, look for a `/_next/data/` API call or a React app config with an embedded API key (same approach as DFW).
+- The live source is `dev.atl.com/atlsync/security-wait-times/`, not `www.atl.com/times/`.
