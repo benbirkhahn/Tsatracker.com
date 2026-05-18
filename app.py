@@ -226,6 +226,7 @@ UA = {"User-Agent": "Mozilla/5.0 (tsa-live-site/1.0)"}
 LIVE_AIRPORTS = {
     "PHL": {"name": "Philadelphia International (PHL)", "mode": "LIVE_PUBLIC", "city": "Philadelphia"},
     "BOS": {"name": "Boston Logan International Airport (BOS)", "mode": "LIVE_PUBLIC", "city": "Boston"},
+    "ATL": {"name": "Hartsfield-Jackson Atlanta International (ATL)", "mode": "LIVE_PUBLIC", "city": "Atlanta"},
     "MIA": {"name": "Miami International (MIA)", "mode": "LIVE_KEY_REQUIRED", "city": "Miami"},
     "ORD": {"name": "Chicago O'Hare International (ORD)", "mode": "LIVE_PUBLIC", "city": "Chicago"},
     "CLT": {"name": "Charlotte Douglas International (CLT)", "mode": "LIVE_KEY_REQUIRED", "city": "Charlotte"},
@@ -266,6 +267,32 @@ AIRPORT_PAGE_GUIDES = {
             {"label": "Terminal Connection Guide", "url": "https://www.ifly.com/airports/philadelphia-international-airport/terminal-map"},
         ],
     },
+    "BOS": {
+        "tips": [
+            "Logan publishes checkpoint-specific live waits, so trust the card for your exact checkpoint instead of treating BOS like a single airport-wide line.",
+            "Terminal B is split across two checkpoints, and the faster option can shift during the day, so check whether your flight is on the B1-B22 side or the B23-B40 side before heading in.",
+            "Checkpoint 2 at Terminal A is TSA PreCheck-only, which can materially change your best move if you're flying Delta with PreCheck.",
+        ],
+        "notes": [
+            "Boston Logan has four passenger terminals: A, B, C, and E. The live wait feed is organized by checkpoint rather than by one airport-wide number.",
+            "Terminal E is the main international terminal, so the security experience there can behave differently from the domestic terminals during long-haul departure banks.",
+            "Massport notes that the published wait times are estimates based on real-time data from queue entry points, and overflow beyond that area can make the total experience longer.",
+        ],
+        "terminal_notes": [
+            "Terminal A uses Checkpoints 1 and 2, Terminal B uses Checkpoints 3 and 4, Terminal C uses Checkpoint 5, and Terminal E uses Checkpoints 6 and 7.",
+            "Once you're comparing BOS waits, checkpoint selection matters more than the airport average because Logan distributes screening across those seven named entry points.",
+        ],
+        "airline_notes": [
+            "Terminal A is Delta-heavy, Terminal B carries a mixed domestic airline load including American and United activity, and Terminal E handles the main international departure flow.",
+            "If your itinerary involves Terminal E, add extra buffer for document checks and longer gate walks even when the checkpoint wait itself looks manageable.",
+        ],
+        "links": [
+            {"label": "Official BOS security wait times", "url": "https://www.massport.com/logan-airport/at-the-airport/security-wait-times"},
+            {"label": "Official BOS security information", "url": "https://www.massport.com/logan-airport/at-the-airport/security-information"},
+            {"label": "Official BOS terminal maps", "url": "https://www.massport.com/logan-airport/at-the-airport/terminal-map"},
+            {"label": "Official BOS airlines directory", "url": "https://www.massport.com/logan-airport/flights/airlines/"},
+        ],
+    },
     "MIA": {
         "tips": [
             "MIA has 10 distinct security checkpoints with widely varying hours and PreCheck availability—always check the live cards to see if a nearby checkpoint is faster.",
@@ -289,6 +316,26 @@ AIRPORT_PAGE_GUIDES = {
             {"label": "Official MIA Live Wait Times", "url": "https://www.miami-airport.com/tsa-waittimes.asp"},
             {"label": "MIA Security Information", "url": "https://www.miami-airport.com/airport-security.asp"},
             {"label": "MIA Terminal Guide", "url": "https://upgradedpoints.com/travel/airports/miami-international-mia-airport/"},
+        ],
+    },
+    "ATL": {
+        "tips": [
+            "ATL has multiple checkpoints across domestic and international areas, so compare the live cards before choosing a line.",
+            "Use the checkpoint names and live times together, since the fastest option can change by terminal area.",
+            "The official ATL security page is the best source for current checkpoint conditions on this airport.",
+        ],
+        "notes": [
+            "Hartsfield-Jackson Atlanta is one of the busiest airports in the country, so checkpoint choice matters more than a single airport-wide average.",
+            "The airport's live wait-time page shows separate readings for the main domestic and international checkpoint areas.",
+        ],
+        "terminal_notes": [
+            "ATL's checkpoints are split across domestic and international areas, so make sure you are comparing the right checkpoint for your departure.",
+            "If you are unsure which checkpoint to use, check the airport map and your airline's terminal information before heading in.",
+        ],
+        "links": [
+            {"label": "Official ATL live wait times", "url": "https://dev.atl.com/atlsync/security-wait-times/"},
+            {"label": "Official ATL airport site", "url": "https://www.atl.com/"},
+            {"label": "ATL airport maps", "url": "https://www.atl.com/maps/"},
         ],
     },
     "ORD": {
@@ -555,6 +602,7 @@ AIRPORT_PAGE_GUIDES = {
         "notes": [
             "SFO's security page is server-rendered with the live wait-time table already in the HTML, so the collector can scrape it directly without a hidden API.",
             "The table includes a freshness stamp. That lets us treat the data as live airport output rather than a planning estimate.",
+            "The collector labels each checkpoint with its terminal area so travelers can tell at a glance whether a time is for International Terminal A, Harvey Milk Terminal 1, Terminal 2, Terminal 3, or International Terminal G.",
         ],
         "terminal_notes": [
             "SFO labels checkpoints by letter and notes that all gates are accessible from any checkpoint, so travelers can choose the shortest line first.",
@@ -593,12 +641,6 @@ AIRPORT_FACTORS = {
 }
 
 PIPELINE_AIRPORTS = [
-    {
-        "code": "ATL",
-        "name": "Hartsfield-Jackson Atlanta International (ATL)",
-        "status": "IN_RESEARCH",
-        "public_note": "Live integration coming soon.",
-    },
     {
         "code": "DEN",
         "name": "Denver International (DEN)",
@@ -1984,12 +2026,22 @@ def fetch_sfo_rows() -> List[Dict]:
         raise RuntimeError("SFO: checkpoint table not found")
     stamp = utc_now().isoformat()
     rows: List[Dict] = []
+    checkpoint_terminal = {
+        "Checkpoint A": "International Terminal A",
+        "Checkpoint B": "Harvey Milk Terminal 1",
+        "Checkpoint B - Mezzanine Level": "Harvey Milk Terminal 1",
+        "Checkpoint D": "Terminal 2",
+        "Checkpoint F": "Terminal 3",
+        "Checkpoint G": "International Terminal G",
+    }
     for row_html in re.findall(r"<tr[^>]*>(.*?)</tr>", table_match.group(1), re.S | re.I):
         cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", row_html, re.S | re.I)
         cells = [re.sub(r"<[^>]+>", "", c).strip() for c in cells]
         if len(cells) < 3 or cells[0].lower() == "checkpoint":
             continue
         checkpoint, general_wait, precheck_wait = cells[:3]
+        terminal = checkpoint_terminal.get(checkpoint, "")
+        display_checkpoint = f"{checkpoint} · {terminal}" if terminal else checkpoint
         for lane_type, raw_wait in (("STANDARD", general_wait), ("PRECHECK", precheck_wait)):
             raw_wait_lower = raw_wait.lower()
             if not raw_wait_lower or raw_wait_lower in ("not available", "n/a", "no data"):
@@ -1999,7 +2051,7 @@ def fetch_sfo_rows() -> List[Dict]:
                 continue
             rows.append({
                 "airport_code": "SFO",
-                "checkpoint": checkpoint,
+                "checkpoint": display_checkpoint,
                 "wait_minutes": float(match.group(1)),
                 "lane_type": lane_type,
                 "source": url,
@@ -2052,58 +2104,48 @@ def fetch_den_rows() -> List[Dict]:
 
 
 def fetch_atl_rows() -> List[Dict]:
-    """Scrapes ATL wait times from atl.com/times.
-    Uses a robust regex pattern to extract data from the dynamically updated containers.
+    """Scrape ATL wait times from the official ATL Next page.
+
+    The public `atl.com/times/` page is Cloudflare-protected, but the ATL Next
+    security page renders the same live values in plain HTML.
     """
-    url = "https://www.atl.com/times/"
-    # We use a session with specifically ordered headers to minimize 403s
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache",
-    }
-    resp = requests.get(url, headers=headers, timeout=20)
-    # If we hit Cloudflare, we return estimated data for now to avoid crashing the poller
-    if resp.status_code == 403:
-        logger.warning("ATL: Cloudflare challenge triggered. Falling back to estimated data.")
-        return []
-        
+    url = "https://dev.atl.com/atlsync/security-wait-times/"
+    resp = requests.get(url, headers=UA, timeout=20)
+    resp.raise_for_status()
     html = resp.text
-    # Extract based on common ATL DOM patterns
-    # Pattern 1: Domestic Terminal(s)
-    # <div class="nesclasser2">...</div>
-    rows = []
     stamp = utc_now().isoformat()
-    
-    # We look for blocks like: Domestic North: <span>8 Minutes</span>
-    # The logic below is a simplified robust extractor
-    patterns = [
-        (r'Domestic North.*?<span>(\d+)\s*Minutes</span>', "Domestic North"),
-        (r'Domestic South.*?<span>(\d+)\s*Minutes</span>', "Domestic South"),
-        (r'International.*?<span>(\d+)\s*Minutes</span>', "International"),
-        (r'CP Main.*?<span>(\d+)\s*Minutes</span>', "Main Checkpoint"),
-    ]
-    
-    for regex, cp_name in patterns:
-        match = re.search(regex, html, re.S | re.I)
-        if match:
-            wait = float(match.group(1))
-            rows.append({
+    rows: List[Dict] = []
+
+    checkpoint_labels = {
+        "MAIN": "Main Checkpoint",
+        "NORTH": "North Checkpoint",
+        "LOWER NORTH": "Lower North Checkpoint",
+        "SOUTH": "South Checkpoint",
+        "INTERNATIONAL MAIN": "International Main Checkpoint",
+    }
+
+    for label, checkpoint in checkpoint_labels.items():
+        match = re.search(
+            rf"{re.escape(label)}\s+CHECKPOINT\s+(\d+)\s+Min\s+Current Wait\s+Last updated\s+(\d{{1,2}}:\d{{2}}:\d{{2}}\s+[AP]M)",
+            html,
+            re.S | re.I,
+        )
+        if not match:
+            continue
+        rows.append(
+            {
                 "airport_code": "ATL",
-                "checkpoint": cp_name,
-                "wait_minutes": wait,
-                "lane_type": "STANDARD", # Default until lane-level parse is hardened
+                "checkpoint": checkpoint,
+                "wait_minutes": float(match.group(1)),
+                "lane_type": "STANDARD",
                 "source": url,
                 "captured_at": stamp,
-            })
-            
+                "last_updated": match.group(2),
+            }
+        )
+
     if not rows:
-        # Emergency backup: If we see "Normal" or "Low" strings instead of numbers
-        if "Normal" in html:
-            rows.append({"airport_code": "ATL", "checkpoint": "Security Lines", "wait_minutes": 10.0, "source": url, "captured_at": stamp})
-            
+        raise RuntimeError("ATL: no checkpoint rows parsed from official ATL page")
     return rows
 
 
