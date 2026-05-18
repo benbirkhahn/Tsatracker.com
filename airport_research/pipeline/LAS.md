@@ -1,14 +1,14 @@
 # LAS — Harry Reid International Airport
 
-**Status:** 🔬 In Research  
-**Pipeline status:** `IN_RESEARCH`  
-**Last investigated:** 2026-03-23  
+**Status:** ✅ Live  
+**Pipeline status:** `LIVE`  
+**Last investigated:** 2026-05-18  
 
 ---
 
 ## Target URL
 
-`https://www.harryreidairport.com/Flights/Security`
+`https://www.harryreidairport.com/security-wait-times`
 
 ---
 
@@ -16,37 +16,35 @@
 
 ### Pass 1 (2026-03-23 — static scan)
 
-`harryreidairport.com/Flights/Security` returns HTTP 200 with server-rendered HTML. The actual wait-time data is **not present in the static HTML** — it is loaded dynamically via JavaScript/AJAX.
+`harryreidairport.com/security-wait-times` renders current wait times through embedded Zensors iframes. The wait-time data is not present in the static HTML, but the widget API is public and callable directly.
 
 Key findings:
-- Page contains structural content and security information
-- No JSON API key extraction possible
-- No skydive/mobi API domain exists
-- No standard REST or GraphQL endpoint found
-- Wait time data fetched via client-side JS
+- Page contains two embedded wait-time widgets: `waitTimeExplorer` and `journeyPlanner`
+- Live data is available through `waitTimeExplorer.init` and `waitTimeExplorer.update`
+- No airport login or cookie auth is required for the widget API
+- Journey names map to checkpoint groupings such as `T1 - A/B Gates` and `T3 - D/E Gates`
 
 ### Pass 2 (2026-03-23 — API pattern probes)
 
 Tested common endpoint patterns:
 - `https://api.harryreidairport.com/wait-times` → 404
 - `https://www.harryreidairport.com/api/wait-times` → 404
-- No GraphQL endpoint detected
+- The page's embedded widget uses Zensors tRPC rather than a site-local JSON API
 
 ---
 
 ## Most Promising Lead
 
-**Dynamic client-side rendering via XHR**
+**Public Zensors widget API**
 
-The page loads wait-time data after initial HTML render. To discover the actual endpoint requires headless browser automation to intercept network requests.
+The page embeds the official wait-time widget, and the underlying tRPC endpoint can be called directly with the widget slug, domain, and token.
 
 ---
 
 ## Next Steps
 
-1. **Headless browser capture** — Use Playwright to monitor XHR requests while page loads
-2. **Check for embedded vendor widgets** — Inspect for QLess, Passur, or other wait-time provider iframes
-3. **Re-probe if airport launches public API**
+1. Keep the live collector pointed at the Zensors widget API
+2. Re-check the airport page if the embed token or widget slug changes
 
 ---
 

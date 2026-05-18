@@ -5,7 +5,7 @@ Onboard a new airport live TSA source into my existing Flask project with minima
 
 Inputs:
 - Airport code: LAS
-- Airport security URL: https://www.harryreidairport.com/Flights/Security
+- Airport security URL: https://www.harryreidairport.com/security-wait-times
 - Repo path: /Users/benbirkhahn/tsa-live-site
 - Branch: main
 

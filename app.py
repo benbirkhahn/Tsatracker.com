@@ -237,6 +237,7 @@ LIVE_AIRPORTS = {
     "JFK": {"name": "John F. Kennedy International (JFK)", "mode": "LIVE_PUBLIC", "city": "New York"},
     "EWR": {"name": "Newark Liberty International (EWR)", "mode": "LIVE_PUBLIC", "city": "Newark"},
     "LGA": {"name": "LaGuardia Airport (LGA)", "mode": "LIVE_PUBLIC", "city": "New York"},
+    "LAS": {"name": "Harry Reid International (LAS)", "mode": "LIVE_PUBLIC", "city": "Las Vegas"},
     "SEA": {"name": "Seattle-Tacoma International (SEA)", "mode": "LIVE_PUBLIC", "city": "Seattle"},
     "SFO": {"name": "San Francisco International (SFO)", "mode": "LIVE_PUBLIC", "city": "San Francisco"},
 }
@@ -568,6 +569,30 @@ AIRPORT_PAGE_GUIDES = {
             {"label": "LGA Airline-Terminal List", "url": "https://www.laguardiaairport.com/flight/airlines"},
         ],
     },
+    "LAS": {
+        "tips": [
+            "LAS shows separate live wait-time widgets for Terminal 1 and Terminal 3 checkpoint groups, so compare both before choosing where to enter.",
+            "The airport page embeds the live Zensors widget directly, which makes the current reading useful for same-day planning rather than just a historical estimate.",
+            "If one terminal group is calm and the other is backed up, use the airport's checkpoint grouping and your airline terminal to pick the better entry point.",
+        ],
+        "notes": [
+            "Harry Reid publishes live security wait times directly on its official airport site.",
+            "The page exposes both a current wait-time widget and an hourly planner widget for the same checkpoint groups.",
+        ],
+        "terminal_notes": [
+            "Terminal 1 and Terminal 3 have distinct checkpoint groupings on the official wait-time page.",
+            "Use the live widget labels rather than assuming the terminal with the shortest name is always the fastest checkpoint entry.",
+        ],
+        "airline_notes": [
+            "Southwest-heavy traffic often routes through Terminal 1, while many other carriers use Terminal 3.",
+            "Check your airline's terminal assignment before heading to the checkpoint, since the LAS page reports checkpoint groups rather than a single airport-wide number.",
+        ],
+        "links": [
+            {"label": "Official LAS security wait times", "url": "https://www.harryreidairport.com/security-wait-times"},
+            {"label": "Official LAS security page", "url": "https://www.harryreidairport.com/security-at-las"},
+            {"label": "Official LAS airport site", "url": "https://www.harryreidairport.com/"},
+        ],
+    },
     "SEA": {
         "tips": [
             "Seattle (SEA) offers 'SEA Spot Saver'—a free program where you can reserve a security screening slot in advance for Checkpoints 2 or 5.",
@@ -665,15 +690,6 @@ PIPELINE_AIRPORTS = [
         # internal: fly2houston.com/iah/security renders wait times dynamically (JS/AJAX).
         # No public JSON API or skydive/mobi endpoint found. Wait-time data loaded client-side.
         # See airport_research/pipeline/IAH.md for full investigation log.
-    },
-    {
-        "code": "LAS",
-        "name": "Harry Reid International (LAS)",
-        "status": "IN_RESEARCH",
-        "public_note": "Live integration coming soon.",
-        # internal: harryreidairport.com/Flights/Security renders wait times dynamically.
-        # No public JSON API found. Requires headless browser or XHR interception.
-        # See airport_research/pipeline/LAS.md for full investigation log.
     },
     {
         "code": "BWI",
@@ -1941,6 +1957,86 @@ def fetch_bos_rows() -> List[Dict]:
     return rows
 
 
+def fetch_las_rows() -> List[Dict]:
+    """Harry Reid's live wait-time widget via Zensors embeddable wait-time endpoints."""
+    base = "https://embed.zensors.live/api/embeddable-widget/trpc"
+    slug = "t1LQGTAPA"
+    domain_slug = "LAS"
+    token = "3Ll9yq2riLZctX1CZ94FRgLcScJimgXx"
+    wait_source = f"{base}/waitTimeExplorer.update"
+
+    init_input = {
+        "0": {
+            "slug": slug,
+            "domainSlug": domain_slug,
+            "token": token,
+        }
+    }
+    init_resp = requests.get(
+        f"{base}/waitTimeExplorer.init",
+        params={"batch": "1", "input": json.dumps(init_input, separators=(",", ":"))},
+        headers={**UA, "Accept": "application/json, text/plain, */*"},
+        timeout=20,
+    )
+    init_resp.raise_for_status()
+    init_payload = init_resp.json()
+    if not init_payload or "result" not in init_payload[0]:
+        raise RuntimeError("LAS: invalid init payload")
+
+    journeys = init_payload[0]["result"]["data"].get("journeys", {})
+    if not journeys:
+        raise RuntimeError("LAS: no journeys in init payload")
+
+    rows: List[Dict] = []
+    for journey_id, meta in journeys.items():
+        update_input = {
+            "0": {
+                "journey": journey_id,
+                "slug": slug,
+                "domainSlug": domain_slug,
+                "token": token,
+            }
+        }
+        update_resp = requests.get(
+            f"{base}/waitTimeExplorer.update",
+            params={"batch": "1", "input": json.dumps(update_input, separators=(",", ":"))},
+            headers={**UA, "Accept": "application/json, text/plain, */*"},
+            timeout=20,
+        )
+        update_resp.raise_for_status()
+        update_payload = update_resp.json()
+        if not update_payload or "result" not in update_payload[0]:
+            continue
+
+        checkpoint = str(meta.get("name", "")).strip()
+        if not checkpoint:
+            continue
+        paths = update_payload[0]["result"]["data"].get("paths", {})
+        for path_key, path_meta in paths.items():
+            if not path_meta.get("open"):
+                continue
+            wait_meta = path_meta.get("waitTime") or {}
+            timestamp_ms = wait_meta.get("timestamp")
+            captured_at = (
+                datetime.fromtimestamp(timestamp_ms / 1000, APP_TZ).isoformat()
+                if timestamp_ms
+                else utc_now().isoformat()
+            )
+            lane_type = "PRECHECK" if path_key == "precheck" else "STANDARD"
+            rows.append({
+                "airport_code": "LAS",
+                "checkpoint": checkpoint,
+                "wait_minutes": float(wait_meta.get("value") or 0),
+                "lane_type": lane_type,
+                "source": wait_source,
+                "captured_at": captured_at,
+            })
+
+    if not rows:
+        raise RuntimeError("LAS: no open checkpoint rows in response")
+    return rows
+
+
 _SEA_API = "https://www.portseattle.org/api/cwt/wait-times"
 
 _SEA_LANE_MAP = {
@@ -2165,6 +2261,7 @@ def collect_once() -> Dict:
         ("JFK", fetch_jfk_rows),
         ("EWR", fetch_ewr_rows),
         ("LGA", fetch_lga_rows),
+        ("LAS", fetch_las_rows),
         ("SEA", fetch_sea_rows),
         ("SFO", fetch_sfo_rows),
         ("DEN", fetch_den_rows),

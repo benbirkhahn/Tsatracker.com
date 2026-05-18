@@ -165,6 +165,6 @@ python3 scripts/gsc_automation.py inspect --urls-file urls.txt
 
 ## 🔬 Pipeline
 Airports currently under research for future integration:
-- **ATL**, **DEN**, **SFO**, **IAH**, **LAS**, **BWI**, **DTW**, **IAD**, **DCA**.
+- **ATL**, **DEN**, **IAH**, **BWI**, **DTW**, **IAD**, **DCA**.
 
 Detailed research logs for these can be found in `airport_research/pipeline/`.
