@@ -38,6 +38,8 @@ Returns a JSON object with a `content.rows` array. Each row is a list where:
 
 Rows with zone IDs not in this map are silently ignored.
 
+PHL's public checkpoint-hours page labels Terminal C as TSA Pre✓ only, but the live metrics feed exposes it as a single C checkpoint row rather than a separate PreCheck metric.
+
 ---
 
 ## Notes

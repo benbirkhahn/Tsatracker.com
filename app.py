@@ -258,6 +258,7 @@ AIRPORT_PAGE_GUIDES = {
         "terminal_notes": [
             "A-West handles international flights and typically closes at 10:00 PM. Terminal F is for American regional flights.",
             "D/E is often the longest line during peak periods; if you're flying Delta or United, leave extra buffer for this specific checkpoint.",
+            "Terminal C is shown by PHL as TSA Pre✓ only, but the live feed exposes it as a single C checkpoint row rather than a separate PreCheck wait time.",
         ],
         "airline_notes": [
             "American Airlines passengers can drop bags at B/C even if their gate is elsewhere, allowing access to the faster PreCheck lanes in C.",
