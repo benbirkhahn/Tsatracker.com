@@ -4,6 +4,8 @@
 **Pipeline status:** `IN_RESEARCH`  
 **Last investigated:** 2026-03-23  
 
+**Update:** Live JSON wait-time data is now confirmed at `https://www.flyreagan.com/security-wait-times`. See `airport_research/live/DCA.md`.
+
 ---
 
 ## Target URLs

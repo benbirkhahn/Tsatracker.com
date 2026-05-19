@@ -240,6 +240,7 @@ LIVE_AIRPORTS = {
     "LAS": {"name": "Harry Reid International (LAS)", "mode": "LIVE_PUBLIC", "city": "Las Vegas"},
     "SEA": {"name": "Seattle-Tacoma International (SEA)", "mode": "LIVE_PUBLIC", "city": "Seattle"},
     "SFO": {"name": "San Francisco International (SFO)", "mode": "LIVE_PUBLIC", "city": "San Francisco"},
+    "DCA": {"name": "Ronald Reagan Washington National (DCA)", "mode": "LIVE_PUBLIC", "city": "Washington"},
 }
 
 AIRPORT_PAGE_GUIDES = {
@@ -682,6 +683,7 @@ AIRPORT_FACTORS = {
     "EWR": 1.2, "FLL": 0.9, "HNL": 0.85, "IAH": 1.1, "JFK": 1.35, "LAS": 1.15,
     "LAX": 1.4, "LGA": 1.25, "MCO": 1.1, "MDW": 0.9, "MIA": 1.25, "MSP": 1.0,
     "ORD": 1.3, "PHL": 1.1, "PHX": 1.0, "SEA": 1.1, "SFO": 1.25, "SLC": 0.9,
+    "DCA": 1.0,
     "TPA": 0.9, "JAX": 0.9,
 }
 
@@ -741,11 +743,6 @@ PIPELINE_AIRPORTS = [
     {
         "code": "DCA",
         "name": "Ronald Reagan Washington National (DCA)",
-        "status": "IN_RESEARCH",
-        "public_note": "Live integration coming soon.",
-        # internal: flyreagan.com and mwaa.com both render wait times dynamically.
-        # No public JSON API found. Both are MWAA-operated (same backend as IAD).
-        # See airport_research/pipeline/DCA.md for full investigation log.
     },
 ]
 
@@ -1702,6 +1699,76 @@ def fetch_lax_rows() -> List[Dict]:
     return rows
 
 
+def parse_wait_range(raw: str) -> Optional[float]:
+    text = str(raw or "").strip().lower()
+    if not text:
+        return None
+    range_match = re.search(r"(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)", text)
+    if range_match:
+        return (float(range_match.group(1)) + float(range_match.group(2))) / 2.0
+    lt_match = re.search(r"<\s*(\d+(?:\.\d+)?)", text)
+    if lt_match:
+        return max(0.0, float(lt_match.group(1)) - 0.5)
+    num_match = re.search(r"(\d+(?:\.\d+)?)", text)
+    if num_match:
+        return float(num_match.group(1))
+    return None
+
+
+def fetch_dca_rows() -> List[Dict]:
+    """Scrape DCA wait times from the public JSON endpoint."""
+    url = "https://www.flyreagan.com/security-wait-times"
+    resp = requests.get(url, headers=UA, timeout=20)
+    resp.raise_for_status()
+    payload = resp.json()
+    data = payload.get("response", {}) if isinstance(payload, dict) else {}
+    res = data.get("res", {}) if isinstance(data, dict) else {}
+    if not isinstance(res, dict) or not res:
+        raise RuntimeError("DCA: empty security wait response")
+
+    stamp = utc_now().isoformat()
+    rows: List[Dict] = []
+    for rec in res.values():
+        if not isinstance(rec, dict):
+            continue
+        location = str(rec.get("location", "Checkpoint")).strip() or "Checkpoint"
+        gates = str(rec.get("gates", "")).strip()
+        gates = re.sub(r"\(\s+", "(", re.sub(r"\s+\)", ")", gates))
+        checkpoint = f"{location} {gates}".strip() if gates else location
+
+        wait_minutes = parse_wait_range(rec.get("waittime"))
+        if wait_minutes is None:
+            continue
+        rows.append(
+            {
+                "airport_code": "DCA",
+                "checkpoint": checkpoint,
+                "wait_minutes": wait_minutes,
+                "lane_type": "STANDARD",
+                "source": url,
+                "captured_at": stamp,
+            }
+        )
+
+        if not rec.get("pre_disabled") and rec.get("pre"):
+            pre_minutes = parse_wait_range(rec.get("pre"))
+            if pre_minutes is not None:
+                rows.append(
+                    {
+                        "airport_code": "DCA",
+                        "checkpoint": checkpoint,
+                        "wait_minutes": pre_minutes,
+                        "lane_type": "PRECHECK",
+                        "source": url,
+                        "captured_at": stamp,
+                    }
+                )
+
+    if not rows:
+        raise RuntimeError("DCA: no checkpoint rows parsed from JSON")
+    return rows
+
+
 _PANYNJ_GQL = "https://api.jfkairport.com/graphql"
 
 
@@ -2288,6 +2355,7 @@ def collect_once() -> Dict:
         ("LAS", fetch_las_rows),
         ("SEA", fetch_sea_rows),
         ("SFO", fetch_sfo_rows),
+        ("DCA", fetch_dca_rows),
         ("DEN", fetch_den_rows),
         ("ATL", fetch_atl_rows),
     ]
