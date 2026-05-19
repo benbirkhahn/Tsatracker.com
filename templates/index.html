@@ -635,16 +635,15 @@
         <div class="utility-panel">
           <h3 class="utility-title">Community Verification</h3>
           <div id="live-community-status" class="muted utility-status" style="display: none;">
-            <span class="pulse-mini"></span> Community members recently reported lines as <span id="community-level"
+            <span class="pulse-mini"></span> Community members recently said this was <span id="community-level"
               style="font-weight:700; color:#fff;">...</span>
           </div>
-          <p class="muted utility-copy">At the airport? Help fellow travelers by reporting the current line status.</p>
+          <p class="muted utility-copy">At the airport? Tap one button to say whether the current wait looks accurate.</p>
           <div class="report-actions">
-            <button class="report-btn short" onclick="reportWait('short')"
-              aria-label="Report short wait time">Short</button>
-            <button class="report-btn med" onclick="reportWait('med')"
-              aria-label="Report moderate wait time">Moderate</button>
-            <button class="report-btn long" onclick="reportWait('long')" aria-label="Report long wait time">Long</button>
+            <button class="report-btn accurate" onclick="reportWait('accurate')"
+              aria-label="Report that the wait is accurate">Accurate</button>
+            <button class="report-btn inaccurate" onclick="reportWait('not_accurate')"
+              aria-label="Report that the wait is not accurate">Not accurate</button>
           </div>
         </div>
         <div class="utility-panel">

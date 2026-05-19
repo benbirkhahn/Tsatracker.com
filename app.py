@@ -2993,7 +2993,7 @@ def api_report_wait():
     data = request.json or {}
     code = data.get("code")
     level = data.get("level")
-    if not code or level not in ["short", "med", "long"]:
+    if not code or level not in ["accurate", "not_accurate", "short", "med", "long"]:
         return jsonify({"error": "Invalid request"}), 400
     
     conn = sqlite3.connect(DB_PATH)

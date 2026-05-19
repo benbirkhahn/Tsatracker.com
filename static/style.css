@@ -582,7 +582,7 @@ select {
 
 /* ── COMMUNITY REPORTS ── */
 .report-content { padding: 4px 0; }
-.report-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.report-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .report-btn {
   background: var(--surface); border: 1px solid var(--border);
   color: var(--muted); padding: 14px 8px; border-radius: 10px;
@@ -591,9 +591,8 @@ select {
   text-transform: uppercase; letter-spacing: .05em;
 }
 .report-btn:hover { background: var(--surface2); color: #fff; transform: translateY(-1px); }
-.report-btn.short:hover { border-color: var(--green); color: var(--green); }
-.report-btn.med:hover { border-color: var(--amber); color: var(--amber); }
-.report-btn.long:hover { border-color: var(--red); color: var(--red); }
+.report-btn.accurate:hover { border-color: var(--green); color: var(--green); }
+.report-btn.inaccurate:hover { border-color: var(--red); color: var(--red); }
 
 .pulse-mini {
   display: inline-block; width: 6px; height: 6px; background: var(--amber);

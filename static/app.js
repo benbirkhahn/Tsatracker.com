@@ -987,8 +987,8 @@ async function fetchCommunityStatus(code) {
     const data = await resp.json();
     if (data.level) {
       statusEl.style.display = "block";
-      levelEl.textContent = data.level.toUpperCase();
-      levelEl.className = data.level; // css classes: short/med/long
+      levelEl.textContent = data.level.replace(/_/g, " ").toUpperCase();
+      levelEl.className = data.level;
     } else {
       statusEl.style.display = "none";
     }
