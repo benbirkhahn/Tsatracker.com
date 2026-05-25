@@ -103,21 +103,11 @@
       <p style="margin-top:10px;">Not all airports report separate wait times by lane. Some only publish a single aggregate figure for the whole checkpoint. In those cases, we display the single available number.</p>
 
       <h2 style="font-size:1.25rem;font-weight:700;margin:32px 0 10px;">Live Airports</h2>
-      <p>TSA Tracker currently has live data feeds for the following airports. Each links to its dedicated wait-time page:</p>
+      <p>TSA Tracker currently has live data feeds for {{ live_airports|length }} airports. Each links to its dedicated wait-time page:</p>
       <ul class="content-list" style="margin-top:8px;columns:2;column-gap:24px;">
-        <li><a href="/airports/phl-tsa-wait-times">PHL — Philadelphia International</a></li>
-        <li><a href="/airports/bos-tsa-wait-times">BOS — Boston Logan International Airport</a></li>
-        <li><a href="/airports/mia-tsa-wait-times">MIA — Miami International</a></li>
-        <li><a href="/airports/ord-tsa-wait-times">ORD — Chicago O'Hare</a></li>
-        <li><a href="/airports/clt-tsa-wait-times">CLT — Charlotte Douglas</a></li>
-        <li><a href="/airports/mco-tsa-wait-times">MCO — Orlando International</a></li>
-        <li><a href="/airports/jax-tsa-wait-times">JAX — Jacksonville International</a></li>
-        <li><a href="/airports/dfw-tsa-wait-times">DFW — Dallas/Fort Worth</a></li>
-        <li><a href="/airports/lax-tsa-wait-times">LAX — Los Angeles International</a></li>
-        <li><a href="/airports/jfk-tsa-wait-times">JFK — John F. Kennedy International</a></li>
-        <li><a href="/airports/ewr-tsa-wait-times">EWR — Newark Liberty International</a></li>
-        <li><a href="/airports/lga-tsa-wait-times">LGA — LaGuardia Airport</a></li>
-        <li><a href="/airports/sea-tsa-wait-times">SEA — Seattle-Tacoma International</a></li>
+        {% for code, info in live_airports.items() %}
+        <li><a href="/airports/{{ code|lower }}-tsa-wait-times">{{ code }} — {{ info.name }}</a></li>
+        {% endfor %}
       </ul>
 
       <h2 style="font-size:1.25rem;font-weight:700;margin:32px 0 10px;">Airports Coming Soon</h2>
@@ -197,7 +187,7 @@
     "description": "TSA Tracker pulls live TSA checkpoint wait times directly from official airport systems — not estimates, not crowdsourced guesses.",
     "url": "{{ seo.canonical_url }}",
     "datePublished": "2025-04-01",
-    "dateModified": "2026-04-29",
+    "dateModified": "{{ copy_updated_iso }}",
     "author": {
       "@id": "{{ seo.site_url }}/#organization"
     },

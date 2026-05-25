@@ -99,9 +99,9 @@
       <div style="margin-bottom:8px;">
         <span style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);">Travel Guide</span>
       </div>
-      <h1 itemprop="headline" style="font-size:2rem;font-weight:700;margin-bottom:10px;line-height:1.2;">TSA PreCheck vs CLEAR: What to Buy, What to Skip, and How to Offset the Cost</h1>
-      <p class="muted" style="margin-bottom:6px;">The short answer for most travelers: start with TSA PreCheck, add CLEAR only if you actually fly through busy hubs often, and use a travel card when it offsets the fee.</p>
-      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:28px;"><em>By the TSA Tracker team · Updated April 2026</em></p>
+      <h1 itemprop="headline" style="font-size:2rem;font-weight:700;margin-bottom:10px;line-height:1.2;">TSA PreCheck vs CLEAR: Costs, Official Enrollment, and Which Is Worth It First</h1>
+      <p class="muted" style="margin-bottom:6px;">If you are comparing TSA PreCheck, CLEAR, and Global Entry, the right choice depends on how often you fly, whether you travel internationally, and whether you actually hit busy hub airports often enough to justify CLEAR.</p>
+      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:28px;"><em>By the TSA Tracker team · Updated {{ copy_updated_label }}</em></p>
 
       <div class="guide-toc">
         <h3>In This Guide</h3>
@@ -167,7 +167,7 @@
           <a class="cta-button" href="{{ monetization.clear_url }}" target="_blank" rel="noopener">CLEAR Enrollment</a>
         </div>
       </div>
-      <p style="margin-top:14px;">TSA’s official PreCheck page currently lists the enrollment providers and notes that pricing varies by provider. CLEAR also publishes its own TSA PreCheck enrollment flow and bundle offers on its official site.</p>
+      <p style="margin-top:14px;">TSA’s official PreCheck page currently lists the enrollment providers and notes that pricing varies by provider. CLEAR also publishes its own TSA PreCheck enrollment flow and bundle offers on its official site. In practice, TSA PreCheck costs $85 for 5 years through TSA's current public fee page, while CLEAR's TSA PreCheck-through-CLEAR flow lists $79.95 for 5 years and CLEAR+ itself currently retails at $209 per year.</p>
 
       <h2 id="cards" style="margin:40px 0 10px;">4. Travel cards that can help cover the fee</h2>
       <p>If you were already thinking about a travel card, this is where the math can get better. Some travel cards can help offset airport-security costs while also adding benefits like lounge access, travel protections, or statement credits that make frequent flying less painful.</p>
@@ -198,7 +198,35 @@
         <li>Choose <strong>Global Entry</strong> instead of PreCheck if you travel internationally.</li>
       </ul>
 
-      <div style="background:var(--surface2);border:1px solid #2a2a40;border-radius:10px;padding:18px 22px;margin-top:36px;">
+      <div class="faq-section" style="margin-top:36px;">
+        <h2 style="font-size:1.35rem;font-weight:700;margin:0 0 10px;">Frequently asked questions</h2>
+        <div class="faq-item">
+          <h3>Is CLEAR the same as TSA PreCheck?</h3>
+          <p>No. CLEAR speeds up identity verification. TSA PreCheck speeds up the actual screening process. They solve different bottlenecks, which is why many frequent flyers use both.</p>
+        </div>
+        <div class="faq-item">
+          <h3>How much does TSA PreCheck cost?</h3>
+          <p>TSA PreCheck currently costs $85 for 5 years through TSA's public fee page. Some enrollment providers may offer different checkout flows or promotional pricing, but $85 is the current TSA-listed application fee.</p>
+        </div>
+        <div class="faq-item">
+          <h3>How much does CLEAR cost?</h3>
+          <p>Standard CLEAR+ currently retails at $209 per year. CLEAR also offers TSA PreCheck-through-CLEAR enrollment at $79.95 for 5 years, with renewal pricing that varies by enrollment method.</p>
+        </div>
+        <div class="faq-item">
+          <h3>Should I get CLEAR or TSA PreCheck first?</h3>
+          <p>For most travelers, TSA PreCheck should come first. It improves the screening step itself, works at far more airports, and costs less. CLEAR makes more sense after that if you routinely travel through busy hub airports where the ID-check line is the bottleneck.</p>
+        </div>
+        <div class="faq-item">
+          <h3>Does Global Entry include TSA PreCheck?</h3>
+          <p>Yes. Global Entry includes TSA PreCheck benefits, so it is usually the better choice if you travel internationally with any regularity.</p>
+        </div>
+        <div class="faq-item">
+          <h3>Where should I compare the live airport wait times?</h3>
+          <p>Start with the airports you fly most often. The airport pages show the current security wait, historical trend, and any airport-specific notes that matter when you decide whether PreCheck or CLEAR is worth paying for.</p>
+        </div>
+      </div>
+
+      <div style="background:var(--surface2);border:1px solid #2a2a40;border-radius:10px;padding:18px 22px;margin-top:24px;">
         <p style="font-weight:700;margin-bottom:6px;">Use this guide with live airport data</p>
         <p style="color:var(--muted);">Check your airport’s real wait times first. If your airport regularly shows painful standard-lane waits, that is the strongest signal that PreCheck is worth it.</p>
         <ul class="content-list" style="margin-top:10px;">
@@ -228,6 +256,68 @@
       <a href="/methodology">Methodology</a>
     </div>
   </footer>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "TSA PreCheck vs CLEAR: Costs, Official Enrollment, and Which Is Worth It First",
+    "description": "{{ seo.description }}",
+    "url": "{{ seo.canonical_url }}",
+    "datePublished": "2025-04-01",
+    "dateModified": "{{ copy_updated_iso }}",
+    "author": {
+      "@id": "{{ seo.site_url }}/#organization"
+    },
+    "publisher": {
+      "@id": "{{ seo.site_url }}/#organization"
+    },
+    "mainEntity": {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is CLEAR the same as TSA PreCheck?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. CLEAR speeds up identity verification; TSA PreCheck speeds up the actual screening step."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much does TSA PreCheck cost?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "TSA PreCheck currently costs $85 for 5 years through TSA's current public fee page."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much does CLEAR cost?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Standard CLEAR+ currently retails at $209 per year. CLEAR also offers TSA PreCheck-through-CLEAR enrollment at $79.95 for 5 years."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Should I get CLEAR or TSA PreCheck first?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "For most travelers, TSA PreCheck should come first because it improves the screening step itself, works at more airports, and costs less."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Global Entry include TSA PreCheck?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Global Entry includes TSA PreCheck benefits."
+          }
+        }
+      ]
+    }
+  }
+  </script>
   {% include "_affiliate_scripts.html" %}
 </body>
 </html>

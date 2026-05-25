@@ -277,7 +277,20 @@
     "@type": "CollectionPage",
     "name": "{{ seo.title }}",
     "description": "{{ seo.description }}",
-    "url": "{{ seo.canonical_url }}"
+    "url": "{{ seo.canonical_url }}",
+    "mainEntity": {
+      "@type": "ItemList",
+      "itemListElement": [
+        {% for airport in airport_pages %}
+        {
+          "@type": "ListItem",
+          "position": {{ loop.index }},
+          "url": "{{ seo.site_url }}{{ airport.href }}",
+          "name": "{{ airport.code }} TSA wait times"
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+      ]
+    }
   }
   </script>
   {% include "_affiliate_scripts.html" %}

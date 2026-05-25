@@ -799,6 +799,14 @@ def utc_now() -> datetime:
     return datetime.now(tz=APP_TZ)
 
 
+def current_copy_date_label() -> str:
+    return utc_now().strftime("%B %d, %Y").replace(" 0", " ")
+
+
+def current_copy_date_iso() -> str:
+    return utc_now().date().isoformat()
+
+
 def airport_seo_slug(code: str) -> str:
     return f"/airports/{code.lower()}-tsa-wait-times"
 
@@ -2714,7 +2722,14 @@ def about_page():
         description="TSA Tracker pulls live TSA checkpoint wait times directly from official airport systems — not estimates, not crowd-sourced guesses. Learn how it works, which airports are covered, and why it's the most accurate source for airport security wait times.",
         canonical_path="/about",
     )
-    return render_template("about.html", seo=seo, monetization=get_monetization_context())
+    return render_template(
+        "about.html",
+        seo=seo,
+        monetization=get_monetization_context(),
+        live_airports=LIVE_AIRPORTS,
+        copy_updated_label=current_copy_date_label(),
+        copy_updated_iso=current_copy_date_iso(),
+    )
 
 
 @app.route("/airports")
@@ -2729,7 +2744,12 @@ def privacy():
         description="TSA Tracker's privacy policy — how we collect, use, and protect your information when you use our live airport security wait time service.",
         canonical_path="/privacy",
     )
-    return render_template("privacy.html", seo=seo, monetization=get_monetization_context())
+    return render_template(
+        "privacy.html",
+        seo=seo,
+        monetization=get_monetization_context(),
+        copy_updated_label=current_copy_date_label(),
+    )
 
 
 @app.route("/terms")
@@ -2739,7 +2759,12 @@ def terms():
         description="TSA Tracker terms of service — the rules and conditions for using our live airport TSA wait time service.",
         canonical_path="/terms",
     )
-    return render_template("terms.html", seo=seo, monetization=get_monetization_context())
+    return render_template(
+        "terms.html",
+        seo=seo,
+        monetization=get_monetization_context(),
+        copy_updated_label=current_copy_date_label(),
+    )
 
 
 @app.route("/contact")
@@ -2755,21 +2780,36 @@ def contact():
 @app.route("/guide/tsa-wait-times")
 def guide_tsa_wait_times():
     seo = build_page_seo(
-        title="TSA Wait Times Explained: How to Get Through Airport Security Faster | TSA Tracker",
+        title="TSA Wait Times Explained: How to Get Through Airport Security Faster in 2026 | TSA Tracker",
         description="A complete guide to TSA security wait times — how data is measured, peak hours to avoid, TSA PreCheck vs. CLEAR vs. standard lanes, airport-specific tips, and how to use live wait time data effectively.",
         canonical_path="/guide/tsa-wait-times",
     )
-    return render_template("guide.html", seo=seo, monetization=get_monetization_context())
+    airport_pages = [{"code": c, "href": airport_seo_slug(c), "name": v["name"]} for c, v in LIVE_AIRPORTS.items()]
+    return render_template(
+        "guide.html",
+        seo=seo,
+        monetization=get_monetization_context(),
+        live_airports=LIVE_AIRPORTS,
+        airport_pages=airport_pages,
+        copy_updated_label=current_copy_date_label(),
+        copy_updated_iso=current_copy_date_iso(),
+    )
 
 
 @app.route("/guide/tsa-precheck-clear")
 def guide_tsa_precheck_clear():
     seo = build_page_seo(
-        title="TSA PreCheck vs CLEAR: Official Enrollment, Costs, and Best Travel Cards | TSA Tracker",
+        title="TSA PreCheck vs CLEAR: Costs, Official Enrollment, and Which Is Worth It First | TSA Tracker",
         description="Compare TSA PreCheck, CLEAR, and Global Entry. Learn how the programs work, where to enroll with official providers, and which travel cards can help offset the cost.",
         canonical_path="/guide/tsa-precheck-clear",
     )
-    return render_template("precheck_clear.html", seo=seo, monetization=get_monetization_context())
+    return render_template(
+        "precheck_clear.html",
+        seo=seo,
+        monetization=get_monetization_context(),
+        copy_updated_label=current_copy_date_label(),
+        copy_updated_iso=current_copy_date_iso(),
+    )
 
 
 @app.route("/methodology")
@@ -2779,7 +2819,14 @@ def methodology_page():
         description="How TSA Tracker sources, validates, and updates airport checkpoint wait times, including source transparency and known limitations.",
         canonical_path="/methodology",
     )
-    return render_template("methodology.html", seo=seo, live_airports=LIVE_AIRPORTS, monetization=get_monetization_context())
+    return render_template(
+        "methodology.html",
+        seo=seo,
+        live_airports=LIVE_AIRPORTS,
+        monetization=get_monetization_context(),
+        copy_updated_label=current_copy_date_label(),
+        copy_updated_iso=current_copy_date_iso(),
+    )
 
 
 @app.route("/api/live")

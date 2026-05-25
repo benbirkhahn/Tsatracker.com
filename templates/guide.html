@@ -102,9 +102,9 @@
       <div style="margin-bottom:8px;">
         <span style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);">Travel Guide</span>
       </div>
-      <h1 itemprop="headline" style="font-size:2rem;font-weight:700;margin-bottom:10px;line-height:1.2;">TSA Wait Times Explained: How to Get Through Airport Security Faster in 2025</h1>
+      <h1 itemprop="headline" style="font-size:2rem;font-weight:700;margin-bottom:10px;line-height:1.2;">TSA Wait Times Explained: How to Get Through Airport Security Faster in 2026</h1>
       <p class="muted" style="margin-bottom:6px;">A practical guide to understanding TSA security lines, how wait times are measured, and what actually helps shorten the time at the checkpoint.</p>
-      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:28px;"><em>By the TSA Tracker team · Updated May 2026</em></p>
+      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:28px;"><em>By the TSA Tracker team · Updated {{ copy_updated_label }}</em></p>
 
       <div class="guide-toc">
         <h3>In This Guide</h3>
@@ -230,8 +230,8 @@
       <h3 style="font-size:1.05rem;font-weight:700;margin:20px 0 6px;">CLEAR</h3>
       <p>CLEAR is a private service (not a government program) that uses biometrics (fingerprints, iris scan) to verify your identity at the airport — skipping the ID document check step at the front of the security line. CLEAR members walk to the front of the ID verification queue, verify via biometrics in seconds, and are then escorted to the standard or PreCheck screening lane.</p>
       <p style="margin-top:8px;"><strong>Key distinction:</strong> CLEAR only speeds up identity verification — not the actual security screening. You still go through the X-ray or scanner. At airports where the ID check line is long, CLEAR helps. Where the screening line is the bottleneck (which is most of the time during peak hours), CLEAR's benefit is limited.</p>
-      <p style="margin-top:8px;"><strong>Cost:</strong> $189/year. Delta SkyMiles members get a discount; some credit cards offer credits toward CLEAR membership. Many CLEAR subscribers combine it with TSA PreCheck — CLEAR for the ID step, PreCheck for screening — for the fastest possible throughput.</p>
-      <p style="margin-top:8px;"><strong>Best for:</strong> Frequent business travelers at hub airports where CLEAR is available. CLEAR's presence is more limited than PreCheck — it operates at roughly 50 US airports versus PreCheck's 200+.</p>
+      <p style="margin-top:8px;"><strong>Cost:</strong> Standard CLEAR+ currently retails at $209/year. CLEAR also sells TSA PreCheck through CLEAR for $79.95 for 5 years, with renewal pricing that varies by enrollment method. Many CLEAR subscribers combine it with TSA PreCheck — CLEAR for the ID step, PreCheck for screening — for the fastest possible throughput.</p>
+      <p style="margin-top:8px;"><strong>Best for:</strong> Frequent business travelers at hub airports where CLEAR is available. CLEAR+ is available at 61 airports with 150+ CLEAR+ lanes, while TSA PreCheck is available at 200+ airports.</p>
 
       <h3 style="font-size:1.05rem;font-weight:700;margin:20px 0 6px;">Global Entry</h3>
       <p>Global Entry is a CBP (Customs and Border Protection) program for international travelers that allows expedited customs clearance on return to the US. Global Entry includes TSA PreCheck as a benefit — so if you fly internationally even occasionally, Global Entry ($100 for 5 years) is often the better value than PreCheck alone. Application is slightly more involved (a CBP interview is required), and the review process takes longer.</p>
@@ -244,66 +244,13 @@
       <p>Every major airport has its own security quirks. Here's what to know at each airport where TSA Tracker has live data:</p>
 
       <div class="airport-card-grid" style="margin-bottom:20px;">
+        {% for airport in airport_pages %}
         <div class="airport-mini-card">
-          <div class="code">LAX</div>
-          <div class="name">Los Angeles International</div>
-          <a href="/airports/lax-tsa-wait-times">Live wait times →</a>
+          <div class="code">{{ airport.code }}</div>
+          <div class="name">{{ airport.name }}</div>
+          <a href="{{ airport.href }}">Live wait times →</a>
         </div>
-        <div class="airport-mini-card">
-          <div class="code">ORD</div>
-          <div class="name">Chicago O'Hare</div>
-          <a href="/airports/ord-tsa-wait-times">Live wait times →</a>
-        </div>
-        <div class="airport-mini-card">
-          <div class="code">JFK</div>
-          <div class="name">John F. Kennedy Intl</div>
-          <a href="/airports/jfk-tsa-wait-times">Live wait times →</a>
-        </div>
-        <div class="airport-mini-card">
-          <div class="code">LGA</div>
-          <div class="name">LaGuardia Airport</div>
-          <a href="/airports/lga-tsa-wait-times">Live wait times →</a>
-        </div>
-        <div class="airport-mini-card">
-          <div class="code">EWR</div>
-          <div class="name">Newark Liberty Intl</div>
-          <a href="/airports/ewr-tsa-wait-times">Live wait times →</a>
-        </div>
-        <div class="airport-mini-card">
-          <div class="code">MIA</div>
-          <div class="name">Miami International</div>
-          <a href="/airports/mia-tsa-wait-times">Live wait times →</a>
-        </div>
-        <div class="airport-mini-card">
-          <div class="code">DFW</div>
-          <div class="name">Dallas/Fort Worth</div>
-          <a href="/airports/dfw-tsa-wait-times">Live wait times →</a>
-        </div>
-        <div class="airport-mini-card">
-          <div class="code">SEA</div>
-          <div class="name">Seattle-Tacoma</div>
-          <a href="/airports/sea-tsa-wait-times">Live wait times →</a>
-        </div>
-        <div class="airport-mini-card">
-          <div class="code">PHL</div>
-          <div class="name">Philadelphia Intl</div>
-          <a href="/airports/phl-tsa-wait-times">Live wait times →</a>
-        </div>
-        <div class="airport-mini-card">
-          <div class="code">MCO</div>
-          <div class="name">Orlando International</div>
-          <a href="/airports/mco-tsa-wait-times">Live wait times →</a>
-        </div>
-        <div class="airport-mini-card">
-          <div class="code">CLT</div>
-          <div class="name">Charlotte Douglas</div>
-          <a href="/airports/clt-tsa-wait-times">Live wait times →</a>
-        </div>
-        <div class="airport-mini-card">
-          <div class="code">JAX</div>
-          <div class="name">Jacksonville Intl</div>
-          <a href="/airports/jax-tsa-wait-times">Live wait times →</a>
-        </div>
+        {% endfor %}
       </div>
 
       <h3 style="font-size:1.05rem;font-weight:700;margin:20px 0 6px;">LAX — Los Angeles International</h3>
@@ -403,7 +350,7 @@
 
       <div style="background:var(--surface2);border:1px solid #2a2a40;border-radius:10px;padding:18px 22px;margin-top:36px;">
         <p style="font-weight:700;margin-bottom:6px;">Ready to check your airport?</p>
-        <p style="color:var(--muted);">TSA Tracker shows live, official wait times for 12 major US airports. Check before you leave.</p>
+        <p style="color:var(--muted);">TSA Tracker shows live, official wait times for {{ live_airports|length }} airports. Check before you leave.</p>
         <a href="/" style="display:inline-block;margin-top:10px;background:var(--amber);color:#0d0d14;font-weight:700;padding:10px 20px;border-radius:7px;text-decoration:none;">See Live Wait Times →</a>
       </div>
 
@@ -435,11 +382,11 @@
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "TSA Wait Times Explained: How to Get Through Airport Security Faster in 2025",
+    "headline": "TSA Wait Times Explained: How to Get Through Airport Security Faster in 2026",
     "description": "{{ seo.description }}",
     "url": "{{ seo.canonical_url }}",
     "datePublished": "2025-04-01",
-    "dateModified": "2026-04-29",
+    "dateModified": "{{ copy_updated_iso }}",
     "author": {
       "@id": "{{ seo.site_url }}/#organization"
     },
@@ -471,6 +418,14 @@
           "acceptedAnswer": {
             "@type": "Answer",
             "text": "Apply at tsa.gov/precheck/enroll, complete the online form, schedule an appointment, bring your identity documents, and finish fingerprinting. Most applications are processed in 3 to 5 business days."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which airports have live TSA wait time data?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "TSA Tracker currently has live feeds for {{ live_airports|length }} airports. See the Airports page for the full live list and airport-specific wait time pages."
           }
         }
       ]
