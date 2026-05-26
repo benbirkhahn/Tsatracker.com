@@ -2720,6 +2720,8 @@ def airport_page(airport_slug: str):
         return jsonify({"error": "Not found"}), 404
     code = m.group(1).upper()
     log_page_view(f"/airports/{airport_slug}", code)
+    if code == "DEN" and code not in LIVE_AIRPORTS:
+        return redirect("/airports", code=301)
     meta = LIVE_AIRPORTS.get(code)
     if not meta:
         return jsonify({"error": "Airport page unavailable"}), 404
