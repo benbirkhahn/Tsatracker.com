@@ -38,6 +38,406 @@
   </noscript>
   <link rel="stylesheet" href="/static/style.css">
   <style>
+    .home-mode {
+      background:
+        radial-gradient(circle at top left, rgba(245, 158, 11, 0.14), transparent 24%),
+        radial-gradient(circle at top right, rgba(96, 165, 250, 0.14), transparent 26%),
+        linear-gradient(180deg, #0a0b10 0%, #0e0e10 28%, #101118 100%);
+    }
+    .home-mode .header {
+      height: 70px;
+      padding: 0 32px;
+      background: rgba(10, 11, 16, 0.84);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .home-mode .header-external-links {
+      display: none;
+    }
+    .home-mode .main {
+      max-width: 1180px;
+      padding: 0 28px 96px;
+    }
+    .home-mode .top-ad,
+    .home-mode .utility-card {
+      display: none;
+    }
+    .home-mode .pipeline-card {
+      margin-top: 8px;
+    }
+    .home-hero-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+      gap: 22px;
+      align-items: stretch;
+      padding: 34px 0 20px;
+    }
+    .home-hero-panel,
+    .home-command-panel,
+    .home-strip,
+    .home-section-card,
+    .home-rank-card {
+      border-radius: 26px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background:
+        linear-gradient(180deg, rgba(17, 18, 26, 0.96) 0%, rgba(11, 12, 18, 0.96) 100%);
+      box-shadow: 0 26px 80px rgba(0,0,0,0.34);
+    }
+    .home-hero-panel {
+      padding: 34px 34px 30px;
+      position: relative;
+      overflow: hidden;
+    }
+    .home-hero-panel::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      background:
+        radial-gradient(circle at top left, rgba(245, 158, 11, 0.18), transparent 30%),
+        linear-gradient(135deg, rgba(255,255,255,0.03), transparent 55%);
+      pointer-events: none;
+    }
+    .home-hero-inner {
+      position: relative;
+      z-index: 1;
+    }
+    .hero-subgrid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .hero-mini {
+      padding: 14px 14px 12px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .hero-mini-label {
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      font-size: .68rem;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .hero-mini-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .hero-mini-copy {
+      color: var(--muted);
+      font-size: .88rem;
+      line-height: 1.45;
+    }
+    .home-command-panel {
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      background:
+        radial-gradient(circle at top right, rgba(96, 165, 250, 0.16), transparent 26%),
+        linear-gradient(180deg, rgba(14, 16, 25, 0.98), rgba(9, 10, 16, 0.98));
+    }
+    .command-topline {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .command-kicker,
+    .home-eyebrow {
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      font-size: .7rem;
+      font-weight: 700;
+      color: var(--amber);
+    }
+    .command-title {
+      margin-top: 8px;
+      font-family: var(--display);
+      font-size: 2.1rem;
+      line-height: 0.95;
+      color: #fff;
+    }
+    .command-copy {
+      color: var(--muted);
+      font-size: .92rem;
+      line-height: 1.6;
+      max-width: 28ch;
+    }
+    .command-link {
+      color: #fff;
+      text-decoration: none;
+      font-size: .84rem;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 10px 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.03);
+      white-space: nowrap;
+    }
+    .command-link:hover {
+      background: rgba(255,255,255,0.08);
+    }
+    .command-rank-list {
+      display: grid;
+      gap: 10px;
+    }
+    .command-rank-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 12px;
+      align-items: center;
+      text-decoration: none;
+      color: inherit;
+      padding: 14px 14px 12px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .command-rank-item:hover {
+      background: rgba(255,255,255,0.07);
+      transform: translateY(-1px);
+    }
+    .command-rank-index {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: rgba(245, 158, 11, 0.12);
+      color: var(--amber);
+      font-family: var(--mono);
+      font-size: .78rem;
+      font-weight: 700;
+    }
+    .command-rank-name {
+      font-size: .96rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.2;
+      margin-bottom: 3px;
+    }
+    .command-rank-meta {
+      font-size: .82rem;
+      color: var(--muted);
+    }
+    .command-rank-wait {
+      text-align: right;
+    }
+    .command-rank-wait strong {
+      display: block;
+      color: #fff;
+      font-size: 1.35rem;
+      line-height: 1;
+    }
+    .command-rank-wait span {
+      font-size: .72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      font-family: var(--mono);
+    }
+    .home-strip {
+      margin: 6px 0 18px;
+      padding: 14px 18px;
+      display: grid;
+      grid-template-columns: 1.25fr .75fr;
+      gap: 14px;
+      align-items: center;
+    }
+    .home-strip-copy {
+      color: #d6d8e4;
+      font-size: .98rem;
+      line-height: 1.65;
+    }
+    .home-strip-links {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    .home-strip-links a {
+      color: var(--amber);
+      text-decoration: none;
+      font-weight: 700;
+      font-size: .86rem;
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.18);
+    }
+    .home-section-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    .home-section-card {
+      padding: 22px;
+    }
+    .home-section-card h2 {
+      margin: 0 0 8px;
+      font-size: 1.3rem;
+      color: #fff;
+    }
+    .home-section-card p {
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 14px;
+    }
+    .home-action-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .home-action-tile {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .home-action-tile:hover {
+      background: rgba(255,255,255,0.07);
+    }
+    .home-action-label {
+      color: var(--amber);
+      font-family: var(--mono);
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      margin-bottom: 8px;
+    }
+    .home-action-title {
+      color: #fff;
+      font-weight: 700;
+      margin-bottom: 6px;
+      font-size: 1rem;
+    }
+    .home-action-copy {
+      color: var(--muted);
+      font-size: .88rem;
+      line-height: 1.55;
+    }
+    .home-rank-card {
+      padding: 22px;
+      margin-bottom: 18px;
+    }
+    .home-rank-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .home-rank-header h2 {
+      margin: 8px 0 0;
+      font-size: 1.5rem;
+      color: #fff;
+    }
+    .home-rank-header p {
+      color: var(--muted);
+      margin: 0;
+      line-height: 1.6;
+      max-width: 48ch;
+    }
+    .home-rank-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .home-rank-tile {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      padding: 18px 16px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    .home-rank-tile:hover {
+      background: rgba(255,255,255,0.08);
+      transform: translateY(-1px);
+    }
+    .home-rank-tile.low { box-shadow: inset 4px 0 0 var(--green); }
+    .home-rank-tile.med { box-shadow: inset 4px 0 0 var(--yellow); }
+    .home-rank-tile.high { box-shadow: inset 4px 0 0 var(--orange); }
+    .home-rank-tile.crit { box-shadow: inset 4px 0 0 var(--red); }
+    .home-rank-code {
+      font-family: var(--mono);
+      color: var(--amber);
+      font-size: .8rem;
+      letter-spacing: .12em;
+      margin-bottom: 8px;
+    }
+    .home-rank-name {
+      color: #fff;
+      font-weight: 700;
+      line-height: 1.35;
+      min-height: 2.8em;
+      margin-bottom: 14px;
+      font-size: .98rem;
+    }
+    .home-rank-minutes {
+      font-family: var(--display);
+      font-size: 2.15rem;
+      line-height: 1;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .home-rank-sub {
+      color: var(--muted);
+      font-size: .84rem;
+      line-height: 1.45;
+    }
+    @media (max-width: 980px) {
+      .home-hero-shell,
+      .home-strip,
+      .home-section-grid {
+        grid-template-columns: 1fr;
+      }
+      .home-strip-links {
+        justify-content: flex-start;
+      }
+      .home-rank-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 720px) {
+      .home-mode .header {
+        height: auto;
+        padding: 14px 18px;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .home-mode .main {
+        padding: 0 16px 72px;
+      }
+      .home-hero-panel,
+      .home-command-panel,
+      .home-strip,
+      .home-section-card,
+      .home-rank-card {
+        border-radius: 22px;
+      }
+      .home-hero-panel {
+        padding: 24px 22px 22px;
+      }
+      .hero-subgrid,
+      .home-action-grid,
+      .home-rank-grid {
+        grid-template-columns: 1fr;
+      }
+    }
     .snapshot-section {
       max-width: 1060px;
       margin: 18px auto 22px;
@@ -228,7 +628,7 @@
   <meta name="impact-site-verification" value="a7c6345f-fdfe-4f7a-ad65-63d3c7797558">
 </head>
 
-<body>
+<body class="{% if not is_airport_page %}home-mode{% endif %}">
 
   <header class="header">
     <a href="/" class="header-home-link">
@@ -255,20 +655,92 @@
   <main class="main">
 
     <!-- ── HERO ── -->
+    {% if not is_airport_page %}
+    <section class="home-hero-shell">
+      <div class="home-hero-panel">
+        <div class="home-hero-inner">
+          <div class="hero-eyebrow">
+            <span class="eyebrow-dot"></span>
+            {{ live_airports|length }} airports · live utility
+          </div>
+          <h1 class="hero-headline" id="hero-title">Airport Security Wait Times<br>with an <em>Operations Console</em> Feel</h1>
+          <p class="hero-sub" id="hero-sub">Not another generic travel page. TSA Tracker is built for the departure-day question that actually matters: what is happening at security right now, and do I need to move?</p>
+          <p class="hero-trust">⟳ Updated about every 2 minutes — sourced from official airport systems and labeled when a page falls back to estimates</p>
+
+          <div class="hero-search-wrap">
+            <span class="search-prefix">⌕</span>
+            <input id="airport-search" class="airport-search-hero" type="search"
+              placeholder="Jump to an airport — JFK, LAX, SEA…" autocomplete="off">
+          </div>
+
+          <div id="airport-chips" class="airport-chips-hero"></div>
+
+          <div class="hero-subgrid">
+            <div class="hero-mini">
+              <div class="hero-mini-label">Fastest right now</div>
+              <div class="hero-mini-value">{{ fastest_airport.code if fastest_airport else '--' }}</div>
+              <div class="hero-mini-copy">{{ fastest_airport.wait_description if fastest_airport else 'No reading yet' }} average</div>
+            </div>
+            <div class="hero-mini">
+              <div class="hero-mini-label">Slowest right now</div>
+              <div class="hero-mini-value">{{ slowest_airport.code if slowest_airport else '--' }}</div>
+              <div class="hero-mini-copy">{{ slowest_airport.wait_description if slowest_airport else 'No reading yet' }} average</div>
+            </div>
+            <div class="hero-mini">
+              <div class="hero-mini-label">Network average</div>
+              <div class="hero-mini-value">{{ "%.1f"|format(overall_average) }}</div>
+              <div class="hero-mini-copy">minutes across current live airports</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="home-command-panel">
+        <div class="command-topline">
+          <div>
+            <div class="command-kicker">Live board</div>
+            <div class="command-title">Where things are hottest</div>
+          </div>
+          <a class="command-link" href="/airports">Open full board</a>
+        </div>
+        <div class="command-copy">Use this like a departure-day command center. Start with the airports showing stress, then jump into the exact airport page for checkpoint detail and timing context.</div>
+        <div class="command-rank-list">
+          {% for airport in airport_summaries[:5] %}
+          <a href="{{ airport.href }}" class="command-rank-item">
+            <div class="command-rank-index">{{ loop.index }}</div>
+            <div>
+              <div class="command-rank-name">{{ airport.name }}</div>
+              <div class="command-rank-meta">{{ airport.source_label }}{% if airport.city %} · {{ airport.city }}{% endif %}</div>
+            </div>
+            <div class="command-rank-wait">
+              <strong>{{ "%.1f"|format(airport.current_wait) }}</strong>
+              <span>min</span>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      </aside>
+    </section>
+
+    <section class="home-strip">
+      <div class="home-strip-copy">
+        TSA Tracker is strongest when you use it as a decision layer, not just a number feed. Search your airport, read the current condition, and use the trend and airport page to decide whether you can hold, leave, or build extra buffer.
+      </div>
+      <div class="home-strip-links">
+        <a href="/airport-security-wait-times">Live hub</a>
+        <a href="/best-time-to-get-to-the-airport">Best timing guide</a>
+        <a href="/methodology">Source transparency</a>
+      </div>
+    </section>
+    {% else %}
     <section class="hero-section">
       <div class="hero-eyebrow">
         <span class="eyebrow-dot"></span>
         {{ live_airports|length }} airports · real-time
       </div>
-      {% if is_airport_page %}
       <h1 class="hero-headline" id="hero-title">{{ initial_airport_code }} Airport Security <em>Wait Times</em></h1>
       <p class="hero-sub" id="hero-sub">How long is the security line at {{ airport_display_name }}? Real-time airport security wait time data
         pulled directly from official airport systems — not estimates. Updated every ~2 minutes.</p>
-      {% else %}
-      <h1 class="hero-headline" id="hero-title">Live Airport Security Wait Times<br>at Major <em>US Airports</em></h1>
-      <p class="hero-sub" id="hero-sub">How long is the airport security line right now? Real-time airport security line wait times pulled directly
-        from official airport systems — not estimates, not models. Pick your airport below.</p>
-      {% endif %}
       <p class="hero-trust">⟳ Updated about every 2 minutes — data from official airport systems</p>
 
       <div class="hero-search-wrap">
@@ -279,55 +751,142 @@
 
       <div id="airport-chips" class="airport-chips-hero"></div>
     </section>
+    {% endif %}
 
     {% if not is_airport_page %}
+    <section class="home-rank-card">
+      <div class="home-rank-header">
+        <div>
+          <div class="home-eyebrow">Live snapshot</div>
+          <h2>Current airport board</h2>
+        </div>
+        <p>The airports below give the fastest read on where today’s system is calm, split, or under pressure. Use them as the starting point before opening a full airport page.</p>
+      </div>
+      <div class="home-rank-grid">
+        {% for airport in airport_summaries[:8] %}
+        <a href="{{ airport.href }}" class="home-rank-tile {{ airport.tier }}">
+          <div class="home-rank-code">{{ airport.code }}</div>
+          <div class="home-rank-name">{{ airport.name }}</div>
+          <div class="home-rank-minutes">{{ "%.1f"|format(airport.current_wait) }}</div>
+          <div class="home-rank-sub">{{ airport.source_label }}{% if airport.city %} · {{ airport.city }}{% endif %}</div>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="home-section-grid">
+      <section class="home-section-card">
+        <div class="home-eyebrow">Use the site well</div>
+        <h2>Three moves before you leave</h2>
+        <p>The best traveler behavior is simple: check the live number, check whether it is rising, then open the airport page if terminal choice or checkpoint selection matters.</p>
+        <div class="home-action-grid">
+          <a class="home-action-tile" href="/airport-security-wait-times">
+            <div class="home-action-label">Step 1</div>
+            <div class="home-action-title">Scan the network</div>
+            <div class="home-action-copy">Start with the live hub when you want a fast sense of whether the whole system looks calm or uneven.</div>
+          </a>
+          <a class="home-action-tile" href="/airports">
+            <div class="home-action-label">Step 2</div>
+            <div class="home-action-title">Open the right airport</div>
+            <div class="home-action-copy">Jump into the airport page that matches your actual departure instead of relying on a generic rule.</div>
+          </a>
+          <a class="home-action-tile" href="/best-time-to-get-to-the-airport">
+            <div class="home-action-label">Step 3</div>
+            <div class="home-action-title">Make the timing call</div>
+            <div class="home-action-copy">Use the timing guides when you need to decide whether the current line is manageable or a warning sign.</div>
+          </a>
+          <a class="home-action-tile" href="/methodology">
+            <div class="home-action-label">Trust layer</div>
+            <div class="home-action-title">See how the data is labeled</div>
+            <div class="home-action-copy">Live and fallback states should not be confused. The methodology page explains the difference directly.</div>
+          </a>
+        </div>
+      </section>
+
+      <section class="home-section-card">
+        <div class="home-eyebrow">Next click</div>
+        <h2>Best pages to explore</h2>
+        <p>The homepage should not carry all of the site’s educational weight. These pages do the deeper work while keeping the top of the experience clean and operational.</p>
+        <div class="home-action-grid">
+          <a class="home-action-tile" href="/guide/tsa-wait-times">
+            <div class="home-action-label">Guide</div>
+            <div class="home-action-title">TSA wait times explained</div>
+            <div class="home-action-copy">A practical read on peak hours, line behavior, and how to use the numbers well.</div>
+          </a>
+          <a class="home-action-tile" href="/how-early-should-i-arrive-for-tsa">
+            <div class="home-action-label">Arrival</div>
+            <div class="home-action-title">How early for TSA?</div>
+            <div class="home-action-copy">A tighter arrival-buffer page for domestic vs international trips.</div>
+          </a>
+          <a class="home-action-tile" href="/guide/tsa-precheck-clear">
+            <div class="home-action-label">Programs</div>
+            <div class="home-action-title">PreCheck vs CLEAR</div>
+            <div class="home-action-copy">Compare the two programs through the lens of actual airport bottlenecks.</div>
+          </a>
+          <a class="home-action-tile" href="/tsa-wait-times-by-airport">
+            <div class="home-action-label">Comparison</div>
+            <div class="home-action-title">TSA wait times by airport</div>
+            <div class="home-action-copy">A cleaner network-wide comparison page when you want airport-by-airport context.</div>
+          </a>
+        </div>
+      </section>
+    </section>
+
     <section class="snapshot-section">
       <div class="snapshot-header">
         <div>
-          <div class="snapshot-kicker">Live snapshot</div>
-          <h2 class="snapshot-title">Today's TSA picture at a glance</h2>
+          <div class="snapshot-kicker">Decision tools</div>
+          <h2 class="snapshot-title">Fast links for real departure-day decisions</h2>
         </div>
         <a class="snapshot-link" href="/airports">Open all airports</a>
       </div>
       <div class="snapshot-grid">
         <div class="snapshot-card">
-          <div class="snapshot-label">Live airports</div>
-          <div class="snapshot-value">{{ live_count }}</div>
-          <div class="snapshot-sub">
-            {{ estimated_count }} fallback airport{{ 's' if estimated_count != 1 else '' }}
-            {{ 'is' if estimated_count == 1 else 'are' }} also listed
-          </div>
+          <div class="snapshot-label">When should I leave?</div>
+          <div class="snapshot-value">Timing</div>
+          <div class="snapshot-sub">Use the airport-specific timing guides when a current wait number alone is not enough.</div>
         </div>
         <div class="snapshot-card">
-          <div class="snapshot-label">Fastest right now</div>
-          <div class="snapshot-value">{{ fastest_airport.code if fastest_airport else '--' }}</div>
-          <div class="snapshot-sub">{{ fastest_airport.wait_description if fastest_airport else 'No reading yet' }} average</div>
+          <div class="snapshot-label">How early for TSA?</div>
+          <div class="snapshot-value">Buffer</div>
+          <div class="snapshot-sub">Use the new arrival guide when you need domestic vs international guidance grounded in live conditions.</div>
         </div>
         <div class="snapshot-card">
-          <div class="snapshot-label">Slowest right now</div>
-          <div class="snapshot-value">{{ slowest_airport.code if slowest_airport else '--' }}</div>
-          <div class="snapshot-sub">{{ slowest_airport.wait_description if slowest_airport else 'No reading yet' }} average</div>
+          <div class="snapshot-label">Can I trust this?</div>
+          <div class="snapshot-value">Method</div>
+          <div class="snapshot-sub">The methodology page explains live vs fallback states and what the update cadence means.</div>
         </div>
         <div class="snapshot-card">
-          <div class="snapshot-label">Network average</div>
-          <div class="snapshot-value">{{ "%.1f"|format(overall_average) }}</div>
-          <div class="snapshot-sub">minutes across live airport feeds</div>
+          <div class="snapshot-label">Need airport depth?</div>
+          <div class="snapshot-value">Pages</div>
+          <div class="snapshot-sub">Airport pages carry the real value: terminal notes, airport caveats, and the live chart.</div>
         </div>
       </div>
       <div class="snapshot-rank">
-        {% for airport in airport_summaries[:4] %}
-        <div class="snapshot-airport {{ airport.tier }}">
-          <div class="snapshot-airport-top">
-            <div class="snapshot-code">{{ airport.code }}</div>
-            <div class="snapshot-time">{{ airport.updated_at }}</div>
-          </div>
-          <a href="{{ airport.href }}">
-            <div class="snapshot-airport-name">{{ airport.name }}</div>
+        <div class="snapshot-airport low">
+          <a href="/best-time-to-get-to-the-airport">
+            <div class="snapshot-airport-name">Best time to get to the airport</div>
           </a>
-          <div class="snapshot-airport-wait">{{ "%.1f"|format(airport.current_wait) }} min</div>
-          <div class="snapshot-airport-meta">{{ airport.source_label }}{% if airport.city %} · {{ airport.city }}{% endif %}</div>
+          <div class="snapshot-airport-meta">For travelers deciding when to leave, not just how long the line is right now.</div>
         </div>
-        {% endfor %}
+        <div class="snapshot-airport med">
+          <a href="/how-early-should-i-arrive-for-tsa">
+            <div class="snapshot-airport-name">How early should I arrive for TSA?</div>
+          </a>
+          <div class="snapshot-airport-meta">For domestic vs international arrival buffers when the airport or hour makes the difference.</div>
+        </div>
+        <div class="snapshot-airport high">
+          <a href="/tsa-wait-times-by-airport">
+            <div class="snapshot-airport-name">TSA wait times by airport</div>
+          </a>
+          <div class="snapshot-airport-meta">For comparing major hubs without digging through each page one by one.</div>
+        </div>
+        <div class="snapshot-airport crit">
+          <a href="/methodology">
+            <div class="snapshot-airport-name">Methodology and source transparency</div>
+          </a>
+          <div class="snapshot-airport-meta">For editors, travelers, and skeptical readers who want to understand what is really live.</div>
+        </div>
       </div>
     </section>
     {% endif %}
