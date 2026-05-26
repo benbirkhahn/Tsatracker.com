@@ -822,10 +822,10 @@ def build_page_seo(title: str, description: str, canonical_path: str) -> Dict:
 
 def home_page_seo() -> Dict:
     return build_page_seo(
-        title="Airport Security Wait Times | Live TSA Wait Times at Major US Airports | TSA Tracker",
+        title="Airport Security Wait Times Today | Live TSA Wait Times by Airport | TSA Tracker",
         description=(
             "Check live airport security wait times for PHL, BOS, MIA, ORD, LAX, JFK, EWR, LGA, SEA, DFW and more. "
-            "Real-time TSA security line data pulled directly from official airport systems — updated every 2 minutes."
+            "See current TSA line conditions, best arrival timing, and official airport-backed data updated every 2 minutes."
         ),
         canonical_path="/",
     )
@@ -834,10 +834,10 @@ def home_page_seo() -> Dict:
 def airport_page_seo(code: str, airport_name: str) -> Dict:
     clean_name = airport_name.split("(")[0].strip()
     return build_page_seo(
-        title=f"{code} Airport Security Wait Times — Live TSA Line Data | {clean_name} | TSA Tracker",
+        title=f"{code} Airport Security Wait Times Today | Live TSA Line Data | {clean_name} | TSA Tracker",
         description=(
             f"Live airport security wait times at {clean_name} ({code}). "
-            f"Check current {code} security lines, terminal-specific notes, official airport resources, and the 12-hour trend before you leave."
+            f"Check current {code} security lines, terminal-specific notes, best arrival timing, and official airport resources before you leave."
         ),
         canonical_path=airport_seo_slug(code),
     )
@@ -845,10 +845,10 @@ def airport_page_seo(code: str, airport_name: str) -> Dict:
 
 def airports_directory_seo() -> Dict:
     return build_page_seo(
-        title="Airport Security Wait Times by Airport | Live TSA Wait Times | TSA Tracker",
+        title="Airport Security Wait Times by Airport Today | Live TSA Wait Times | TSA Tracker",
         description=(
             "See live airport security wait times for all major airports at once, sorted by current average wait. "
-            "Open any airport page for checkpoint detail, trends, and planning notes."
+            "Open any airport page for checkpoint detail, trends, best arrival windows, and planning notes."
         ),
         canonical_path="/airports",
     )
@@ -856,13 +856,213 @@ def airports_directory_seo() -> Dict:
 
 def airport_security_wait_times_seo() -> Dict:
     return build_page_seo(
-        title="Airport Security Wait Times | Live TSA Wait Times by Airport | TSA Tracker",
+        title="Airport Security Wait Times Today | Live TSA Wait Times by Airport | TSA Tracker",
         description=(
             "Airport security wait times for major US airports, with live readings, airport-specific guidance, "
             "best arrival windows, and links to the airport pages travelers actually need."
         ),
         canonical_path="/airport-security-wait-times",
     )
+
+
+def best_time_to_get_to_airport_seo() -> Dict:
+    return build_page_seo(
+        title="Best Time to Get to the Airport | Live TSA Timing Guide | TSA Tracker",
+        description=(
+            "Learn the best time to get to the airport for morning, afternoon, and international flights using live TSA wait times, peak-hour patterns, and airport-specific timing."
+        ),
+        canonical_path="/best-time-to-get-to-the-airport",
+    )
+
+
+def how_early_should_i_arrive_for_tsa_seo() -> Dict:
+    return build_page_seo(
+        title="How Early Should I Arrive for TSA? | Airport Security Timing Guide | TSA Tracker",
+        description=(
+            "See how early to arrive for TSA based on domestic vs international flights, airport size, live wait times, and when security lines usually spike."
+        ),
+        canonical_path="/how-early-should-i-arrive-for-tsa",
+    )
+
+
+def tsa_wait_times_by_airport_seo() -> Dict:
+    return build_page_seo(
+        title="TSA Wait Times by Airport | Live Airport Security Wait Times | TSA Tracker",
+        description=(
+            "Compare TSA wait times by airport, see which airports are busiest right now, and jump into the live airport page you actually need."
+        ),
+        canonical_path="/tsa-wait-times-by-airport",
+    )
+
+
+INTENT_PAGE_CONTENT = {
+    "best-time-to-get-to-the-airport": {
+        "seo": best_time_to_get_to_airport_seo,
+        "eyebrow": "Timing Guide",
+        "headline": "Best Time to Get to the Airport",
+        "subhead": "Use live TSA wait times, normal peak-hour patterns, and airport-specific context to decide when to leave instead of relying on generic buffer rules.",
+        "sections": [
+            {
+                "title": "The short answer",
+                "body": [
+                    "For most domestic trips, the best time to get to the airport is when you can clear bag drop, security, and the walk to your gate without arriving so early that you absorb a peak-hour security bank for no reason.",
+                    "That usually means checking live wait times first, then comparing them against your airport's normal busy windows. Morning departures at major hubs often need more buffer than midday or late-evening departures.",
+                ],
+                "bullets": [
+                    "Early morning flights usually need the most buffer because security lines often peak between 5 AM and 9 AM.",
+                    "Late morning and mid-afternoon are often the easiest windows to clear security at major airports.",
+                    "International flights still need extra buffer even if the security line looks fine.",
+                ],
+            },
+            {
+                "title": "Use live wait times before you leave",
+                "body": [
+                    "The best timing decision starts with the current airport page, not a rule of thumb. A normal two-hour domestic recommendation can be too much at one airport and not enough at another.",
+                ],
+                "bullets": [
+                    "Check the current airport security wait first.",
+                    "Use the 12-hour trend to see whether the line is rising or easing.",
+                    "Open the airport page if terminal layout or checkpoint choice matters at that airport.",
+                ],
+            },
+            {
+                "title": "When to add extra time",
+                "body": [
+                    "Add extra time if you are checking a bag, flying international, traveling with kids, using a crowded shuttle or parking lot, or flying through a hub that splits traffic across multiple terminals.",
+                ],
+                "bullets": [
+                    "Bag drop lines can matter as much as TSA at busy airports.",
+                    "Terminal-specific airports like LAX, JFK, BOS, and MIA can behave very differently by checkpoint.",
+                    "If the live page is already showing elevated security timing, treat that as a warning, not a suggestion.",
+                ],
+            },
+        ],
+        "faq": [
+            {
+                "q": "What is the best time to get to the airport for a domestic flight?",
+                "a": "Usually around 2 hours before departure, but the better answer is to check your airport's live TSA wait times first and add more buffer if the page shows a rising morning or afternoon peak.",
+            },
+            {
+                "q": "What time of day are airport security lines shortest?",
+                "a": "Late morning, mid-afternoon, and late evening are often easier than the early morning and after-work departure banks, but each airport has its own pattern.",
+            },
+            {
+                "q": "Should I still arrive early if the live wait time is low?",
+                "a": "Yes. Low security wait times help, but you still need time for parking, bag drop, terminal walking, and boarding cutoffs.",
+            },
+        ],
+    },
+    "how-early-should-i-arrive-for-tsa": {
+        "seo": how_early_should_i_arrive_for_tsa_seo,
+        "eyebrow": "Security Guide",
+        "headline": "How Early Should I Arrive for TSA?",
+        "subhead": "Use airport size, flight type, and live security conditions to decide how much time you actually need before heading to the checkpoint.",
+        "sections": [
+            {
+                "title": "Base rule",
+                "body": [
+                    "A reasonable starting point is 2 hours before domestic flights and 3 hours before international flights, but TSA timing should be adjusted for the airport, time of day, and whether your airport page is already showing congestion.",
+                ],
+                "bullets": [
+                    "Domestic flights: usually start with 2 hours.",
+                    "International flights: usually start with 3 hours.",
+                    "Major hubs often need more buffer during early-morning and late-afternoon peaks.",
+                ],
+            },
+            {
+                "title": "When you can tighten the buffer",
+                "body": [
+                    "If you are not checking a bag, already know the terminal, have PreCheck, and the live page shows calm conditions, you may not need as much extra time as the generic rule suggests.",
+                ],
+                "bullets": [
+                    "PreCheck reduces uncertainty materially at many major airports.",
+                    "Smaller live airports with short waits often need less padding than legacy hub advice implies.",
+                    "The current trend matters more than a static rule.",
+                ],
+            },
+            {
+                "title": "When you should increase the buffer",
+                "body": [
+                    "Increase your TSA arrival buffer if the airport page is showing long waits, if the terminal layout is awkward, or if you are flying on a holiday or other heavy travel day.",
+                ],
+                "bullets": [
+                    "Holiday weekends and Sunday returns are common high-risk periods.",
+                    "International terminals can move differently from domestic terminals even within the same airport.",
+                    "Airports with multiple checkpoints still require you to choose the right one.",
+                ],
+            },
+        ],
+        "faq": [
+            {
+                "q": "How early should I arrive for TSA on a domestic flight?",
+                "a": "Usually 2 hours before departure, then adjust based on your airport's live security wait times and whether you are traveling during a known peak window.",
+            },
+            {
+                "q": "How early should I arrive for TSA on an international flight?",
+                "a": "Usually 3 hours before departure, especially if you are checking bags, flying from a large hub, or departing from a busy international terminal.",
+            },
+            {
+                "q": "Does TSA PreCheck change how early I should arrive?",
+                "a": "Often yes. PreCheck can shorten the security portion enough that your real bottleneck becomes bag drop, terminal distance, or boarding cutoff rather than the checkpoint itself.",
+            },
+        ],
+    },
+    "tsa-wait-times-by-airport": {
+        "seo": tsa_wait_times_by_airport_seo,
+        "eyebrow": "Airport Directory Guide",
+        "headline": "TSA Wait Times by Airport",
+        "subhead": "Compare live TSA wait times by airport, understand which hubs are usually trickier, and open the page that matches your exact trip.",
+        "sections": [
+            {
+                "title": "Why airport-by-airport matters",
+                "body": [
+                    "Airport security waits are not interchangeable. The right answer for MCO is not the right answer for JFK, and the right answer for JFK may depend on terminal choice and departure bank.",
+                ],
+                "bullets": [
+                    "Large hubs often have multiple checkpoint patterns inside one airport.",
+                    "Some airports publish lane-level data and some only publish aggregate waits.",
+                    "Airport-specific pages help you avoid treating every airport like the same security problem.",
+                ],
+            },
+            {
+                "title": "How to compare airports quickly",
+                "body": [
+                    "Use the airport index for a fast ranking, then open the airport page you need for checkpoint notes, trend context, and official airport links.",
+                ],
+                "bullets": [
+                    "Start with the airports hub for the current overview.",
+                    "Open the specific airport page when the trip is real and same-day.",
+                    "Use the methodology page if you need to confirm how the live data is sourced.",
+                ],
+            },
+            {
+                "title": "Best airports to check first",
+                "body": [
+                    "If you are flying through one of the busiest U.S. hubs, do not rely on broad timing advice alone. Open the direct page for that airport before you leave home.",
+                ],
+                "bullets": [
+                    "JFK, LAX, ORD, ATL, MCO, DFW, BOS, EWR, LGA, and MIA are strong candidates for airport-specific checking.",
+                    "Morning departures and Sunday return windows deserve extra caution.",
+                    "If one airport page shows a split by checkpoint, trust the checkpoint card over the airport-wide average.",
+                ],
+            },
+        ],
+        "faq": [
+            {
+                "q": "Where can I compare TSA wait times by airport?",
+                "a": "Use the TSA Tracker airports hub to compare current airport security wait times, then open the specific airport page for checkpoint detail and timing context.",
+            },
+            {
+                "q": "Which airports should I check most carefully?",
+                "a": "Major hubs like JFK, LAX, ATL, ORD, MCO, BOS, EWR, LGA, MIA, and DFW are usually worth checking carefully because timing can swing more sharply there.",
+            },
+            {
+                "q": "Are TSA wait times the same across terminals at one airport?",
+                "a": "No. At many large airports, terminal and checkpoint choice can matter more than the airport-wide average.",
+            },
+        ],
+    },
+}
 
 
 def arrival_guidance_for_airport(payload: Dict) -> Dict:
@@ -936,6 +1136,55 @@ def airport_page_editorial_context(code: str, payload: Optional[Dict], checkpoin
     }
 
 
+def airport_bad_now_actions(code: str) -> List[str]:
+    actions = [
+        f"Check whether {code} splits traffic by checkpoint or terminal before joining the first line you see.",
+        f"If {code} offers TSA PreCheck or CLEAR lane detail, compare those lanes before assuming the standard line is your only option.",
+        "If the line is already elevated, add extra buffer for bag drop, parking, and the walk to the gate instead of focusing only on the checkpoint number.",
+    ]
+    guide = AIRPORT_PAGE_GUIDES.get(code, {})
+    for bucket in ("terminal_notes", "airline_notes", "tips"):
+        for note in guide.get(bucket, []):
+            if note not in actions:
+                actions.append(note)
+            if len(actions) >= 5:
+                return actions[:5]
+    return actions[:5]
+
+
+def related_airports_for_code(code: str) -> List[Dict]:
+    preferred = {
+        "JFK": ["LGA", "EWR", "BOS", "MIA"],
+        "LAX": ["SFO", "LAS", "SEA", "DFW"],
+        "ORD": ["DFW", "ATL", "BOS", "MCO"],
+        "DFW": ["ATL", "ORD", "MCO", "LAX"],
+        "ATL": ["MCO", "DFW", "CLT", "MIA"],
+        "MCO": ["ATL", "MIA", "DFW", "JFK"],
+        "LGA": ["JFK", "EWR", "BOS", "ATL"],
+        "EWR": ["JFK", "LGA", "BOS", "ORD"],
+        "BOS": ["JFK", "LGA", "EWR", "MCO"],
+        "MIA": ["MCO", "ATL", "JFK", "LAX"],
+    }
+    ordered_codes = preferred.get(code, [])
+    related = []
+    for other in ordered_codes:
+        if other in LIVE_AIRPORTS and other != code:
+            related.append({
+                "code": other,
+                "name": LIVE_AIRPORTS[other]["name"],
+                "href": airport_seo_slug(other),
+            })
+    if related:
+        return related[:4]
+
+    fallback = []
+    for other, meta in LIVE_AIRPORTS.items():
+        if other == code:
+            continue
+        fallback.append({"code": other, "name": meta["name"], "href": airport_seo_slug(other)})
+    return fallback[:4]
+
+
 def legal_page_seo(slug: str) -> Dict:
     mapping = {
         "privacy": ("Privacy Policy", "Read TSA Tracker's privacy policy and data handling details."),
@@ -1000,6 +1249,8 @@ def index_template_context(initial_airport_code: str, seo: Dict) -> Dict:
         "airport_notice": airport_status_notice_for_code(initial_airport_code) if is_airport_page else {},
         "arrival_guidance": arrival_guidance_for_airport(initial_data) if is_airport_page else None,
         "airport_editorial": airport_page_editorial_context(initial_airport_code, initial_data, initial_checkpoints) if is_airport_page else None,
+        "airport_bad_now_actions": airport_bad_now_actions(initial_airport_code) if is_airport_page else [],
+        "related_airports": related_airports_for_code(initial_airport_code) if is_airport_page else [],
         "airport_pages": [{"code": c, "href": airport_seo_slug(c), "name": v["name"]} for c, v in LIVE_AIRPORTS.items()],
         "airport_summaries": airport_overview["airport_summaries"],
         "overall_average": airport_overview["overall_average"],
@@ -1014,6 +1265,36 @@ def index_template_context(initial_airport_code: str, seo: Dict) -> Dict:
         "LOCAL_OFFERS_JSON": json.dumps(LOCAL_OFFERS),
         "KIWI_AIRPORT_URLS_JSON": json.dumps(KIWI_AIRPORT_PAGE_URLS),
         "app_js_version": APP_JS_VERSION,
+    }
+
+
+def intent_page_context(page_key: str) -> Dict:
+    page = INTENT_PAGE_CONTENT[page_key]
+    overview = build_airport_overview_context()
+    featured_codes = ["JFK", "LAX", "ORD", "ATL", "MCO", "DFW", "BOS", "MIA"]
+    featured_airports = []
+    for code in featured_codes:
+        if code in LIVE_AIRPORTS:
+            featured_airports.append(
+                {
+                    "code": code,
+                    "name": LIVE_AIRPORTS[code]["name"],
+                    "href": airport_seo_slug(code),
+                }
+            )
+    return {
+        "page": page,
+        "seo": page["seo"](),
+        "monetization": get_monetization_context(),
+        "airport_pages": overview["airport_pages"],
+        "featured_airports": featured_airports,
+        "fastest_airport": overview["fastest_airport"],
+        "slowest_airport": overview["slowest_airport"],
+        "overall_average": overview["overall_average"],
+        "live_count": overview["live_count"],
+        "estimated_count": overview["estimated_count"],
+        "copy_updated_label": current_copy_date_label(),
+        "copy_updated_iso": current_copy_date_iso(),
     }
 
 
@@ -2770,6 +3051,21 @@ def airport_security_wait_times_page():
     )
 
 
+@app.route("/best-time-to-get-to-the-airport")
+def best_time_to_get_to_airport_page():
+    return render_template("intent_guide.html", **intent_page_context("best-time-to-get-to-the-airport"))
+
+
+@app.route("/how-early-should-i-arrive-for-tsa")
+def how_early_should_i_arrive_for_tsa_page():
+    return render_template("intent_guide.html", **intent_page_context("how-early-should-i-arrive-for-tsa"))
+
+
+@app.route("/tsa-wait-times-by-airport")
+def tsa_wait_times_by_airport_page():
+    return render_template("intent_guide.html", **intent_page_context("tsa-wait-times-by-airport"))
+
+
 @app.route("/privacy")
 def privacy():
     seo = build_page_seo(
@@ -3016,6 +3312,9 @@ def sitemap_xml():
         [("/", "1.0", "hourly")]
         + [("/airports", "0.8", "daily")]
         + [("/airport-security-wait-times", "0.85", "daily")]
+        + [("/best-time-to-get-to-the-airport", "0.75", "weekly")]
+        + [("/how-early-should-i-arrive-for-tsa", "0.75", "weekly")]
+        + [("/tsa-wait-times-by-airport", "0.8", "weekly")]
         + [(airport_seo_slug(c), "0.9", "always") for c in LIVE_AIRPORTS.keys()]
         + [("/about", "0.6", "monthly"), ("/methodology", "0.8", "weekly"), ("/privacy", "0.3", "monthly"), ("/terms", "0.3", "monthly"), ("/contact", "0.4", "monthly"), ("/guide/tsa-wait-times", "0.7", "monthly"), ("/guide/tsa-precheck-clear", "0.7", "monthly")]
     )

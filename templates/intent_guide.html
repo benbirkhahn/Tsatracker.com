@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% if monetization.adsense_client %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
+  {% include "_adsense_head.html" %}
+  <title>{{ seo.title }}</title>
+  <meta name="description" content="{{ seo.description }}">
+  <link rel="canonical" href="{{ seo.canonical_url }}">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="{{ seo.title }}">
+  <meta property="og:description" content="{{ seo.description }}">
+  <meta property="og:url" content="{{ seo.canonical_url }}">
+  <meta property="og:image" content="{{ seo.site_url }}/static/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ seo.title }}">
+  <meta name="twitter:description" content="{{ seo.description }}">
+  <meta name="twitter:image" content="{{ seo.site_url }}/static/og-image.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Oswald:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    article.content-card h1 { color: var(--text); line-height: 1.15; }
+    article.content-card h2 { font-size: 1.35rem !important; font-family: inherit !important; text-transform: none !important; letter-spacing: 0 !important; color: var(--text) !important; }
+    article.content-card h3 { font-size: 1.05rem !important; font-family: inherit !important; text-transform: none !important; letter-spacing: 0 !important; color: var(--text) !important; }
+    article.content-card p { font-size: 0.96rem; line-height: 1.75; color: var(--text); }
+    article.content-card a { color: var(--amber); text-decoration: none; }
+    article.content-card a:hover { text-decoration: underline; }
+    .guide-intro { background: var(--surface2); border: 1px solid #2a2a40; border-radius: 12px; padding: 16px 18px; margin: 22px 0 28px; }
+    .stat-grid, .airport-grid, .link-grid { display: grid; gap: 12px; }
+    .stat-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin: 20px 0 28px; }
+    .airport-grid, .link-grid { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin-top: 14px; }
+    .stat-card, .airport-card, .link-card, .faq-item { background: var(--surface2); border: 1px solid #2a2a40; border-radius: 12px; padding: 14px 16px; }
+    .stat-label { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 8px; }
+    .stat-value { color: #fff; font-size: 1.7rem; line-height: 1; font-weight: 700; margin-bottom: 4px; }
+    .stat-sub, .airport-card .name, .link-card .copy { color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
+    .airport-card .code, .link-card .label { color: var(--amber); font-weight: 700; }
+    .link-card .label { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; }
+    .link-card .title { color: var(--text); font-weight: 700; margin: 6px 0; }
+    .faq-item { margin-top: 10px; }
+    .faq-item h3 { margin: 0 0 8px; }
+    .faq-item p { margin: 0; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <a href="/" class="header-home-link">
+      <span class="logo-shield">✈️</span>
+      <div>
+        <div class="logo-name">TSA Tracker</div>
+        <div class="logo-tag">Live airport data</div>
+      </div>
+    </a>
+    <nav class="header-nav">
+      <a href="/" class="header-nav-link">Home</a>
+      <a href="/airports" class="header-nav-link">Airports</a>
+      <a href="/airport-security-wait-times" class="header-nav-link">Airport Wait Times</a>
+      <a href="/methodology" class="header-nav-link">Methodology</a>
+    </nav>
+    <div class="header-external-links">
+      <span class="header-external-label">More from Ben</span>
+      <a href="https://benbirkhahn.com" class="header-external-link primary" target="_blank" rel="noopener">Other Projects</a>
+      <a href="https://github.com/benbirkhahn" class="header-external-link" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://www.linkedin.com/in/benjamin-birkhahn-421870240" class="header-external-link" target="_blank" rel="noopener">LinkedIn</a>
+    </div>
+  </header>
+
+  <main class="main">
+    <article class="card content-card" style="max-width:860px;margin:0 auto;" itemscope itemtype="https://schema.org/Article">
+      <div style="margin-bottom:8px;">
+        <span style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);">{{ page.eyebrow }}</span>
+      </div>
+      <h1 itemprop="headline" style="font-size:2rem;font-weight:700;margin-bottom:10px;">{{ page.headline }}</h1>
+      <p class="muted" style="margin-bottom:6px;">{{ page.subhead }}</p>
+      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:24px;"><em>By the TSA Tracker team · Updated {{ copy_updated_label }}</em></p>
+
+      <div class="guide-intro">
+        <strong>Best use:</strong> check the <a href="/airport-security-wait-times">live airport wait times hub</a> first, then open the exact airport page you need before you leave. This page is here to help you make the timing decision, not replace the live data.
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Live airports</div>
+          <div class="stat-value">{{ live_count }}</div>
+          <div class="stat-sub">{{ estimated_count }} fallback airport{{ 's' if estimated_count != 1 else '' }} also tracked</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Fastest now</div>
+          <div class="stat-value">{{ fastest_airport.code }}</div>
+          <div class="stat-sub">{{ fastest_airport.wait_description }} average</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Slowest now</div>
+          <div class="stat-value">{{ slowest_airport.code }}</div>
+          <div class="stat-sub">{{ slowest_airport.wait_description }} average</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Network average</div>
+          <div class="stat-value">{{ "%.1f"|format(overall_average) }}</div>
+          <div class="stat-sub">minutes across current live airports</div>
+        </div>
+      </div>
+
+      {% for section in page.sections %}
+      <h2 style="margin:34px 0 10px;">{{ section.title }}</h2>
+      {% for paragraph in section.body %}
+      <p>{{ paragraph }}</p>
+      {% endfor %}
+      <ul class="content-list" style="margin-top:8px;">
+        {% for bullet in section.bullets %}
+        <li>{{ bullet }}</li>
+        {% endfor %}
+      </ul>
+      {% endfor %}
+
+      <h2 style="margin:34px 0 10px;">Featured airport pages</h2>
+      <p>These are the airport pages most likely to matter if you are traveling through a large hub and need a more precise answer than a generic airport-security rule can give you.</p>
+      <div class="airport-grid">
+        {% for airport in featured_airports %}
+        <a class="airport-card" href="{{ airport.href }}">
+          <div class="code">{{ airport.code }}</div>
+          <div>{{ airport.name }}</div>
+          <div class="name">Open the live airport page for same-day timing.</div>
+        </a>
+        {% endfor %}
+      </div>
+
+      <h2 style="margin:34px 0 10px;">Related pages</h2>
+      <div class="link-grid">
+        <div class="link-card">
+          <div class="label">Live Hub</div>
+          <div class="title">Airport security wait times</div>
+          <div class="copy">The fastest overview of current airport security conditions across the live network.</div>
+          <div style="margin-top:10px;"><a href="/airport-security-wait-times">Open hub</a></div>
+        </div>
+        <div class="link-card">
+          <div class="label">Airport Index</div>
+          <div class="title">Airports directory</div>
+          <div class="copy">Browse every live airport page in one place and compare current conditions quickly.</div>
+          <div style="margin-top:10px;"><a href="/airports">Open airports</a></div>
+        </div>
+        <div class="link-card">
+          <div class="label">Trust</div>
+          <div class="title">Methodology and source transparency</div>
+          <div class="copy">See how TSA Tracker labels live vs fallback airport data and what the update cadence actually means.</div>
+          <div style="margin-top:10px;"><a href="/methodology">Open methodology</a></div>
+        </div>
+      </div>
+
+      <h2 style="margin:34px 0 10px;">Frequently asked questions</h2>
+      {% for item in page.faq %}
+      <div class="faq-item">
+        <h3>{{ item.q }}</h3>
+        <p>{{ item.a }}</p>
+      </div>
+      {% endfor %}
+    </article>
+  </main>
+
+  <footer class="footer">
+    <div>TSA Tracker — live security wait times. Data refreshes every ~2 minutes.</div>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <span>·</span>
+      <a href="/airports">Airports</a>
+      <span>·</span>
+      <a href="/airport-security-wait-times">Airport Wait Times</a>
+      <span>·</span>
+      <a href="/best-time-to-get-to-the-airport">Best Time to Get to the Airport</a>
+      <span>·</span>
+      <a href="/how-early-should-i-arrive-for-tsa">How Early for TSA</a>
+      <span>·</span>
+      <a href="/tsa-wait-times-by-airport">TSA Wait Times by Airport</a>
+      <span>·</span>
+      <a href="/methodology">Methodology</a>
+    </div>
+  </footer>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "{{ page.headline }}",
+    "description": "{{ seo.description }}",
+    "url": "{{ seo.canonical_url }}",
+    "datePublished": "2025-05-26",
+    "dateModified": "{{ copy_updated_iso }}",
+    "author": {
+      "@id": "{{ seo.site_url }}/#organization"
+    },
+    "publisher": {
+      "@id": "{{ seo.site_url }}/#organization"
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {% for item in page.faq %}
+      {
+        "@type": "Question",
+        "name": {{ item.q|tojson }},
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": {{ item.a|tojson }}
+        }
+      }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": "{{ seo.site_url }}/#organization",
+    "name": "TSA Tracker",
+    "url": "{{ seo.site_url }}"
+  }
+  </script>
+  {% include "_affiliate_scripts.html" %}
+</body>
+</html>

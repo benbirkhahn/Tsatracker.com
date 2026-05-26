@@ -750,11 +750,22 @@
 
       <div class="content-columns" style="margin-top: 16px;">
         <div>
+          <h3>What to do if the line is bad right now</h3>
+          <p class="muted" style="margin-bottom:8px;">When {{ initial_airport_code }} is already running hot, these are the actions most likely to help:</p>
+          <ul class="content-list">
+            {% for action in airport_bad_now_actions %}
+            <li>{{ action }}</li>
+            {% endfor %}
+            <li><a href="/best-time-to-get-to-the-airport">Best time to get to the airport</a> if you still have flexibility on when to leave.</li>
+          </ul>
+        </div>
+        <div>
           <h3>Related planning guides</h3>
           <p class="muted" style="margin-bottom:8px;">Useful if you are still deciding when to leave or how much buffer to build in:</p>
           <ul class="content-list">
             <li><a href="/airport-security-wait-times">Airport security wait times guide</a> — the best starting point for a fast live overview</li>
             <li><a href="/guide/tsa-wait-times">TSA wait times explained</a> — how the data works, peak hours, and the fastest screening strategies</li>
+            <li><a href="/how-early-should-i-arrive-for-tsa">How early should I arrive for TSA?</a> — tighter arrival guidance for domestic and international flights</li>
             <li><a href="/guide/tsa-precheck-clear">Best travel cards for airport-security perks</a> — cards that may help offset PreCheck or CLEAR costs</li>
           </ul>
         </div>
@@ -800,13 +811,11 @@
           <p class="muted" style="margin-bottom:8px;">Flying from a different city? Check real-time security line wait
             times at other major US airports:</p>
           <ul class="content-list">
-            {% for code, info in live_airports.items() %}
-            {% if code != initial_airport_code %}
-            <li><a href="{{ airport_pages | selectattr('code', 'equalto', code) | map(attribute='href') | first }}">{{
-                code }} airport security wait times</a> — {{ info.name }}</li>
-            {% endif %}
+            {% for airport in related_airports %}
+            <li><a href="{{ airport.href }}">{{ airport.code }} airport security wait times</a> — {{ airport.name }}</li>
             {% endfor %}
           </ul>
+          <p class="muted" style="margin-top:8px;">Need a broader comparison? Open <a href="/tsa-wait-times-by-airport">TSA wait times by airport</a> for the network-wide view.</p>
         </div>
       </div>
 
