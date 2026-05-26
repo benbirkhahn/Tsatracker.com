@@ -2813,8 +2813,8 @@ def contact():
 @app.route("/guide/tsa-wait-times")
 def guide_tsa_wait_times():
     seo = build_page_seo(
-        title="TSA Wait Times Explained: How to Get Through Airport Security Faster in 2026 | TSA Tracker",
-        description="A complete guide to TSA security wait times — how data is measured, peak hours to avoid, TSA PreCheck vs. CLEAR vs. standard lanes, airport-specific tips, and how to use live wait time data effectively.",
+        title="Airport Security Wait Times Explained: How to Get Through TSA Faster in 2026 | TSA Tracker",
+        description="A complete guide to airport security wait times — how data is measured, peak hours to avoid, TSA PreCheck vs. CLEAR vs. standard lanes, airport-specific tips, and how to use live wait time data effectively.",
         canonical_path="/guide/tsa-wait-times",
     )
     airport_pages = [{"code": c, "href": airport_seo_slug(c), "name": v["name"]} for c, v in LIVE_AIRPORTS.items()]
