@@ -3107,9 +3107,11 @@ def community_status():
     return jsonify({"level": None})
 
 
-@app.route("/api/log-click", methods=["POST"])
+@app.route("/api/log-click", methods=["GET", "POST"])
 def log_ad_click():
-    data = request.json or {}
+    if request.method == "GET":
+        return ("", 204)
+    data = request.get_json(silent=True) or {}
     offer_id = data.get("offer_id")
     code = data.get("code")
     if not offer_id:
