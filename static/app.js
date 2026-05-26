@@ -7,6 +7,16 @@ let terminalMap = null;
 let terminalMarkers = {};
 let leafletAssetPromise = null;
 const hasRIC = typeof window !== "undefined" && "requestIdleCallback" in window;
+const airportProfiles = (typeof window !== "undefined" && window.AIRPORT_PROFILES) || {};
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 const PHL_CONFIG = {
   "airportCode": "PHL",
@@ -234,6 +244,109 @@ function laneWaitText(wait_minutes, tier) {
   return `<span class="lane-wait ${tier}">${mins} ${mins === 1 ? "min" : "mins"}</span>`;
 }
 
+function checkpointSummary(rows) {
+  const grouped = new Map();
+  rows.forEach((row) => {
+    const wait = Number(row.wait_minutes);
+    if (!Number.isFinite(wait) || wait < 0) return;
+    const key = cleanCheckpointLabel(row.checkpoint || "Checkpoint");
+    const current = grouped.get(key) || [];
+    current.push(wait);
+    grouped.set(key, current);
+  });
+  const ranked = Array.from(grouped.entries())
+    .map(([name, waits]) => ({
+      name,
+      avg: waits.reduce((sum, wait) => sum + wait, 0) / waits.length,
+    }))
+    .sort((a, b) => a.avg - b.avg);
+  return {
+    best: ranked[0],
+    worst: ranked[ranked.length - 1],
+    count: ranked.length,
+  };
+}
+
+function updateAirportIntelligence(code, rows = []) {
+  const profile = airportProfiles[code];
+  const panel = document.getElementById("airport-intelligence-panel");
+  if (!panel || !profile) return;
+
+  panel.style.display = "";
+  panel.style.setProperty("--airport-accent", profile.accent || "#2dd4bf");
+  panel.style.setProperty("--airport-secondary", profile.secondary || "#fb7185");
+
+  const mark = document.getElementById("airport-intel-mark");
+  const kicker = document.getElementById("airport-intel-kicker");
+  const title = document.getElementById("airport-intel-title");
+  const city = document.getElementById("airport-intel-city");
+  if (mark) mark.textContent = profile.code;
+  if (kicker) kicker.textContent = `${profile.label || "Live airport"} intelligence`;
+  if (title) title.textContent = profile.name;
+  if (city) city.textContent = `${profile.city || "Airport"} playbook with live checkpoint context and terminal-specific notes.`;
+
+  const summary = checkpointSummary(rows);
+  const best = document.getElementById("airport-intel-best");
+  const watch = document.getElementById("airport-intel-watch");
+  const coverage = document.getElementById("airport-intel-coverage");
+  if (best) {
+    best.textContent = summary.best ? `${summary.best.name} · ${Math.round(summary.best.avg)} min` : "Live rows loading";
+  }
+  if (watch) {
+    watch.textContent = summary.worst ? `${summary.worst.name} · ${Math.round(summary.worst.avg)} min` : profile.label || "Airport flow";
+  }
+  if (coverage) {
+    const terminalCount = (profile.terminal_highlights || []).length;
+    coverage.textContent = terminalCount ? `${terminalCount} terminal notes` : `${summary.count || "Live"} checkpoint view`;
+  }
+
+  const terminals = document.getElementById("airport-intel-terminals");
+  const terminalNote = document.getElementById("airport-intel-terminal-note");
+  const terminalItems = profile.terminal_highlights || [];
+  if (terminals) {
+    terminals.innerHTML = terminalItems.map((note, index) => (
+      `<button type="button" class="terminal-chip${index === 0 ? " is-active" : ""}" data-note="${escapeHtml(note)}">${escapeHtml(note.split(".")[0])}</button>`
+    )).join("");
+    terminals.querySelectorAll(".terminal-chip").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        terminals.querySelectorAll(".terminal-chip").forEach((item) => item.classList.remove("is-active"));
+        chip.classList.add("is-active");
+        if (terminalNote) terminalNote.textContent = chip.dataset.note || "";
+      });
+    });
+  }
+  if (terminalNote) {
+    terminalNote.textContent = terminalItems[0] || "This airport has live data but limited terminal notes so far.";
+  }
+
+  const strategy = document.getElementById("airport-intel-strategy");
+  if (strategy) {
+    const items = (profile.strategy || []).slice(0, 3);
+    strategy.innerHTML = items.length
+      ? items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")
+      : "<li>Use the live wait, then check the 12-hour trend before leaving.</li>";
+  }
+
+  const airlines = document.getElementById("airport-intel-airlines");
+  if (airlines) {
+    const items = (profile.airline_highlights || []).slice(0, 2);
+    airlines.innerHTML = items.length
+      ? items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")
+      : "<li>Confirm your airline terminal before choosing a checkpoint.</li>";
+  }
+
+  const links = document.getElementById("airport-intel-links");
+  if (links) {
+    const sourceLinks = (profile.source_links || []).slice(0, 2);
+    links.innerHTML = [
+      `<a class="airport-intel-link" href="${escapeHtml(profile.href)}">Open ${escapeHtml(profile.code)} page</a>`,
+      ...sourceLinks.map((link) => (
+        `<a class="airport-intel-link" href="${escapeHtml(link.url)}" target="_blank" rel="noopener">${escapeHtml(link.label)}</a>`
+      )),
+    ].join("");
+  }
+}
+
 function renderLiveCards(payload, selectedCode) {
   const host = document.getElementById("live-cards");
   host.innerHTML = "";
@@ -244,10 +357,12 @@ function renderLiveCards(payload, selectedCode) {
     host.innerHTML = `<div class="muted" style="padding:16px 0 4px;">
       Tap an airport chip above to see live security wait times.
     </div>`;
+    if (selectedCode) updateAirportIntelligence(selectedCode, []);
     return;
   }
 
   const rows = (data[selectedCode] || []).map(normalizeCheckpointRow);
+  updateAirportIntelligence(selectedCode, rows);
 
   if (!rows.length) {
     const empty = document.createElement("div");

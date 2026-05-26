@@ -243,6 +243,26 @@ LIVE_AIRPORTS = {
     "DCA": {"name": "Ronald Reagan Washington National (DCA)", "mode": "LIVE_PUBLIC", "city": "Washington"},
 }
 
+AIRPORT_PROFILE_THEMES = {
+    "PHL": {"accent": "#f97316", "secondary": "#38bdf8", "label": "Terminal maze"},
+    "BOS": {"accent": "#22c55e", "secondary": "#60a5fa", "label": "Checkpoint split"},
+    "ATL": {"accent": "#facc15", "secondary": "#fb7185", "label": "High-volume hub"},
+    "MIA": {"accent": "#2dd4bf", "secondary": "#fb7185", "label": "International banks"},
+    "ORD": {"accent": "#60a5fa", "secondary": "#f59e0b", "label": "Terminal strategy"},
+    "CLT": {"accent": "#a78bfa", "secondary": "#34d399", "label": "Connection pressure"},
+    "MCO": {"accent": "#fb7185", "secondary": "#facc15", "label": "Family travel waves"},
+    "JAX": {"accent": "#34d399", "secondary": "#93c5fd", "label": "Compact airport"},
+    "DFW": {"accent": "#f59e0b", "secondary": "#22d3ee", "label": "Skylink advantage"},
+    "LAX": {"accent": "#38bdf8", "secondary": "#fb7185", "label": "Terminal routing"},
+    "JFK": {"accent": "#818cf8", "secondary": "#f472b6", "label": "Terminal-specific"},
+    "EWR": {"accent": "#f97316", "secondary": "#a3e635", "label": "NYC alternate"},
+    "LGA": {"accent": "#22d3ee", "secondary": "#f59e0b", "label": "Short-haul flow"},
+    "LAS": {"accent": "#f472b6", "secondary": "#facc15", "label": "Event-driven surges"},
+    "SEA": {"accent": "#2dd4bf", "secondary": "#60a5fa", "label": "Pacific hub"},
+    "SFO": {"accent": "#a3e635", "secondary": "#38bdf8", "label": "Bay Area flow"},
+    "DCA": {"accent": "#93c5fd", "secondary": "#f87171", "label": "Business shuttle"},
+}
+
 AIRPORT_PAGE_GUIDES = {
     "PHL": {
         "tips": [
@@ -1185,6 +1205,27 @@ def related_airports_for_code(code: str) -> List[Dict]:
     return fallback[:4]
 
 
+def airport_personality_profiles() -> Dict[str, Dict]:
+    profiles = {}
+    for code, meta in LIVE_AIRPORTS.items():
+        guide = AIRPORT_PAGE_GUIDES.get(code, {})
+        theme = AIRPORT_PROFILE_THEMES.get(code, {})
+        profiles[code] = {
+            "code": code,
+            "name": meta.get("name", code),
+            "city": meta.get("city", ""),
+            "href": airport_seo_slug(code),
+            "label": theme.get("label", "Live airport"),
+            "accent": theme.get("accent", "#f59e0b"),
+            "secondary": theme.get("secondary", "#60a5fa"),
+            "terminal_highlights": guide.get("terminal_notes", [])[:3],
+            "airline_highlights": guide.get("airline_notes", [])[:2],
+            "strategy": guide.get("tips", [])[:3],
+            "source_links": guide.get("links", [])[:2],
+        }
+    return profiles
+
+
 def legal_page_seo(slug: str) -> Dict:
     mapping = {
         "privacy": ("Privacy Policy", "Read TSA Tracker's privacy policy and data handling details."),
@@ -1264,6 +1305,7 @@ def index_template_context(initial_airport_code: str, seo: Dict) -> Dict:
         "monetization": monetization,
         "LOCAL_OFFERS_JSON": json.dumps(LOCAL_OFFERS),
         "KIWI_AIRPORT_URLS_JSON": json.dumps(KIWI_AIRPORT_PAGE_URLS),
+        "AIRPORT_PROFILES_JSON": json.dumps(airport_personality_profiles()),
         "app_js_version": APP_JS_VERSION,
     }
 
