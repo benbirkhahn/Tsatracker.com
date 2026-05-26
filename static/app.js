@@ -8,6 +8,7 @@ let terminalMarkers = {};
 let leafletAssetPromise = null;
 const hasRIC = typeof window !== "undefined" && "requestIdleCallback" in window;
 const airportProfiles = (typeof window !== "undefined" && window.AIRPORT_PROFILES) || {};
+const COMMUNITY_REPORT_COOLDOWN_MS = 5 * 60 * 1000;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -16,6 +17,19 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function communitySessionId() {
+  try {
+    let id = localStorage.getItem("tsa_community_session_id");
+    if (!id) {
+      id = (crypto && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem("tsa_community_session_id", id);
+    }
+    return id;
+  } catch {
+    return "session-unavailable";
+  }
 }
 
 const PHL_CONFIG = {
@@ -1128,22 +1142,47 @@ async function reportWait(level) {
   if (!selectedAirportCode) return;
   const btn = event.currentTarget;
   const originalText = btn.textContent;
+  const cooldownKey = `community_report_${selectedAirportCode}`;
+  const lastReport = Number(localStorage.getItem(cooldownKey) || 0);
+  if (Date.now() - lastReport < COMMUNITY_REPORT_COOLDOWN_MS) {
+    btn.textContent = "WAIT 5M";
+    setTimeout(() => { btn.textContent = originalText; }, 1600);
+    return;
+  }
   btn.textContent = "...";
   btn.disabled = true;
 
   try {
+    const rows = livePayloadCache?.data?.[selectedAirportCode] || [];
+    const summary = checkpointSummary(rows.map(normalizeCheckpointRow));
+    const currentWait = summary.best ? Math.round(summary.best.avg) : null;
     const resp = await fetch("/api/report-wait", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: selectedAirportCode, level })
+      body: JSON.stringify({
+        code: selectedAirportCode,
+        level,
+        current_wait: currentWait,
+        session_id: communitySessionId()
+      })
     });
     if (resp.ok) {
+      localStorage.setItem(cooldownKey, String(Date.now()));
       btn.textContent = "✓";
       setTimeout(() => {
         btn.textContent = originalText;
         btn.disabled = false;
         fetchCommunityStatus(selectedAirportCode);
       }, 2000);
+    } else if (resp.status === 429) {
+      btn.textContent = "WAIT 5M";
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.disabled = false;
+      }, 2000);
+    } else {
+      btn.textContent = originalText;
+      btn.disabled = false;
     }
   } catch (_e) {
     btn.textContent = originalText;
@@ -1159,9 +1198,11 @@ async function fetchCommunityStatus(code) {
   try {
     const resp = await fetch(`/api/community-status?code=${code}`);
     const data = await resp.json();
-    if (data.level) {
+    if (data.level && data.count) {
       statusEl.style.display = "block";
-      levelEl.textContent = data.level.replace(/_/g, " ").toUpperCase();
+      const label = data.level.replace(/_/g, " ");
+      const travelerWord = data.count === 1 ? "traveler" : "travelers";
+      levelEl.textContent = `${data.count} ${travelerWord} said ${label}`;
       levelEl.className = data.level;
     } else {
       statusEl.style.display = "none";

@@ -1718,6 +1718,8 @@ def init_db() -> None:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             airport_code TEXT NOT NULL,
             level TEXT NOT NULL,
+            current_wait REAL,
+            session_id TEXT,
             reported_at TEXT NOT NULL
         )
         """
@@ -1765,10 +1767,30 @@ def init_db() -> None:
         cur.execute("ALTER TABLE samples ADD COLUMN lane_type TEXT NOT NULL DEFAULT 'STANDARD'")
     except Exception:
         pass  # column already exists
+    try:
+        cur.execute("ALTER TABLE user_reports ADD COLUMN current_wait REAL")
+    except Exception:
+        pass  # column already exists
+    try:
+        cur.execute("ALTER TABLE user_reports ADD COLUMN session_id TEXT")
+    except Exception:
+        pass  # column already exists
     cur.execute(
         """
         CREATE INDEX IF NOT EXISTS idx_samples_airport_time
         ON samples (airport_code, captured_at)
+        """
+    )
+    cur.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_user_reports_airport_time
+        ON user_reports (airport_code, reported_at)
+        """
+    )
+    cur.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_user_reports_session_time
+        ON user_reports (session_id, reported_at)
         """
     )
     cur.execute(
@@ -3546,15 +3568,39 @@ def api_collect_now():
 @app.route("/api/report-wait", methods=["POST"])
 def api_report_wait():
     data = request.json or {}
-    code = data.get("code")
+    code = str(data.get("code", "")).upper().strip()
     level = data.get("level")
-    if not code or level not in ["accurate", "not_accurate", "short", "med", "long"]:
+    session_id = str(data.get("session_id", "")).strip()[:80]
+    current_wait_raw = data.get("current_wait")
+    current_wait = None
+    if current_wait_raw is not None:
+        try:
+            current_wait = clamp_wait_minutes(float(current_wait_raw))
+        except Exception:
+            current_wait = None
+    if code not in LIVE_AIRPORTS or level not in ["accurate", "not_accurate", "short", "med", "long"] or not session_id:
         return jsonify({"error": "Invalid request"}), 400
-    
+
+    cooldown_cutoff = (utc_now() - timedelta(minutes=5)).isoformat()
     conn = sqlite3.connect(DB_PATH)
+    recent = conn.execute(
+        """
+        SELECT 1 FROM user_reports
+        WHERE airport_code = ? AND session_id = ? AND reported_at >= ?
+        LIMIT 1
+        """,
+        (code, session_id, cooldown_cutoff),
+    ).fetchone()
+    if recent:
+        conn.close()
+        return jsonify({"error": "Rate limited", "retry_minutes": 5}), 429
+
     conn.execute(
-        "INSERT INTO user_reports (airport_code, level, reported_at) VALUES (?, ?, ?)",
-        (code, level, utc_now().isoformat())
+        """
+        INSERT INTO user_reports (airport_code, level, current_wait, session_id, reported_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (code, level, current_wait, session_id, utc_now().isoformat())
     )
     conn.commit()
     conn.close()
@@ -3563,24 +3609,80 @@ def api_report_wait():
 
 @app.route("/api/community-status")
 def community_status():
-    code = request.args.get("code")
-    if not code:
+    code = str(request.args.get("code", "")).upper().strip()
+    if code not in LIVE_AIRPORTS:
         return jsonify({"error": "No code"}), 400
     
-    # Get last report within 30 mins
     cutoff = (utc_now() - timedelta(minutes=30)).isoformat()
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute(
-        "SELECT level, reported_at FROM user_reports WHERE airport_code = ? AND reported_at >= ? ORDER BY reported_at DESC LIMIT 1",
+        """
+        SELECT level, COUNT(*) AS count, AVG(current_wait) AS avg_wait, MAX(reported_at) AS last_reported_at
+        FROM user_reports
+        WHERE airport_code = ? AND reported_at >= ?
+        GROUP BY level
+        ORDER BY count DESC, last_reported_at DESC
+        """,
         (code, cutoff)
     )
-    row = cur.fetchone()
+    rows = cur.fetchall()
     conn.close()
     
-    if row:
-        return jsonify({"level": row[0], "reported_at": row[1]})
-    return jsonify({"level": None})
+    counts = [
+        {
+            "level": row[0],
+            "count": int(row[1]),
+            "avg_current_wait": round(float(row[2]), 1) if row[2] is not None else None,
+            "last_reported_at": row[3],
+        }
+        for row in rows
+    ]
+    top = counts[0] if counts else None
+    return jsonify({
+        "airport": code,
+        "window_minutes": 30,
+        "level": top["level"] if top else None,
+        "count": top["count"] if top else 0,
+        "counts": counts,
+    })
+
+
+@app.route("/api/community-summary")
+def community_summary():
+    if COLLECT_NOW_TOKEN and request.headers.get("x-collect-token") != COLLECT_NOW_TOKEN:
+        return jsonify({"error": "Unauthorized"}), 401
+    minutes = request.args.get("minutes", 30, type=int)
+    minutes = max(5, min(minutes or 30, 1440))
+    cutoff = (utc_now() - timedelta(minutes=minutes)).isoformat()
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT airport_code, level, COUNT(*) AS count, AVG(current_wait) AS avg_wait, MAX(reported_at) AS last_reported_at
+        FROM user_reports
+        WHERE reported_at >= ?
+        GROUP BY airport_code, level
+        ORDER BY airport_code ASC, count DESC, last_reported_at DESC
+        """,
+        (cutoff,),
+    )
+    rows = cur.fetchall()
+    conn.close()
+
+    airports = {}
+    for code, level, count, avg_wait, last_reported_at in rows:
+        airports.setdefault(code, []).append({
+            "level": level,
+            "count": int(count),
+            "avg_current_wait": round(float(avg_wait), 1) if avg_wait is not None else None,
+            "last_reported_at": last_reported_at,
+        })
+    return jsonify({
+        "generated_at": utc_now().isoformat(),
+        "window_minutes": minutes,
+        "airports": airports,
+    })
 
 
 @app.route("/api/log-click", methods=["GET", "POST"])
