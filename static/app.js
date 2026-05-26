@@ -267,6 +267,33 @@ function checkpointSummary(rows) {
   };
 }
 
+function updateCheckpointRecommendation(code, rows = []) {
+  const panel = document.getElementById("checkpoint-recommendation");
+  if (!panel) return;
+  const summary = checkpointSummary(rows);
+  if (!code || !summary.best) {
+    panel.classList.remove("is-visible");
+    return;
+  }
+
+  const title = document.getElementById("checkpoint-rec-title");
+  const copy = document.getElementById("checkpoint-rec-copy");
+  const minutes = document.getElementById("checkpoint-rec-minutes");
+  const bestMinutes = Math.round(summary.best.avg);
+  const worstText = summary.worst && summary.worst.name !== summary.best.name
+    ? ` Highest current pressure is at ${summary.worst.name} around ${Math.round(summary.worst.avg)} minutes.`
+    : "";
+
+  if (title) title.textContent = `Use ${summary.best.name} if it matches your terminal`;
+  if (copy) {
+    copy.textContent = `${code} live data currently shows this as the lowest-wait checkpoint. Confirm it serves your terminal or gate before crossing the airport.${worstText}`;
+  }
+  if (minutes) {
+    minutes.innerHTML = `${bestMinutes}<span>min</span>`;
+  }
+  panel.classList.add("is-visible");
+}
+
 function terminalChipLabel(note, index) {
   const text = String(note || "");
   const knownLabels = [
@@ -367,7 +394,7 @@ function updateAirportIntelligence(code, rows = []) {
     const items = (profile.strategy || []).slice(0, 3);
     strategy.innerHTML = items.length
       ? items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")
-      : "<li>Use the live wait, then check the 12-hour trend before leaving.</li>";
+      : "<li>Use the live wait, then check the 24-hour historical average before leaving.</li>";
   }
 
   const airlines = document.getElementById("airport-intel-airlines");
@@ -401,11 +428,13 @@ function renderLiveCards(payload, selectedCode) {
       Tap an airport chip above to see live security wait times.
     </div>`;
     if (selectedCode) updateAirportIntelligence(selectedCode, []);
+    updateCheckpointRecommendation(selectedCode, []);
     return;
   }
 
   const rows = (data[selectedCode] || []).map(normalizeCheckpointRow);
   updateAirportIntelligence(selectedCode, rows);
+  updateCheckpointRecommendation(selectedCode, rows);
 
   if (!rows.length) {
     const empty = document.createElement("div");
@@ -686,9 +715,9 @@ function saveHistoryPoint(airportCode, rows) {
       }
     });
 
-    // Keep only last 12 hours
-    const twelveHoursAgo = now.getTime() - (12 * 60 * 60 * 1000);
-    allPoints = allPoints.filter(p => p.ts >= twelveHoursAgo);
+    // Legacy rolling cache fallback; the visible chart now uses server-side 24-hour averages.
+    const historyCutoff = now.getTime() - (24 * 60 * 60 * 1000);
+    allPoints = allPoints.filter(p => p.ts >= historyCutoff);
 
     localStorage.setItem(`history_${airportCode}`, JSON.stringify(allPoints));
   } catch {
@@ -715,23 +744,30 @@ function getMergedHistory(apiRows, airportCode) {
   });
 }
 
+function normalizeHistoricalAverageRows(rows) {
+  return (rows || [])
+    .map((row) => ({
+      label: row.label || `${String(row.hour).padStart(2, "0")}:00`,
+      value: Number.isFinite(Number(row.avg_wait)) ? Number(row.avg_wait) : null,
+      samples: Number(row.samples) || 0,
+    }));
+}
+
 async function drawChart(points, airportCode) {
   await loadChartJs();
   const ctx = document.getElementById("history-chart");
   if (chart) chart.destroy();
   chart = new Chart(ctx, {
-    type: "line",
+    type: "bar",
     data: {
       labels: points.map((p) => p.label),
       datasets: [{
-        label: `${airportCode} avg wait (mins)`,
+        label: `${airportCode} 24-hour historical avg wait (mins)`,
         data: points.map((p) => p.value),
-        borderColor: "#f59e0b",
-        backgroundColor: "rgba(245,158,11,0.08)",
-        pointRadius: 0,
-        borderWidth: 2,
-        tension: 0.3,
-        fill: true,
+        borderColor: "#5eead4",
+        backgroundColor: "rgba(94,234,212,0.22)",
+        borderWidth: 1,
+        borderRadius: 6,
       }],
     },
     options: {
@@ -754,6 +790,14 @@ async function drawChart(points, airportCode) {
       },
       plugins: {
         legend: { labels: { color: "#55556a", font: { family: "'IBM Plex Mono'", size: 11 } } },
+        tooltip: {
+          callbacks: {
+            afterLabel: (context) => {
+              const point = points[context.dataIndex];
+              return point && point.samples ? `${point.samples} samples` : "";
+            },
+          },
+        },
       },
     },
   });
@@ -766,18 +810,13 @@ async function loadHistory(airportCode) {
     emptyEl.style.display = "block";
     return;
   }
-  const resp = await fetch(`/api/history?airport=${airportCode}&hours=12`);
+  const resp = await fetch(`/api/history-24h-average?airport=${airportCode}&days=30`);
   const payload = await resp.json();
-  const apiRows = payload.rows || [];
+  const points = normalizeHistoricalAverageRows(payload.rows || []);
+  const hasData = points.some((point) => point.value !== null);
 
-  // Save new data points to localStorage
-  saveHistoryPoint(airportCode, apiRows);
-
-  // Get merged history (stored + new)
-  const points = getMergedHistory(apiRows, airportCode);
-
-  emptyEl.style.display = points.length ? "none" : "block";
-  if (points.length) drawChart(points, airportCode);
+  emptyEl.style.display = hasData ? "none" : "block";
+  if (hasData) drawChart(points, airportCode);
 }
 
 // Source status label

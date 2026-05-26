@@ -11,6 +11,7 @@ import time
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
+from zoneinfo import ZoneInfo
 
 import requests
 from flask import Flask, Response, jsonify, redirect, render_template, request, send_from_directory
@@ -261,6 +262,26 @@ AIRPORT_PROFILE_THEMES = {
     "SEA": {"accent": "#2dd4bf", "secondary": "#60a5fa", "label": "Pacific hub"},
     "SFO": {"accent": "#a3e635", "secondary": "#38bdf8", "label": "Bay Area flow"},
     "DCA": {"accent": "#93c5fd", "secondary": "#f87171", "label": "Business shuttle"},
+}
+
+AIRPORT_TIME_ZONES = {
+    "ATL": "America/New_York",
+    "BOS": "America/New_York",
+    "CLT": "America/New_York",
+    "DCA": "America/New_York",
+    "EWR": "America/New_York",
+    "JAX": "America/New_York",
+    "JFK": "America/New_York",
+    "LGA": "America/New_York",
+    "MCO": "America/New_York",
+    "MIA": "America/New_York",
+    "ORD": "America/Chicago",
+    "DFW": "America/Chicago",
+    "LAS": "America/Los_Angeles",
+    "LAX": "America/Los_Angeles",
+    "SEA": "America/Los_Angeles",
+    "SFO": "America/Los_Angeles",
+    "PHL": "America/New_York",
 }
 
 AIRPORT_PAGE_GUIDES = {
@@ -996,7 +1017,7 @@ INTENT_PAGE_CONTENT = {
                 ],
                 "bullets": [
                     "Check the current airport security wait first.",
-                    "Use the 12-hour trend to see whether the line is rising or easing.",
+                    "Use the 24-hour historical average to see whether the line is rising or easing.",
                     "Open the airport page if terminal layout or checkpoint choice matters at that airport.",
                 ],
             },
@@ -2883,6 +2904,47 @@ def history_for_airport(airport_code: str, hours: int = 12) -> List[Dict]:
     ]
 
 
+def historical_24h_average_for_airport(airport_code: str, days: int = 30) -> List[Dict]:
+    cutoff = (utc_now() - timedelta(days=max(1, min(days, 90)))).isoformat()
+    tz = ZoneInfo(AIRPORT_TIME_ZONES.get(airport_code, "UTC"))
+    buckets = {hour: {"sum": 0.0, "count": 0} for hour in range(24)}
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT wait_minutes, captured_at
+        FROM samples
+        WHERE airport_code = ? AND captured_at >= ?
+        ORDER BY captured_at ASC
+        """,
+        (airport_code, cutoff),
+    )
+    rows = cur.fetchall()
+    conn.close()
+
+    for wait_minutes, captured_at in rows:
+        try:
+            wait = clamp_wait_minutes(float(wait_minutes))
+            captured = datetime.fromisoformat(str(captured_at))
+            if captured.tzinfo is None:
+                captured = captured.replace(tzinfo=timezone.utc)
+            local_hour = captured.astimezone(tz).hour
+        except Exception:
+            continue
+        buckets[local_hour]["sum"] += wait
+        buckets[local_hour]["count"] += 1
+
+    return [
+        {
+            "hour": hour,
+            "label": f"{hour:02d}:00",
+            "avg_wait": round(bucket["sum"] / bucket["count"], 1) if bucket["count"] else None,
+            "samples": bucket["count"],
+        }
+        for hour, bucket in buckets.items()
+    ]
+
+
 def x_alerts_enabled() -> bool:
     return ENABLE_X_ALERTS and all([X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET])
 
@@ -3297,6 +3359,22 @@ def api_history():
             "airport": code,
             "generated_at": utc_now().isoformat(),
             "rows": history_for_airport(code, hours=hours),
+        }
+    )
+
+@app.route("/api/history-24h-average")
+def api_history_24h_average():
+    code = request.args.get("airport", "PHL").upper()
+    days = request.args.get("days", 30, type=int)
+    if code not in LIVE_AIRPORTS:
+        return jsonify({"error": "Unknown airport"}), 400
+    return jsonify(
+        {
+            "airport": code,
+            "days": max(1, min(days, 90)),
+            "timezone": AIRPORT_TIME_ZONES.get(code, "UTC"),
+            "generated_at": utc_now().isoformat(),
+            "rows": historical_24h_average_for_airport(code, days=days),
         }
     )
 

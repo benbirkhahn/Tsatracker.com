@@ -555,6 +555,61 @@
       font-size: .85rem;
       line-height: 1.55;
     }
+    .checkpoint-recommendation {
+      display: none;
+      margin: 14px 0 16px;
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(45, 212, 191, .22);
+      background:
+        radial-gradient(circle at top left, rgba(45, 212, 191, .14), transparent 34%),
+        linear-gradient(135deg, rgba(10, 20, 20, .94), rgba(17, 18, 27, .94));
+    }
+    .checkpoint-recommendation.is-visible {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+    }
+    .checkpoint-rec-kicker {
+      color: #5eead4;
+      font-family: var(--mono);
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+    .checkpoint-rec-title {
+      color: #fff;
+      font-size: 1.05rem;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+    .checkpoint-rec-copy {
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: .92rem;
+    }
+    .checkpoint-rec-minutes {
+      min-width: 84px;
+      text-align: center;
+      padding: 12px;
+      border-radius: 16px;
+      color: #071311;
+      background: linear-gradient(135deg, #5eead4, #a3e635);
+      font-family: var(--display);
+      font-size: 1.8rem;
+      line-height: 1;
+    }
+    .checkpoint-rec-minutes span {
+      display: block;
+      margin-top: 4px;
+      font-family: var(--mono);
+      font-size: .62rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
     @media (max-width: 980px) {
       .home-hero-shell,
       .home-strip,
@@ -596,6 +651,9 @@
         grid-template-columns: 1fr;
       }
       .airport-intel-top {
+        grid-template-columns: 1fr;
+      }
+      .checkpoint-recommendation.is-visible {
         grid-template-columns: 1fr;
       }
     }
@@ -1095,6 +1153,14 @@
       {% else %}
       <div id="selection-summary" class="selection-summary" style="display:none;"></div>
       {% endif %}
+      <div id="checkpoint-recommendation" class="checkpoint-recommendation">
+        <div>
+          <div class="checkpoint-rec-kicker">Best checkpoint right now</div>
+          <div class="checkpoint-rec-title" id="checkpoint-rec-title">Select an airport</div>
+          <div class="checkpoint-rec-copy" id="checkpoint-rec-copy">The recommendation updates from live checkpoint data.</div>
+        </div>
+        <div class="checkpoint-rec-minutes" id="checkpoint-rec-minutes">--<span>min</span></div>
+      </div>
       {% if airport_notice %}
       <div id="airport-status-banner" class="airport-status-banner" style="margin-top:12px;padding:14px 16px;border:1px solid rgba(59,130,246,0.25);border-radius:14px;background:rgba(59,130,246,0.08);color:#e5eefc;">
         <div style="font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#93c5fd;margin-bottom:6px;">Official update</div>
@@ -1146,7 +1212,7 @@
               <div>
                 <p style="color: #fff; font-weight: bold; font-size: 14px; margin: 0 0 4px 0;">Long lines detected!</p>
                 <p style="color: #94a3b8; font-size: 12px; margin: 0;">If your departure is flexible, consider waiting
-                  for a lower-traffic window shown in the 12-hour chart below.</p>
+                  for a lower-traffic window shown in the 24-hour average chart below.</p>
               </div>
             </div>
           </div>
@@ -1262,7 +1328,7 @@
         your trip.</p>
       <p class="muted" style="margin-top:8px;">Want to cut security time permanently? <a href="/guide/tsa-precheck-clear">Compare TSA PreCheck, CLEAR, and the best travel cards →</a></p>
       <ul class="content-list">
-        <li>Check your airport's current wait time and 12-hour trend 30–60 minutes before leaving.</li>
+        <li>Check your airport's current wait time and 24-hour historical average 30–60 minutes before leaving.</li>
         <li>Confirm your terminal and security entrance before rideshare drop-off or parking.</li>
         <li>If your airport shows lane-level data, compare Standard vs PreCheck before choosing a checkpoint.</li>
         <li>Keep ID, boarding pass, and carry-on electronics accessible to reduce secondary screening delays.</li>
@@ -1274,9 +1340,9 @@
     <section class="card card-chart">
       <div class="card-head">
         <h2>Wait History</h2>
-        <span class="chip">Rolling 12 hours</span>
+        <span class="chip">24-hour average</span>
       </div>
-      <p class="chart-planning-tip">This chart shows actual wait times captured over the last 12 hours, building a rolling history as new data arrives. Use it to spot patterns — if you see consistent waits between 4–7 PM, plan to arrive earlier or check a less-busy checkpoint.</p>
+      <p class="chart-planning-tip">This chart shows actual wait times captured over the past 30 days grouped by local hour, building a rolling history as new data arrives. Use it to spot patterns — if you see consistent waits between 4–7 PM, plan to arrive earlier or check a less-busy checkpoint.</p>
       <div class="controls">
         <label for="airport-select">Airport</label>
         <select id="airport-select"></select>
@@ -1426,7 +1492,7 @@
       <h2>About {{ initial_airport_code }} Airport Security Wait Times</h2>
       <p class="muted">TSA Tracker provides live TSA checkpoint wait times for {{ airport_display_name }} ({{
         initial_airport_code }}). Data is pulled directly from official {{ initial_airport_code }} airport security
-        feeds — not estimates — and refreshes every ~2 minutes. Use the live data and 12-hour history chart above to
+        feeds — not estimates — and refreshes every ~2 minutes. Use the live data and 24-hour historical average chart above to
         plan when to head to the airport.</p>
 
       <div class="content-columns">
@@ -1574,7 +1640,7 @@
         </div>
         <div class="faq-item">
           <h3>What time should I get to {{ initial_airport_code }}?</h3>
-          <p>Check the 12-hour history chart above to see when {{ initial_airport_code }} TSA lines are typically
+          <p>Check the 24-hour historical average chart above to see when {{ initial_airport_code }} TSA lines are typically
             busiest. Generally, TSA recommends arriving 2 hours before domestic flights and 3 hours before international
             — but if our live data shows long lines during your window, add extra time. Today, the best flexible arrival window looks like <strong>{{ arrival_guidance.best_window }}</strong>, while <strong>{{ arrival_guidance.risk_window }}</strong> is the period to treat more carefully.</p>
         </div>
@@ -1603,7 +1669,7 @@
           <ul class="content-list">
             <li>Search or tap an airport above to see how long the TSA security line is right now.</li>
             <li>Green = short wait (under 15 min). Yellow = moderate. Red = long — plan ahead!</li>
-            <li>Check the 12-hour history chart to see peak times and decide when to head to the airport.</li>
+            <li>Check the 24-hour historical average chart to see peak times and decide when to head to the airport.</li>
           </ul>
           <h3 style="margin-top:18px;">Helpful pages</h3>
           <ul class="content-list">
@@ -1647,7 +1713,7 @@
         </div>
         <div class="faq-item">
           <h3>What time should I get to the airport?</h3>
-          <p>It depends on the airport and time of day. Use the 12-hour history chart above to see when lines peak at
+          <p>It depends on the airport and time of day. Use the 24-hour historical average chart above to see when lines peak at
             your airport. As a general rule, TSA recommends arriving 2 hours before domestic flights and 3 hours before
             international — but if you see red in the chart during your travel window, add extra time.</p>
         </div>
@@ -1814,7 +1880,7 @@
           "name": "What time should I get to {{ initial_airport_code }}?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Check the 12-hour history chart on TSA Tracker to see when {{ initial_airport_code }} TSA lines are typically busiest. Generally, TSA recommends arriving 2 hours before domestic flights and 3 hours before international — but if live data shows long lines during your window, add extra time."
+            "text": "Check the 24-hour historical average chart on TSA Tracker to see when {{ initial_airport_code }} TSA lines are typically busiest. Generally, TSA recommends arriving 2 hours before domestic flights and 3 hours before international — but if live data shows long lines during your window, add extra time."
           }
         },
         {
@@ -1863,7 +1929,7 @@
           "name": "What time should I get to the airport?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "It depends on the airport and time of day. Use the 12-hour history chart to see when lines peak at your airport. TSA recommends arriving 2 hours before domestic flights and 3 hours before international."
+            "text": "It depends on the airport and time of day. Use the 24-hour historical average chart to see when lines peak at your airport. TSA recommends arriving 2 hours before domestic flights and 3 hours before international."
           }
         },
         {
