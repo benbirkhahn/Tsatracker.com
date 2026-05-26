@@ -822,10 +822,10 @@ def build_page_seo(title: str, description: str, canonical_path: str) -> Dict:
 
 def home_page_seo() -> Dict:
     return build_page_seo(
-        title="Live TSA Wait Times at Major US Airports | TSA Tracker",
+        title="Airport Security Wait Times | Live TSA Wait Times at Major US Airports | TSA Tracker",
         description=(
-            "Real-time TSA security wait times for PHL, BOS, MIA, ORD, LAX, JFK, EWR, LGA, SEA, DFW and more. "
-            "Live airport security line data pulled directly from official airport systems — updated every 2 minutes."
+            "Check live airport security wait times for PHL, BOS, MIA, ORD, LAX, JFK, EWR, LGA, SEA, DFW and more. "
+            "Real-time TSA security line data pulled directly from official airport systems — updated every 2 minutes."
         ),
         canonical_path="/",
     )
@@ -845,9 +845,9 @@ def airport_page_seo(code: str, airport_name: str) -> Dict:
 
 def airports_directory_seo() -> Dict:
     return build_page_seo(
-        title="Airport Overview | Live TSA Wait Times by Airport | TSA Tracker",
+        title="Airport Security Wait Times by Airport | Live TSA Wait Times | TSA Tracker",
         description=(
-            "See live TSA wait times for all major airports at once, sorted by current average wait. "
+            "See live airport security wait times for all major airports at once, sorted by current average wait. "
             "Open any airport page for checkpoint detail, trends, and planning notes."
         ),
         canonical_path="/airports",
