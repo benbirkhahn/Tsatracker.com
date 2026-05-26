@@ -834,9 +834,9 @@ def home_page_seo() -> Dict:
 def airport_page_seo(code: str, airport_name: str) -> Dict:
     clean_name = airport_name.split("(")[0].strip()
     return build_page_seo(
-        title=f"{code} TSA Wait Times — Live Security Line Data | {clean_name} | TSA Tracker",
+        title=f"{code} Airport Security Wait Times — Live TSA Line Data | {clean_name} | TSA Tracker",
         description=(
-            f"Live TSA security checkpoint wait times at {clean_name} ({code}). "
+            f"Live airport security wait times at {clean_name} ({code}). "
             f"Check current {code} security lines, terminal-specific notes, official airport resources, and the 12-hour trend before you leave."
         ),
         canonical_path=airport_seo_slug(code),
@@ -851,6 +851,17 @@ def airports_directory_seo() -> Dict:
             "Open any airport page for checkpoint detail, trends, and planning notes."
         ),
         canonical_path="/airports",
+    )
+
+
+def airport_security_wait_times_seo() -> Dict:
+    return build_page_seo(
+        title="Airport Security Wait Times | Live TSA Wait Times by Airport | TSA Tracker",
+        description=(
+            "Airport security wait times for major US airports, with live readings, airport-specific guidance, "
+            "best arrival windows, and links to the airport pages travelers actually need."
+        ),
+        canonical_path="/airport-security-wait-times",
     )
 
 
@@ -2737,6 +2748,26 @@ def airports_page():
     return render_template("airports.html", **airport_directory_context())
 
 
+@app.route("/airport-security-wait-times")
+def airport_security_wait_times_page():
+    overview = build_airport_overview_context()
+    return render_template(
+        "airport_security_wait_times.html",
+        seo=airport_security_wait_times_seo(),
+        monetization=get_monetization_context(),
+        live_airports=LIVE_AIRPORTS,
+        airport_pages=overview["airport_pages"],
+        airport_summaries=overview["airport_summaries"],
+        fastest_airport=overview["fastest_airport"],
+        slowest_airport=overview["slowest_airport"],
+        overall_average=overview["overall_average"],
+        live_count=overview["live_count"],
+        estimated_count=overview["estimated_count"],
+        copy_updated_label=current_copy_date_label(),
+        copy_updated_iso=current_copy_date_iso(),
+    )
+
+
 @app.route("/privacy")
 def privacy():
     seo = build_page_seo(
@@ -2982,6 +3013,7 @@ def sitemap_xml():
     pages = (
         [("/", "1.0", "hourly")]
         + [("/airports", "0.8", "daily")]
+        + [("/airport-security-wait-times", "0.85", "daily")]
         + [(airport_seo_slug(c), "0.9", "always") for c in LIVE_AIRPORTS.keys()]
         + [("/about", "0.6", "monthly"), ("/methodology", "0.8", "weekly"), ("/privacy", "0.3", "monthly"), ("/terms", "0.3", "monthly"), ("/contact", "0.4", "monthly"), ("/guide/tsa-wait-times", "0.7", "monthly"), ("/guide/tsa-precheck-clear", "0.7", "monthly")]
     )

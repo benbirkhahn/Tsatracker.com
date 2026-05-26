@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% if monetization.adsense_client %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
+  {% include "_adsense_head.html" %}
+  <title>{{ seo.title }}</title>
+  <meta name="description" content="{{ seo.description }}">
+  <link rel="canonical" href="{{ seo.canonical_url }}">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="{{ seo.title }}">
+  <meta property="og:description" content="{{ seo.description }}">
+  <meta property="og:url" content="{{ seo.canonical_url }}">
+  <meta property="og:image" content="{{ seo.site_url }}/static/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ seo.title }}">
+  <meta name="twitter:description" content="{{ seo.description }}">
+  <meta name="twitter:image" content="{{ seo.site_url }}/static/og-image.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Oswald:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .content-card h1 { color: var(--text); line-height: 1.15; }
+    .content-card h2 { font-size: 1.25rem !important; font-family: inherit !important; text-transform: none !important; letter-spacing: 0 !important; color: var(--text) !important; }
+    .content-card h3 { font-size: 1rem !important; font-family: inherit !important; text-transform: none !important; letter-spacing: 0 !important; color: var(--text) !important; }
+    .content-card p { font-size: 0.96rem; line-height: 1.75; color: var(--text); }
+    .content-card p.muted { color: var(--muted); }
+    .content-card a { color: var(--amber); text-decoration: none; }
+    .content-card a:hover { text-decoration: underline; }
+    .link-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 14px; }
+    .link-card { background: var(--surface2); border: 1px solid #2a2a40; border-radius: 12px; padding: 14px 16px; }
+    .link-card .label { color: var(--amber); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 6px; }
+    .link-card .title { color: var(--text); font-weight: 700; margin-bottom: 6px; }
+    .link-card .copy { color: var(--muted); font-size: 0.9rem; line-height: 1.55; }
+    .airport-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-top: 14px; }
+    .airport-chip {
+      display: block;
+      background: var(--surface2);
+      border: 1px solid #2a2a40;
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: inherit;
+      text-decoration: none;
+    }
+    .airport-chip:hover { border-color: #44445f; text-decoration: none; }
+    .airport-chip .code { color: var(--amber); font-weight: 700; margin-bottom: 2px; }
+    .airport-chip .name { color: var(--text); font-size: 0.92rem; line-height: 1.45; }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 16px 0 18px; }
+    .stat-card { background: var(--surface2); border: 1px solid #2a2a40; border-radius: 12px; padding: 14px 16px; }
+    .stat-label { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 8px; }
+    .stat-value { color: #fff; font-size: 1.7rem; line-height: 1; font-weight: 700; margin-bottom: 4px; }
+    .stat-sub { color: var(--muted); font-size: 0.88rem; line-height: 1.45; }
+    .faq-item { background: var(--surface2); border: 1px solid #2a2a40; border-radius: 12px; padding: 14px 16px; margin-top: 10px; }
+    .faq-item h3 { margin: 0 0 8px; }
+    .faq-item p { margin: 0; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <a href="/" class="header-home-link">
+      <span class="logo-shield">✈️</span>
+      <div>
+        <div class="logo-name">TSA Tracker</div>
+        <div class="logo-tag">Live airport data</div>
+      </div>
+    </a>
+    <nav class="header-nav">
+      <a href="/" class="header-nav-link">Home</a>
+      <a href="/airports" class="header-nav-link">Airports</a>
+      <a href="/airport-security-wait-times" class="header-nav-link active">Airport Wait Times</a>
+      <a href="/methodology" class="header-nav-link">Methodology</a>
+    </nav>
+    <div class="header-external-links">
+      <span class="header-external-label">More from Ben</span>
+      <a href="https://benbirkhahn.com" class="header-external-link primary" target="_blank" rel="noopener">Other Projects</a>
+      <a href="https://github.com/benbirkhahn" class="header-external-link" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://www.linkedin.com/in/benjamin-birkhahn-421870240" class="header-external-link" target="_blank" rel="noopener">LinkedIn</a>
+    </div>
+  </header>
+
+  <main class="main">
+    <article class="card content-card" style="max-width:860px;margin:0 auto;" itemscope itemtype="https://schema.org/Article">
+      <div style="margin-bottom:8px;">
+        <span style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);">Live Guide</span>
+      </div>
+      <h1 itemprop="headline" style="font-size:2rem;font-weight:700;margin-bottom:10px;">Airport Security Wait Times</h1>
+      <p class="muted" style="margin-bottom:6px;">Find live airport security wait times, compare the busiest airports, and open the airport page that matches your trip before you leave home.</p>
+      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:24px;"><em>By the TSA Tracker team · Updated {{ copy_updated_label }}</em></p>
+
+      <div class="link-grid">
+        <div class="link-card">
+          <div class="label">Start Here</div>
+          <div class="title">Live airport wait times</div>
+          <div class="copy">Use the homepage for the fastest overview of the current airport security picture.</div>
+          <div style="margin-top:10px;"><a href="/">Open Home</a></div>
+        </div>
+        <div class="link-card">
+          <div class="label">Browse Airports</div>
+          <div class="title">Compare all live airports</div>
+          <div class="copy">Use the airport index if you want a ranked list of the current waits across the network.</div>
+          <div style="margin-top:10px;"><a href="/airports">Open Airports</a></div>
+        </div>
+        <div class="link-card">
+          <div class="label">Method</div>
+          <div class="title">How the data works</div>
+          <div class="copy">See how TSA Tracker labels live vs fallback data, updates snapshots, and keeps the site honest.</div>
+          <div style="margin-top:10px;"><a href="/methodology">Open Methodology</a></div>
+        </div>
+      </div>
+
+      <h2 style="margin:34px 0 10px;">Why airport security wait times matter</h2>
+      <p>Most travelers do not need a perfect forecast. They need a fast answer to a practical question: should I leave now, wait 20 minutes, or build extra buffer into my trip? This page is designed for that decision.</p>
+      <p>Airport-specific pages matter because one airport can be calm while another is spiking, and one terminal can move faster than another within the same city. That is why TSA Tracker keeps the airport hub, the airport pages, and the live charts connected instead of hiding everything behind one generic number.</p>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Live airports</div>
+          <div class="stat-value">{{ live_count }}</div>
+          <div class="stat-sub">{{ estimated_count }} fallback airport{{ 's' if estimated_count != 1 else '' }} also listed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Fastest now</div>
+          <div class="stat-value">{{ fastest_airport.code }}</div>
+          <div class="stat-sub">{{ fastest_airport.wait_description }} average</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Slowest now</div>
+          <div class="stat-value">{{ slowest_airport.code }}</div>
+          <div class="stat-sub">{{ slowest_airport.wait_description }} average</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Network average</div>
+          <div class="stat-value">{{ "%.1f"|format(overall_average) }}</div>
+          <div class="stat-sub">minutes across live airport feeds</div>
+        </div>
+      </div>
+
+      <h2 style="margin:34px 0 10px;">Open the airport page that matches your trip</h2>
+      <p>The best search result for you is usually the airport page, not the general homepage. Each one adds airport-specific notes, terminal context, and a history chart to help you time your arrival.</p>
+      <div class="airport-grid">
+        {% for airport in airport_pages[:8] %}
+        <a class="airport-chip" href="{{ airport.href }}">
+          <div class="code">{{ airport.code }}</div>
+          <div class="name">{{ airport.name }}</div>
+        </a>
+        {% endfor %}
+      </div>
+      <p style="margin-top:12px;">If your airport is not listed here, check the <a href="/airports">airport index</a> first. It is the fastest way to jump into a live page and compare options.</p>
+
+      <h2 style="margin:34px 0 10px;">How to use live wait times well</h2>
+      <ul class="content-list">
+        <li>Check the page 30 to 60 minutes before you leave so the data is close to your departure time.</li>
+        <li>Use the history chart to spot a rising pattern instead of looking only at the current number.</li>
+        <li>Open the airport page when you need terminal, PreCheck, or official airport link context.</li>
+        <li>If the wait is high, add buffer. If it is low, still leave room for parking, terminal walking, and bag drop.</li>
+      </ul>
+
+      <h2 style="margin:34px 0 10px;">Best related pages</h2>
+      <div class="link-grid">
+        <div class="link-card">
+          <div class="label">Guide</div>
+          <div class="title">TSA wait times explained</div>
+          <div class="copy">A deeper guide to peak hours, lane types, and how to make the readings actionable.</div>
+          <div style="margin-top:10px;"><a href="/guide/tsa-wait-times">Open guide</a></div>
+        </div>
+        <div class="link-card">
+          <div class="label">Programs</div>
+          <div class="title">PreCheck vs CLEAR</div>
+          <div class="copy">Compare the programs that can shorten your trip through security.</div>
+          <div style="margin-top:10px;"><a href="/guide/tsa-precheck-clear">Open comparison</a></div>
+        </div>
+        <div class="link-card">
+          <div class="label">Methodology</div>
+          <div class="title">How the data is sourced</div>
+          <div class="copy">See how the site labels live data, fallback data, and update frequency.</div>
+          <div style="margin-top:10px;"><a href="/methodology">Open methodology</a></div>
+        </div>
+      </div>
+
+      <h2 style="margin:34px 0 10px;">Frequently asked questions</h2>
+      <div class="faq-item">
+        <h3>How often does TSA Tracker update airport security wait times?</h3>
+        <p>Approximately every 2 minutes for live airports, with timestamps shown so you can judge freshness before you leave.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Should I use the homepage or the airport page?</h3>
+        <p>Use the homepage for a broad scan. Use the airport page when you already know where you are flying and want the most specific wait-time context.</p>
+      </div>
+      <div class="faq-item">
+        <h3>What if my airport is not live yet?</h3>
+        <p>Use the airport index and methodology page first. TSA Tracker only marks an airport live when the source is official and consistently reachable.</p>
+      </div>
+      <div class="faq-item">
+        <h3>What should I check before leaving for the airport?</h3>
+        <p>Check the current wait, the history chart, your terminal, and any PreCheck or CLEAR lane notes that apply to your trip.</p>
+      </div>
+    </article>
+  </main>
+
+  <footer class="footer">
+    <div>TSA Tracker — live security wait times. Data refreshes every ~2 minutes.</div>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <span>·</span>
+      <a href="/airports">Airports</a>
+      <span>·</span>
+      <a href="/airport-security-wait-times">Airport Wait Times</a>
+      <span>·</span>
+      <a href="/about">About</a>
+      <span>·</span>
+      <a href="/methodology">Methodology</a>
+      <span>·</span>
+      <a href="/guide/tsa-wait-times">TSA Guide</a>
+      <span>·</span>
+      <a href="/guide/tsa-precheck-clear">PreCheck vs CLEAR</a>
+      <span>·</span>
+      <a href="/contact">Contact</a>
+    </div>
+  </footer>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Airport Security Wait Times",
+    "description": "{{ seo.description }}",
+    "url": "{{ seo.canonical_url }}",
+    "datePublished": "2025-05-26",
+    "dateModified": "{{ copy_updated_iso }}",
+    "author": {
+      "@id": "{{ seo.site_url }}/#organization"
+    },
+    "publisher": {
+      "@id": "{{ seo.site_url }}/#organization"
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How often does TSA Tracker update airport security wait times?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Approximately every 2 minutes for live airports, with timestamps shown so you can judge freshness before you leave."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Should I use the homepage or the airport page?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Use the homepage for a broad scan. Use the airport page when you already know where you are flying and want the most specific wait-time context."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What if my airport is not live yet?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Use the airport index and methodology page first. TSA Tracker only marks an airport live when the source is official and consistently reachable."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What should I check before leaving for the airport?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Check the current wait, the history chart, your terminal, and any PreCheck or CLEAR lane notes that apply to your trip."
+        }
+      }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": "{{ seo.site_url }}/#organization",
+    "name": "TSA Tracker",
+    "url": "{{ seo.site_url }}",
+    "sameAs": [
+      "https://x.com/tsatrackerr",
+      "https://twitter.com/tsatrackerr"
+    ]
+  }
+  </script>
+  {% include "_affiliate_scripts.html" %}
+</body>
+</html>

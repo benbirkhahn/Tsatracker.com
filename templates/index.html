@@ -261,8 +261,8 @@
         {{ live_airports|length }} airports · real-time
       </div>
       {% if is_airport_page %}
-      <h1 class="hero-headline" id="hero-title">{{ initial_airport_code }} TSA <em>Wait Times</em></h1>
-      <p class="hero-sub" id="hero-sub">How long is the security line at {{ airport_display_name }}? Real-time TSA checkpoint data
+      <h1 class="hero-headline" id="hero-title">{{ initial_airport_code }} Airport Security <em>Wait Times</em></h1>
+      <p class="hero-sub" id="hero-sub">How long is the security line at {{ airport_display_name }}? Real-time airport security wait time data
         pulled directly from official airport systems — not estimates. Updated every ~2 minutes.</p>
       {% else %}
       <h1 class="hero-headline" id="hero-title">Live Airport Security Wait Times<br>at Major <em>US Airports</em></h1>
@@ -479,6 +479,7 @@
         <p style="margin:0 0 8px;font-weight:700;color:#fff;">Best place to start</p>
         <p style="margin:0;color:var(--muted);line-height:1.65;">If you are comparing options or trying to understand the numbers, these pages explain the site better than the homepage alone.</p>
         <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;">
+          <a href="/airport-security-wait-times" class="snapshot-link">Airport wait times guide</a>
           <a href="/airports" class="snapshot-link">Airport index</a>
           <a href="/methodology" class="snapshot-link">How the data works</a>
           <a href="/guide/tsa-wait-times" class="snapshot-link">TSA wait times guide</a>
@@ -677,7 +678,7 @@
     <!-- ── SEO CONTENT ── -->
     {% if is_airport_page %}
     <section class="card content-card">
-      <h2>About {{ initial_airport_code }} TSA Security Wait Times</h2>
+      <h2>About {{ initial_airport_code }} Airport Security Wait Times</h2>
       <p class="muted">TSA Tracker provides live TSA checkpoint wait times for {{ airport_display_name }} ({{
         initial_airport_code }}). Data is pulled directly from official {{ initial_airport_code }} airport security
         feeds — not estimates — and refreshes every ~2 minutes. Use the live data and 12-hour history chart above to
@@ -752,6 +753,7 @@
           <h3>Related planning guides</h3>
           <p class="muted" style="margin-bottom:8px;">Useful if you are still deciding when to leave or how much buffer to build in:</p>
           <ul class="content-list">
+            <li><a href="/airport-security-wait-times">Airport security wait times guide</a> — the best starting point for a fast live overview</li>
             <li><a href="/guide/tsa-wait-times">TSA wait times explained</a> — how the data works, peak hours, and the fastest screening strategies</li>
             <li><a href="/guide/tsa-precheck-clear">Best travel cards for airport-security perks</a> — cards that may help offset PreCheck or CLEAR costs</li>
           </ul>
@@ -801,7 +803,7 @@
             {% for code, info in live_airports.items() %}
             {% if code != initial_airport_code %}
             <li><a href="{{ airport_pages | selectattr('code', 'equalto', code) | map(attribute='href') | first }}">{{
-                code }} TSA wait times</a> — {{ info.name }}</li>
+                code }} airport security wait times</a> — {{ info.name }}</li>
             {% endif %}
             {% endfor %}
           </ul>
@@ -809,9 +811,9 @@
       </div>
 
       <div class="faq-section">
-        <h2>{{ initial_airport_code }} TSA Wait Times — FAQ</h2>
+        <h2>{{ initial_airport_code }} Airport Security Wait Times — FAQ</h2>
         <div class="faq-item">
-          <h3>How accurate is the {{ initial_airport_code }} TSA wait time data?</h3>
+          <h3>How accurate is the {{ initial_airport_code }} airport security wait time data?</h3>
           <p>TSA Tracker pulls data directly from {{ airport_display_name }}'s official airport security feed, not
             crowdsourced estimates. The checkpoint readings reflect actual measured wait times updated approximately
             every 2 minutes.</p>
@@ -824,12 +826,12 @@
         </div>
         <div class="faq-item">
           <h3>What are the peak hours at {{ initial_airport_code }} security?</h3>
-          <p>Peak TSA wait times at most airports fall between 5–9 AM and 4–7 PM on weekdays, and Sunday afternoons. Use
+          <p>Peak airport security wait times at most airports fall between 5–9 AM and 4–7 PM on weekdays, and Sunday afternoons. Use
             the history chart on this page to see the specific pattern for {{ initial_airport_code }} today. Right now, the highest-risk window in the forecast is <strong>{{ arrival_guidance.risk_window }}</strong>.</p>
         </div>
         <div class="faq-item">
           <h3>How often does TSA Tracker update {{ initial_airport_code }} wait times?</h3>
-          <p>{{ initial_airport_code }} TSA wait times on TSA Tracker update approximately every 2 minutes, pulling
+          <p>{{ initial_airport_code }} airport security wait times on TSA Tracker update approximately every 2 minutes, pulling
             fresh data directly from the airport's live security feed.</p>
         </div>
       </div>
@@ -879,13 +881,13 @@
       <div class="faq-section">
         <h2>Frequently Asked Questions</h2>
         <div class="faq-item">
-          <h3>How accurate are TSA wait time apps?</h3>
+          <h3>How accurate are airport security wait time apps?</h3>
           <p>TSA Tracker pulls data directly from official airport systems — not crowdsourced reports or estimates. This
             means our wait times reflect actual checkpoint readings from the airport's own infrastructure, updated every
             ~2 minutes.</p>
         </div>
         <div class="faq-item">
-          <h3>How often are TSA wait times updated?</h3>
+          <h3>How often are airport security wait times updated?</h3>
           <p>TSA Tracker refreshes every approximately 2 minutes, pulling the latest readings from each airport's live
             data feed. The timestamp shown on each checkpoint tells you exactly how fresh the data is.</p>
         </div>
@@ -901,7 +903,7 @@
             shows separate wait times for Standard, PreCheck, and CLEAR lanes so you can compare directly.</p>
         </div>
         <div class="faq-item">
-          <h3>Which airports have live TSA wait time data?</h3>
+          <h3>Which airports have live airport security wait time data?</h3>
           <p>TSA Tracker currently has live feeds for {{ live_airports|length }} airports. Check the Airports page for the full live list and the current "Coming Soon" section for what is being added next.</p>
         </div>
       </div>
@@ -943,6 +945,8 @@
     <div>TSA Tracker — live security wait times. Data refreshes every ~2 minutes.</div>
     <div class="footer-links">
       <a href="/airports">Airports</a>
+      <span>·</span>
+      <a href="/airport-security-wait-times">Airport Wait Times</a>
       <span>·</span>
       <a href="/about">About</a>
       <span>·</span>
@@ -1045,7 +1049,7 @@
       "mainEntity": [
         {
           "@type": "Question",
-          "name": "How accurate is the {{ initial_airport_code }} TSA wait time data?",
+          "name": "How accurate is the {{ initial_airport_code }} airport security wait time data?",
           "acceptedAnswer": {
           "@type": "Answer",
             "text": "{% if initial_data.sourceType == 'live_direct' %}TSA Tracker is currently pulling data directly from {{ airport_display_name }}'s official airport security feed, not crowdsourced estimates. The checkpoint readings reflect actual measured wait times updated approximately every 2 minutes.{% else %}Live checkpoint data is not currently available for {{ airport_display_name }}, so TSA Tracker is showing a planning estimate alongside airport-specific notes and official airport resources. Check the source-status language on the page before relying on the current number as a live checkpoint reading.{% endif %}"
@@ -1064,7 +1068,7 @@
           "name": "What are the peak hours at {{ initial_airport_code }} security?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Peak TSA wait times at most airports fall between 5–9 AM and 4–7 PM on weekdays, and Sunday afternoons. Use the history chart on TSA Tracker to see the specific pattern for {{ initial_airport_code }} today."
+            "text": "Peak airport security wait times at most airports fall between 5–9 AM and 4–7 PM on weekdays, and Sunday afternoons. Use the history chart on TSA Tracker to see the specific pattern for {{ initial_airport_code }} today."
           }
         },
         {
@@ -1072,7 +1076,7 @@
           "name": "How often does TSA Tracker update {{ initial_airport_code }} wait times?",
           "acceptedAnswer": {
           "@type": "Answer",
-            "text": "{% if initial_data.sourceType == 'live_direct' %}{{ initial_airport_code }} TSA wait times on TSA Tracker update approximately every 2 minutes, pulling fresh data directly from the airport's live security feed.{% else %}When the live {{ initial_airport_code }} feed is unavailable, TSA Tracker falls back to a planning estimate and keeps the airport-specific context on the page visible so the traveler can still judge risk windows and terminal constraints.{% endif %}"
+            "text": "{% if initial_data.sourceType == 'live_direct' %}{{ initial_airport_code }} airport security wait times on TSA Tracker update approximately every 2 minutes, pulling fresh data directly from the airport's live security feed.{% else %}When the live {{ initial_airport_code }} feed is unavailable, TSA Tracker falls back to a planning estimate and keeps the airport-specific context on the page visible so the traveler can still judge risk windows and terminal constraints.{% endif %}"
           }
         }
       ]
@@ -1118,7 +1122,7 @@
         },
         {
           "@type": "Question",
-          "name": "Which airports have live TSA wait time data?",
+          "name": "Which airports have live airport security wait time data?",
           "acceptedAnswer": {
             "@type": "Answer",
             "text": "TSA Tracker currently has live feeds for {{ live_airports|length }} airports. Check the Airports page for the full live list."
