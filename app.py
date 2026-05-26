@@ -372,18 +372,21 @@ AIRPORT_PAGE_GUIDES = {
     },
     "ORD": {
         "tips": [
-            "ORD is large enough that terminal and checkpoint choice matter more than the airport-wide average alone.",
-            "At O'Hare, the best move is usually to trust the live checkpoint spread and not the assumption that every line is equally backed up.",
-            "If you are flying international out of Terminal 5, treat that as its own security workflow rather than an extension of the domestic terminals.",
+            "ORD travelers should confirm the exact departure terminal before choosing security because Terminals 1, 2, 3, and 5 each run their own checkpoint workflow.",
+            "If you are flying international out of Terminal 5, treat that as its own security workflow rather than an extension of the domestic-terminal experience.",
+            "ORD does not publish the same kind of official live checkpoint table as some airports, so use the airport map, airline app, and TSA resources together before leaving.",
         ],
         "notes": [
-            "Chicago O'Hare can look calm at one checkpoint and much slower at another, which is why checkpoint-level data matters here more than a single airport average.",
-            "This page is especially useful for business-travel windows when ORD security can ramp up quickly in Terminals 1 and 3.",
+            "The official FlyChicago map is the strongest source for matching your terminal and gate area to the correct checkpoint.",
+            "Terminals 1, 2, and 3 handle most domestic traffic, while Terminal 5 is the major international workflow.",
+            "Because ORD's official TSA page does not publish detailed checkpoint hours or live waits, same-day travelers should not assume every checkpoint is operating identically.",
         ],
         "terminal_notes": [
-            "O'Hare splits departing passengers across Terminals 1, 2, 3, and 5, with multiple named checkpoints in the busiest terminals.",
-            "Checkpoint numbering matters here because different terminals run very different hours and screening mixes.",
-            "Terminal 5 is operationally separate enough that travelers should plan for its own screening rhythm rather than assuming domestic-terminal behavior.",
+            "Terminal 1 is the major United terminal and has its own security entry points shown on the official ORD map.",
+            "Terminal 2 carries a smaller domestic mix and should be checked separately from Terminal 1 even when your airline is connected to United.",
+            "Terminal 3 is the main American Airlines terminal and should be treated as its own security decision.",
+            "Terminal 5 handles many international departures and has a separate screening environment from the domestic terminals.",
+            "Use the official map for the gate-side walking plan because checkpoint choice and post-security connectivity can vary by terminal and concourse.",
         ],
         "airline_notes": [
             "United drives the biggest volume in Terminal 1, while American dominates Terminal 3, so those two terminals shape most same-day congestion.",
@@ -397,18 +400,21 @@ AIRPORT_PAGE_GUIDES = {
     },
     "LAX": {
         "tips": [
-            "LAX security timing can vary a lot by terminal, so confirm your airline terminal before heading to the checkpoint.",
-            "At LAX, total departure friction often includes terminal routing, shuttle time, or post-security busing in addition to the TSA line itself.",
-            "Morning departures and evening bank departures tend to be the main stress windows at LAX, so the history chart matters more here than at smaller airports.",
+            "LAX security is terminal-specific across Terminals 1-8 plus Terminal B, so confirm your exact terminal before heading to the checkpoint.",
+            "Security screening hours vary by terminal and flight schedule, with LAX guidance generally placing screening operations from early morning into late night rather than true 24-hour access.",
+            "At LAX, total departure friction often includes terminal routing, curb traffic, shuttle time, or a Terminal B connection in addition to the TSA line itself.",
         ],
         "notes": [
-            "LAX spreads traffic across multiple terminals, which means one checkpoint can be moving quickly while another is backed up.",
-            "This page is most useful when you are deciding whether your main risk is the line itself, the terminal layout, or the bus-to-TBIT workflow.",
+            "The official LAX terminal map is the key source for airline location and checkpoint placement.",
+            "LAX limits terminal access to ticketed passengers, people meeting or assisting travelers, and airport business, so very early arrivals should still confirm terminal security timing.",
+            "This page is most useful when you are deciding whether your main risk is the line itself, terminal layout, curbside congestion, or a Terminal B workflow.",
         ],
         "terminal_notes": [
-            "LAX divides departing passengers across Terminals 1 through 8 plus Terminal B, so there is no single airport-wide security experience.",
-            "Some low-cost and international workflows still involve domestic-terminal check-in followed by post-security transport toward Terminal B.",
-            "Walking time between adjacent terminals and shuttle time between non-adjacent terminals should be part of your arrival buffer here.",
+            "Terminal 1 is a major Southwest checkpoint environment and should be checked separately from the rest of the horseshoe.",
+            "Terminals 2 and 3 are heavily associated with Delta operations, but passengers should still trust the boarding pass over old terminal habits.",
+            "Terminals 4 and 5 are the core American Airlines zone, while Terminal 6 is commonly associated with Alaska and partner traffic.",
+            "Terminals 7 and 8 are the main United area and can have a very different flow from Terminal B.",
+            "Terminal B is the core international screening environment, and some itineraries can involve check-in or movement across multiple terminal areas.",
         ],
         "airline_notes": [
             "Delta concentrates in Terminal 3, American in Terminals 4 and 5, United in Terminals 7 and 8, Southwest in Terminal 1, and Alaska in Terminal 6.",
@@ -622,17 +628,21 @@ AIRPORT_PAGE_GUIDES = {
     },
     "LAS": {
         "tips": [
-            "LAS shows separate live wait-time widgets for Terminal 1 and Terminal 3 checkpoint groups, so compare both before choosing where to enter.",
-            "The airport page embeds the live Zensors widget directly, which makes the current reading useful for same-day planning rather than just a historical estimate.",
-            "If one terminal group is calm and the other is backed up, use the airport's checkpoint grouping and your airline terminal to pick the better entry point.",
+            "LAS has five named TSA checkpoint groups, so match your gate letters to the right checkpoint rather than using a single airport-wide line.",
+            "The C/D checkpoint is the official 24-hour option, which matters for late-night and very early departures when other LAS checkpoints may be closed.",
+            "LAS recommends the standard buffer of two hours for domestic flights and three hours for international flights because checkpoint demand changes sharply by terminal and departure bank.",
         ],
         "notes": [
             "Harry Reid publishes live security wait times directly on its official airport site.",
-            "The page exposes both a current wait-time widget and an hourly planner widget for the same checkpoint groups.",
+            "The official LAS security page names A/B Gates, C Gates, C/D Gates, Terminal 3 Level 2, and Terminal 3 Level Zero Innovation as separate security choices.",
+            "Checkpoint hours vary meaningfully, so a closed or limited-hours checkpoint can matter as much as the current wait number.",
         ],
         "terminal_notes": [
-            "Terminal 1 and Terminal 3 have distinct checkpoint groupings on the official wait-time page.",
-            "Use the live widget labels rather than assuming the terminal with the shortest name is always the fastest checkpoint entry.",
+            "A/B Gates checkpoint is in Terminal 1 and is listed with long operating hours but not 24-hour coverage.",
+            "C Gates checkpoint is specifically labeled for Southwest Airlines traffic in Terminal 1.",
+            "C/D Gates checkpoint is listed as open 24 hours and can be important for overnight or very early travel.",
+            "Terminal 3 Level 2 serves D and E gates, so passengers using those gates should not default to Terminal 1 security.",
+            "The Terminal 3 Level Zero Innovation Checkpoint has limited daytime hours, so verify it before planning around it.",
         ],
         "airline_notes": [
             "Southwest-heavy traffic often routes through Terminal 1, while many other carriers use Terminal 3.",
@@ -646,18 +656,21 @@ AIRPORT_PAGE_GUIDES = {
     },
     "SEA": {
         "tips": [
-            "Seattle (SEA) offers 'SEA Spot Saver'—a free program where you can reserve a security screening slot in advance for Checkpoints 2 or 5.",
-            "All five checkpoints are in the Central Terminal and provide access to all gates, but Checkpoint 4 is the only one open 24 hours a day.",
-            "Checkpoint 1 (located on the baggage level) is often the fastest choice if you're not checking bags during the morning rush (5–9 AM).",
+            "SEA publishes checkpoint-by-checkpoint lane types and hours, so choose by service need: general, premium, CLEAR, SEA Spot Saver, or TSA PreCheck.",
+            "SEA states that all gates are accessible from any checkpoint, which makes shortest-line selection more useful than at terminal-isolated airports.",
+            "Checkpoint 4 is the 24-hour checkpoint, while the other checkpoints have published daily windows that can change by operation.",
         ],
         "notes": [
-            "SEA is a major hub for Alaska Airlines (Concourses C, D, and North Satellite) and Delta (Concourse A and South Satellite).",
-            "Once through security, you can use the SEA Underground train to reach the North and South satellites; factor in 10+ minutes for this transit.",
-            "Wait times are centralized but peak heavily between 5-9 AM and 2-5 PM—use Spot Saver to bypass these waves.",
+            "SEA's official security page lists six checkpoints and identifies lane types by checkpoint.",
+            "The live wait-time page recommends two hours before domestic flights and three hours before international flights.",
+            "SEA calls out additional peak periods from 2-5 PM and 9-11 PM, so the airport can be busy outside the normal morning rush.",
         ],
         "terminal_notes": [
-            "Checkpoints 1-3 are generally best for A and B gates and the South Satellite. Checkpoints 5 and 6 are closest to C, D, and the North Satellite.",
-            "Checkpoint 5 is the primary hub for dedicated TSA PreCheck lanes near the Alaska Airlines gates.",
+            "Checkpoint 1 is closest to A and S gates and lists general screening, TSA PreCheck, and CLEAR options.",
+            "Checkpoint 2 is closest to A and S gates and supports general screening plus SEA Spot Saver during its published hours.",
+            "Checkpoint 3 is a central option with general screening, TSA PreCheck, Touchless ID, and premium-lane options.",
+            "Checkpoint 4 is open 24 hours and is closest to the Central Terminal plus B and C gates.",
+            "Checkpoints 5 and 6 are closest to C, D, and N gates; Checkpoint 5 is PreCheck-focused while Checkpoint 6 includes general, premium, PreCheck, and CLEAR options.",
         ],
         "airline_notes": [
             "Alaska Airlines passengers should aim for Checkpoints 5 or 6. Delta and international carriers typically route through A gates or the South Satellite.",
@@ -671,9 +684,9 @@ AIRPORT_PAGE_GUIDES = {
     },
     "SFO": {
         "tips": [
-            "SFO shows checkpoint and TSA PreCheck times by checkpoint, and every gate is accessible from any checkpoint once you clear security.",
-            "Checkpoint A and Checkpoint B are the main public-facing reference points; use the live table first, then confirm your airline terminal if the line is uneven.",
-            "The page is especially useful when PreCheck is materially shorter than the general lane, since SFO exposes both side by side.",
+            "SFO explicitly allows passengers with a same-day boarding pass to enter through any checkpoint and walk airside to all gates.",
+            "SFO publishes live wait times for six checkpoints: A, B, B-Mezzanine, D, F, and G.",
+            "All SFO checkpoints list TSA PreCheck, Priority Line, and CLEAR lanes, so the shortest line can be a real option even outside your closest terminal.",
         ],
         "notes": [
             "SFO's security page is server-rendered with the live wait-time table already in the HTML, so the collector can scrape it directly without a hidden API.",
@@ -681,17 +694,50 @@ AIRPORT_PAGE_GUIDES = {
             "The collector labels each checkpoint with its terminal area so travelers can tell at a glance whether a time is for International Terminal A, Harvey Milk Terminal 1, Terminal 2, Terminal 3, or International Terminal G.",
         ],
         "terminal_notes": [
-            "SFO labels checkpoints by letter and notes that all gates are accessible from any checkpoint, so travelers can choose the shortest line first.",
-            "Checkpoint B has a mezzanine-level row that can differ from the main checkpoint row, so the airport is not fully uniform by entrance.",
+            "Checkpoint A serves the International Terminal A side.",
+            "Checkpoint B and B-Mezzanine serve the Harvey Milk Terminal 1 side and can show different wait patterns.",
+            "Checkpoint D serves Terminal 2.",
+            "Checkpoint F serves Terminal 3.",
+            "Checkpoint G serves the International Terminal G side.",
+            "Because SFO connects all gates after security, passengers can choose a faster checkpoint and walk airside to their gate.",
         ],
         "airline_notes": [
-            "Use the checkpoint closest to your gate area, but don't assume you must screen there if another checkpoint is shorter.",
-            "The airport's own note says checkpoint letters reference the closest gates rather than limiting post-security access.",
+            "Use the checkpoint closest to your gate area when waits are similar, but do not assume you must screen there if another checkpoint is materially shorter.",
+            "TSA PreCheck and CLEAR travelers have flexibility because SFO lists both services across all checkpoints.",
         ],
         "links": [
             {"label": "Official SFO Security Wait Times", "url": "https://www.flysfo.com/passengers/flight-info/security-wait-times"},
             {"label": "Official SFO Check In & Security", "url": "https://www.flysfo.com/passengers/flight-info/check-in-security"},
+            {"label": "SFO TSA PreCheck", "url": "https://www.flysfo.com/passengers/services-amenities/expedited-travel/tsa-precheck"},
             {"label": "Official SFO Airport Site", "url": "https://www.flysfo.com/"},
+        ],
+    },
+    "DCA": {
+        "tips": [
+            "DCA has three security checkpoint locations: Terminal 1, Terminal 2 North, and Terminal 2 South.",
+            "Terminal 2 North is listed as the latest-running checkpoint, so it matters most for late Terminal 2 departures.",
+            "Official sources do not clearly state that Terminal 1 and Terminal 2 are fully interchangeable after security, so use the checkpoint tied to your gate area.",
+        ],
+        "notes": [
+            "Terminal 1 serves the A-gate area, while Terminal 2 covers the B, C, D, and E gate groups.",
+            "DCA checkpoint hours are published by the airport and generally start at 4:00 AM, useful for early first-bank departures.",
+            "CLEAR operates at DCA and also supports TSA PreCheck enrollment or renewal at the airport.",
+        ],
+        "terminal_notes": [
+            "Terminal 1 checkpoint serves gates A1-A9 and is listed from 4:00 AM to 9:00 PM.",
+            "Terminal 2 North checkpoint serves Terminal 2 traffic and is listed from 4:00 AM to 11:00 PM.",
+            "Terminal 2 South checkpoint serves Terminal 2 traffic and is listed from 4:00 AM to 9:00 PM.",
+            "Airport materials note checkpoints generally open around the early-morning departure bank and close after final departures.",
+            "Because Terminal 1 and Terminal 2 are separate gate groupings, confirm A versus B/C/D/E before choosing your checkpoint.",
+        ],
+        "airline_notes": [
+            "Use the gate group on your boarding pass first: A gates point to Terminal 1, while B, C, D, and E gates point to Terminal 2.",
+            "If you are not sure which side your airline is using that day, verify the gate in the airline app before heading to security.",
+        ],
+        "links": [
+            {"label": "Official DCA security information", "url": "https://www.flyreagan.com/travel-information/security-information"},
+            {"label": "Official DCA terminal map", "url": "https://www.flyreagan.com/travel-information/terminal-map"},
+            {"label": "DCA TSA PreCheck enrollment", "url": "https://ir.clearme.com/news-events/press-releases/detail/112/clear-an-official-tsa-precheck-enrollment-provider"},
         ],
     },
 }
