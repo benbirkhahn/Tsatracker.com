@@ -267,6 +267,28 @@ function checkpointSummary(rows) {
   };
 }
 
+function terminalChipLabel(note, index) {
+  const text = String(note || "");
+  const knownLabels = [
+    ["Domestic Terminal Main", "Main checkpoint"],
+    ["Domestic North", "North checkpoint"],
+    ["Domestic Lower North", "Lower North"],
+    ["Domestic South", "South PreCheck"],
+    ["International Terminal", "International Main"],
+    ["A-West", "A-West"],
+    ["D/E", "D/E connector"],
+    ["Terminal C", "Terminal C"],
+    ["Terminal A", "Terminal A"],
+    ["Terminal B", "Terminal B"],
+    ["Terminal 5", "Terminal 5"],
+    ["Terminal 1", "Terminal 1"],
+    ["Terminal 3", "Terminal 3"],
+  ];
+  const match = knownLabels.find(([needle]) => text.includes(needle));
+  if (match) return match[1];
+  return `Terminal note ${index + 1}`;
+}
+
 function updateAirportIntelligence(code, rows = []) {
   const profile = airportProfiles[code];
   const panel = document.getElementById("airport-intelligence-panel");
@@ -305,7 +327,7 @@ function updateAirportIntelligence(code, rows = []) {
   const terminalItems = profile.terminal_highlights || [];
   if (terminals) {
     terminals.innerHTML = terminalItems.map((note, index) => (
-      `<button type="button" class="terminal-chip${index === 0 ? " is-active" : ""}" data-note="${escapeHtml(note)}">${escapeHtml(note.split(".")[0])}</button>`
+      `<button type="button" class="terminal-chip${index === 0 ? " is-active" : ""}" data-note="${escapeHtml(note)}">${escapeHtml(terminalChipLabel(note, index))}</button>`
     )).join("");
     terminals.querySelectorAll(".terminal-chip").forEach((chip) => {
       chip.addEventListener("click", () => {
