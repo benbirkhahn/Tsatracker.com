@@ -303,6 +303,10 @@ function terminalChipLabel(note, index) {
     ["Domestic Lower North", "Lower North"],
     ["Domestic South", "South PreCheck"],
     ["International Terminal", "International Main"],
+    ["Terminals 2 and 3", "T2/T3 Delta"],
+    ["Terminals 4 and 5", "T4/T5 American"],
+    ["Terminals 7 and 8", "T7/T8 United"],
+    ["Terminal B is", "Terminal B Intl"],
     ["Terminal 2 North", "T2 North"],
     ["Terminal 2 South", "T2 South"],
     ["Terminal 2", "Terminal 2"],
@@ -354,21 +358,21 @@ function updateAirportIntelligence(code, rows = []) {
   if (mark) mark.textContent = profile.code;
   if (kicker) kicker.textContent = `${profile.label || "Live airport"} intelligence`;
   if (title) title.textContent = profile.name;
-  if (city) city.textContent = `${profile.city || "Airport"} playbook with live checkpoint context and terminal-specific notes.`;
+  if (city) city.textContent = `${profile.city || "Airport"} playbook: static terminal guidance plus live checkpoint stats when the airport source provides them.`;
 
   const summary = checkpointSummary(rows);
   const best = document.getElementById("airport-intel-best");
   const watch = document.getElementById("airport-intel-watch");
   const coverage = document.getElementById("airport-intel-coverage");
   if (best) {
-    best.textContent = summary.best ? `${summary.best.name} · ${Math.round(summary.best.avg)} min` : "Live rows loading";
+    best.textContent = summary.best ? `${summary.best.name} · ${Math.round(summary.best.avg)} min` : "No live checkpoint split";
   }
   if (watch) {
-    watch.textContent = summary.worst ? `${summary.worst.name} · ${Math.round(summary.worst.avg)} min` : profile.label || "Airport flow";
+    watch.textContent = summary.worst ? `${summary.worst.name} · ${Math.round(summary.worst.avg)} min` : "Static terminal guide";
   }
   if (coverage) {
     const terminalCount = (profile.terminal_highlights || []).length;
-    coverage.textContent = terminalCount ? `${terminalCount} terminal notes` : `${summary.count || "Live"} checkpoint view`;
+    coverage.textContent = summary.count ? `${summary.count} live checkpoint groups` : `${terminalCount} terminal guide notes`;
   }
 
   const terminals = document.getElementById("airport-intel-terminals");
