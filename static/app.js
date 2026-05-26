@@ -976,12 +976,6 @@ async function selectAirport(code, shouldPush = true) {
   const toolkitSub = document.getElementById("toolkit-sub-title");
   if (toolkitSub) toolkitSub.textContent = `Save time at ${code}`;
 
-  // Update Flight Search Logic
-  const flightText = document.getElementById("flight-origin-text");
-  if (flightText) flightText.textContent = code;
-  const flightInput = document.getElementById("flight-origin-input");
-  if (flightInput) flightInput.value = code;
-
   // --- START DYNAMIC AD UPDATE ---
   const offers = window.LOCAL_OFFERS || {};
   const currentOffer = offers[code];
@@ -1074,28 +1068,6 @@ function buildKiwiAirportUrl(code) {
   return buildTravelpayoutsUrl(overrides[upper] || fallback);
 }
 
-
-/**
- * Robust flight search handler using the official tp.media/r redirect handshake
- * to prevent 404s and ensure 100% affiliate tracking.
- */
-function performFlightSearch() {
-  const destInput = document.getElementById("flight-destination-input");
-  const dest = destInput ? destInput.value.trim() : "";
-
-  if (!dest) {
-    alert("Please enter a destination (city or airport code)");
-    return;
-  }
-
-  const origin = selectedAirportCode || "JFK";
-  const marker = (window.MONETIZATION_CONFIG && window.MONETIZATION_CONFIG.tpMarker) || "719940";
-
-  // Stable URL for the final destination (using /tiles/ for instant results)
-  const targetUrl = `https://www.kiwi.com/en/search/tiles/${origin.toLowerCase()}/${dest.toLowerCase()}?marker=${marker}`;
-
-  window.open(targetUrl, "_blank");
-}
 
 // Handle browser Back/Forward buttons
 window.addEventListener("popstate", (event) => {
