@@ -247,12 +247,13 @@ function laneWaitText(wait_minutes, tier) {
 function checkpointSummary(rows) {
   const grouped = new Map();
   rows.forEach((row) => {
+    const checkpointName = cleanCheckpointLabel(row.checkpoint || "Checkpoint");
+    if (/estimated wait/i.test(checkpointName)) return;
     const wait = Number(row.wait_minutes);
     if (!Number.isFinite(wait) || wait < 0) return;
-    const key = cleanCheckpointLabel(row.checkpoint || "Checkpoint");
-    const current = grouped.get(key) || [];
+    const current = grouped.get(checkpointName) || [];
     current.push(wait);
-    grouped.set(key, current);
+    grouped.set(checkpointName, current);
   });
   const ranked = Array.from(grouped.entries())
     .map(([name, waits]) => ({
@@ -271,7 +272,7 @@ function updateCheckpointRecommendation(code, rows = []) {
   const panel = document.getElementById("checkpoint-recommendation");
   if (!panel) return;
   const summary = checkpointSummary(rows);
-  if (!code || !summary.best) {
+  if (!code || !summary.best || summary.count < 2) {
     panel.classList.remove("is-visible");
     return;
   }
@@ -284,9 +285,9 @@ function updateCheckpointRecommendation(code, rows = []) {
     ? ` Highest current pressure is at ${summary.worst.name} around ${Math.round(summary.worst.avg)} minutes.`
     : "";
 
-  if (title) title.textContent = `Use ${summary.best.name} if it matches your terminal`;
+  if (title) title.textContent = `${summary.best.name} is currently the shortest listed checkpoint`;
   if (copy) {
-    copy.textContent = `${code} live data currently shows this as the lowest-wait checkpoint. Confirm it serves your terminal or gate before crossing the airport.${worstText}`;
+    copy.textContent = `${code} has multiple live checkpoint readings right now. Use this as a routing hint only after confirming it serves your terminal or gate.${worstText}`;
   }
   if (minutes) {
     minutes.innerHTML = `${bestMinutes}<span>min</span>`;
