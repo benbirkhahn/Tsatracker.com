@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% if monetization.adsense_client %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
+  {% include "_adsense_head.html" %}
+  <title>{{ seo.title }}</title>
+  <meta name="description" content="{{ seo.description }}">
+  <link rel="canonical" href="{{ seo.canonical_url }}">
+  <meta name="robots" content="noindex, nofollow">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{ seo.title }}">
+  <meta property="og:description" content="{{ seo.description }}">
+  <meta property="og:url" content="{{ seo.canonical_url }}">
+  <meta property="og:image" content="{{ seo.site_url }}/static/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ seo.title }}">
+  <meta name="twitter:description" content="{{ seo.description }}">
+  <meta name="twitter:image" content="{{ seo.site_url }}/static/og-image.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Oswald:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    body.wide-graph-page {
+      background:
+        radial-gradient(circle at top left, rgba(245, 158, 11, 0.08), transparent 22%),
+        radial-gradient(circle at top right, rgba(96, 165, 250, 0.08), transparent 18%),
+        var(--bg);
+    }
+    body.wide-graph-page .main {
+      max-width: none !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 0 40px !important;
+    }
+    body.wide-graph-page .footer {
+      max-width: none;
+      width: 100%;
+    }
+    .wide-graph-wrap {
+      width: min(1820px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0 0;
+    }
+    .wide-graph-hero {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .wide-graph-kicker {
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      font-size: .74rem;
+      color: var(--amber);
+    }
+    .wide-graph-title {
+      font-size: clamp(2rem, 2.4vw, 3rem);
+      font-weight: 700;
+      line-height: 1.05;
+      color: var(--text);
+    }
+    .wide-graph-sub {
+      max-width: 860px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .wide-graph-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 18px;
+    }
+    .wide-graph-btn {
+      border: 1px solid #373753;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.03);
+      color: #fff;
+      padding: 9px 14px;
+      font: inherit;
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .wide-graph-btn:hover {
+      background: rgba(255,255,255,0.07);
+    }
+    .wide-graph-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(380px, 480px);
+      gap: 22px;
+      align-items: start;
+    }
+    .wide-graph-panel,
+    .wide-side-panel {
+      background: linear-gradient(180deg, rgba(20, 23, 34, 0.96), rgba(12, 15, 24, 0.96));
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+    .wide-graph-panel {
+      padding: 18px;
+    }
+    #wide-link-graph {
+      width: 100%;
+      height: min(88vh, 1040px);
+      min-height: 920px;
+      border-radius: 16px;
+      background:
+        radial-gradient(circle at top left, rgba(245, 158, 11, 0.08), transparent 28%),
+        radial-gradient(circle at top right, rgba(96, 165, 250, 0.08), transparent 26%),
+        #0f1017;
+    }
+    .wide-side-panel {
+      padding: 18px;
+    }
+    .wide-side-panel h2 {
+      margin: 0 0 10px;
+      font-size: 1.15rem;
+      color: var(--text);
+    }
+    .wide-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 12px 0 16px;
+    }
+    .wide-stat {
+      background: rgba(255,255,255,0.035);
+      border: 0;
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .wide-stat-label {
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      font-size: .68rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .wide-stat-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1;
+    }
+    .wide-stat-sub {
+      color: var(--muted);
+      font-size: .88rem;
+      margin-top: 4px;
+      line-height: 1.45;
+    }
+    .wide-rank-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .wide-rank-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px 12px 10px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 0;
+      cursor: pointer;
+    }
+    .wide-rank-item:hover {
+      background: rgba(255,255,255,0.06);
+    }
+    .wide-rank-index {
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: rgba(245, 158, 11, 0.12);
+      color: var(--amber);
+      font-family: var(--mono);
+      font-size: .74rem;
+      font-weight: 700;
+    }
+    .wide-rank-name {
+      font-weight: 700;
+      color: var(--text);
+    }
+    .wide-rank-score {
+      color: #fff;
+      font-family: var(--mono);
+      font-size: .82rem;
+    }
+    .wide-node-detail {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 0;
+    }
+    .wide-node-detail-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .wide-node-detail-meta {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .wide-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .wide-legend-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      border: 1px solid #2a2a40;
+      background: rgba(255,255,255,0.03);
+      padding: 7px 10px;
+      color: var(--muted);
+      font-size: .8rem;
+    }
+    .wide-legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    @media (max-width: 1200px) {
+      .wide-graph-layout {
+        grid-template-columns: 1fr;
+      }
+      #wide-link-graph {
+        height: 74vh;
+        min-height: 680px;
+      }
+    }
+    @media (max-width: 700px) {
+      .wide-graph-wrap {
+        width: calc(100vw - 20px);
+      }
+      .wide-graph-panel,
+      .wide-side-panel {
+        padding: 14px;
+      }
+      .wide-stats {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body class="wide-graph-page">
+  <header class="header">
+    <a href="/" class="header-home-link">
+      <span class="logo-shield">✈️</span>
+      <div>
+        <div class="logo-name">TSA Tracker</div>
+        <div class="logo-tag">Live airport data</div>
+      </div>
+    </a>
+    <nav class="header-nav">
+      <a href="/" class="header-nav-link">Home</a>
+      <a href="/airports" class="header-nav-link">Airports</a>
+      <a href="/airport-security-wait-times" class="header-nav-link">Airport Wait Times</a>
+      <a href="/methodology" class="header-nav-link">Methodology</a>
+    </nav>
+    <div class="header-external-links">
+      <span class="header-external-label">More from Ben</span>
+      <a href="https://benbirkhahn.com" class="header-external-link primary" target="_blank" rel="noopener">Other Projects</a>
+      <a href="https://github.com/benbirkhahn" class="header-external-link" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://www.linkedin.com/in/benjamin-birkhahn-421870240" class="header-external-link" target="_blank" rel="noopener">LinkedIn</a>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="wide-graph-wrap">
+      <section class="wide-graph-hero">
+        <div class="wide-graph-kicker">Interactive analysis</div>
+        <div class="wide-graph-title">Internal Link Graph</div>
+        <p class="wide-graph-sub">A wider standalone view of the site graph. Drag nodes, zoom, and click pages to inspect PageRank and links.</p>
+      </section>
+
+      <div class="wide-graph-toolbar">
+        <button class="wide-graph-btn" id="wide-fit-graph">Fit graph</button>
+        <button class="wide-graph-btn" id="wide-toggle-physics">Freeze layout</button>
+      </div>
+
+      <section class="wide-graph-layout">
+        <div class="wide-graph-panel">
+          <div id="wide-link-graph"></div>
+        </div>
+        <aside class="wide-side-panel">
+          <h2>Top Pages</h2>
+          <div class="wide-stats">
+            <div class="wide-stat">
+              <div class="wide-stat-label">Highest score</div>
+              <div class="wide-stat-value">{{ "%.4f"|format(max_score) }}</div>
+              <div class="wide-stat-sub">{{ top_nodes[0].label if top_nodes else 'N/A' }}</div>
+            </div>
+            <div class="wide-stat">
+              <div class="wide-stat-label">Lowest score</div>
+              <div class="wide-stat-value">{{ "%.4f"|format(min_score) }}</div>
+              <div class="wide-stat-sub">{{ top_nodes[-1].label if top_nodes else 'N/A' }}</div>
+            </div>
+          </div>
+          <div class="wide-rank-list">
+            {% for node in top_nodes %}
+            <div class="wide-rank-item" data-node-id="{{ node.id }}">
+              <div class="wide-rank-index">{{ loop.index }}</div>
+              <div>
+                <div class="wide-rank-name">{{ node.label }}</div>
+                <div style="color:var(--muted);font-size:.82rem;">{{ node.kind }}</div>
+              </div>
+              <div class="wide-rank-score">{{ "%.4f"|format(node.score) }}</div>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="wide-node-detail" id="wide-node-detail">
+            <div class="wide-node-detail-title">Select a node</div>
+            <div class="wide-node-detail-meta">Click a page in the graph or a row in the ranking list to inspect its score and connections.</div>
+          </div>
+          <div class="wide-legend">
+            <span class="wide-legend-pill"><span class="wide-legend-dot" style="background:#f59e0b"></span>Core</span>
+            <span class="wide-legend-pill"><span class="wide-legend-dot" style="background:#60a5fa"></span>Guide</span>
+            <span class="wide-legend-pill"><span class="wide-legend-dot" style="background:#34d399"></span>Airport</span>
+            <span class="wide-legend-pill"><span class="wide-legend-dot" style="background:#a78bfa"></span>Info</span>
+          </div>
+        </aside>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div>TSA Tracker — live security wait times. Data refreshes every ~2 minutes.</div>
+    <div class="footer-links">
+      <a href="/airports">Airports</a>
+      <span>·</span>
+      <a href="/airport-security-wait-times">Airport Wait Times</a>
+      <span>·</span>
+      <a href="/methodology">Methodology</a>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/vis-network@9.1.9/dist/vis-network.min.js"></script>
+  <script>
+    window.LINK_GRAPH_NODES = {{ nodes_json | safe }};
+    window.LINK_GRAPH_EDGES = {{ edges_json | safe }};
+    window.LINK_GRAPH_NODE_INDEX = {{ node_index_json | safe }};
+  </script>
+  <script>
+    (() => {
+      const nodes = new vis.DataSet(window.LINK_GRAPH_NODES || []);
+      const edges = new vis.DataSet(window.LINK_GRAPH_EDGES || []);
+      const container = document.getElementById("wide-link-graph");
+      const detail = document.getElementById("wide-node-detail");
+      const fitBtn = document.getElementById("wide-fit-graph");
+      const toggleBtn = document.getElementById("wide-toggle-physics");
+      const rankItems = Array.from(document.querySelectorAll(".wide-rank-item"));
+
+      const palette = {
+        core: "#f59e0b",
+        guide: "#60a5fa",
+        airport: "#34d399",
+        info: "#a78bfa",
+      };
+
+      nodes.forEach((node) => {
+        const color = palette[node.group] || "#fb7185";
+        node.shape = "dot";
+        node.size = node.kind === "core" ? 30 : node.kind === "guide" ? 24 : node.kind === "airport" ? 20 : 22;
+        node.color = {
+          background: color,
+          border: "#1f2937",
+          highlight: { background: color, border: "#ffffff" },
+        };
+        node.font = { color: "#fff", size: 16, face: "Space Grotesk" };
+        node.margin = 12;
+      });
+
+      const network = new vis.Network(container, { nodes, edges }, {
+        autoResize: true,
+        interaction: {
+          hover: true,
+          navigationButtons: true,
+          keyboard: true,
+        },
+        physics: {
+          enabled: true,
+          barnesHut: {
+            gravitationalConstant: -14000,
+            springLength: 190,
+            springConstant: 0.035,
+            damping: 0.18,
+          },
+        },
+        edges: {
+          arrows: { to: { enabled: true, scaleFactor: 0.45 } },
+          color: { color: "rgba(148, 163, 184, 0.45)", highlight: "#f59e0b" },
+          smooth: { type: "dynamic" },
+          width: 1.4,
+        },
+      });
+
+      const updateDetail = (nodeId) => {
+        const node = nodes.get(nodeId);
+        if (!node) return;
+        const outgoing = edges.get({ filter: (edge) => edge.from === nodeId });
+        const incoming = edges.get({ filter: (edge) => edge.to === nodeId });
+        detail.innerHTML = `
+          <div class="wide-node-detail-title">${node.label}</div>
+          <div class="wide-node-detail-meta">
+            <div><strong>Score:</strong> ${(node.score || 0).toFixed(4)}</div>
+            <div><strong>Type:</strong> ${node.kind}</div>
+            <div><strong>Outbound links:</strong> ${outgoing.length}</div>
+            <div><strong>Inbound links:</strong> ${incoming.length}</div>
+            <div style="margin-top:8px;"><a href="${node.url}" style="color:#f59e0b;font-weight:700;">Open page</a></div>
+          </div>
+        `;
+        rankItems.forEach((item) => item.style.outline = item.dataset.nodeId === nodeId ? "2px solid rgba(245,158,11,0.75)" : "none");
+      };
+
+      network.on("click", (params) => {
+        if (params.nodes && params.nodes.length) {
+          updateDetail(params.nodes[0]);
+        }
+      });
+
+      rankItems.forEach((item) => {
+        item.addEventListener("click", () => {
+          const nodeId = item.dataset.nodeId;
+          network.selectNodes([nodeId]);
+          updateDetail(nodeId);
+          network.focus(nodeId, { scale: 1.2, animation: { duration: 350, easingFunction: "easeInOutQuad" } });
+        });
+      });
+
+      fitBtn.addEventListener("click", () => {
+        network.fit({ animation: { duration: 350, easingFunction: "easeInOutQuad" } });
+      });
+
+      let physicsEnabled = true;
+      toggleBtn.addEventListener("click", () => {
+        physicsEnabled = !physicsEnabled;
+        network.setOptions({ physics: { enabled: physicsEnabled } });
+        toggleBtn.textContent = physicsEnabled ? "Freeze layout" : "Unfreeze layout";
+      });
+
+      window.addEventListener("resize", () => {
+        network.redraw();
+      });
+
+      const firstNode = (window.LINK_GRAPH_NODES || [])[0];
+      if (firstNode) {
+        updateDetail(firstNode.id);
+        requestAnimationFrame(() => {
+          network.fit({ animation: false });
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

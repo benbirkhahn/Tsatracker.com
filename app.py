@@ -14,7 +14,7 @@ from typing import Dict, List, Optional
 from zoneinfo import ZoneInfo
 
 import requests
-from flask import Flask, Response, jsonify, redirect, render_template, request, send_from_directory
+from flask import Flask, Response, abort, jsonify, redirect, render_template, request, send_from_directory
 
 # Import Supabase integration (optional)
 try:
@@ -44,6 +44,7 @@ ADSENSE_CLIENT = os.getenv("ADSENSE_CLIENT", "ca-pub-3769301792129016").strip()
 ADSENSE_SLOT_TOP = os.getenv("ADSENSE_SLOT_TOP", "").strip()
 ADSENSE_SLOT_BOTTOM = os.getenv("ADSENSE_SLOT_BOTTOM", "").strip()
 ADSENSE_SLOT_GUIDE = os.getenv("ADSENSE_SLOT_GUIDE", "8161510326").strip()
+ENABLE_INTERNAL_GRAPH = os.getenv("ENABLE_INTERNAL_GRAPH", "false").lower() == "true"
 if not ADSENSE_SLOT_BOTTOM:
     ADSENSE_SLOT_BOTTOM = ADSENSE_SLOT_GUIDE
 
@@ -1495,6 +1496,133 @@ def airport_directory_context() -> Dict:
         "seo": airports_directory_seo(),
         "monetization": get_monetization_context(),
         "app_js_version": APP_JS_VERSION,
+    }
+
+
+def compute_pagerank(nodes: List[Dict], edges: List[Dict], alpha: float = 0.85, max_iter: int = 100, tol: float = 1e-10) -> Dict[str, float]:
+    node_ids = [node["id"] for node in nodes]
+    if not node_ids:
+        return {}
+
+    outbound = {node_id: set() for node_id in node_ids}
+    for edge in edges:
+        src = edge["from"]
+        dst = edge["to"]
+        if src in outbound and dst in outbound and src != dst:
+            outbound[src].add(dst)
+
+    n = len(node_ids)
+    scores = {node_id: 1.0 / n for node_id in node_ids}
+
+    for _ in range(max_iter):
+        next_scores = {node_id: (1.0 - alpha) / n for node_id in node_ids}
+        sink_total = sum(scores[node_id] for node_id in node_ids if not outbound[node_id])
+        sink_share = alpha * sink_total / n
+        for node_id in node_ids:
+            next_scores[node_id] += sink_share
+        for src, targets in outbound.items():
+            if not targets:
+                continue
+            share = alpha * scores[src] / len(targets)
+            for dst in targets:
+                next_scores[dst] += share
+
+        delta = max(abs(next_scores[node_id] - scores[node_id]) for node_id in node_ids)
+        scores = next_scores
+        if delta < tol:
+            break
+
+    return scores
+
+
+def link_graph_context() -> Dict:
+    airport_codes = ["PHL", "BOS", "MIA", "ORD", "LAX", "JFK", "DFW", "SEA", "LGA", "EWR"]
+    nodes = [
+        {"id": "/", "label": "Home", "group": "core", "url": "/", "kind": "core"},
+        {"id": "/airports", "label": "Airports", "group": "core", "url": "/airports", "kind": "core"},
+        {"id": "/airport-security-wait-times", "label": "Wait Times Hub", "group": "core", "url": "/airport-security-wait-times", "kind": "core"},
+        {"id": "/methodology", "label": "Methodology", "group": "core", "url": "/methodology", "kind": "core"},
+        {"id": "/guide/tsa-wait-times", "label": "TSA Guide", "group": "guide", "url": "/guide/tsa-wait-times", "kind": "guide"},
+        {"id": "/guide/tsa-precheck-clear", "label": "PreCheck vs CLEAR", "group": "guide", "url": "/guide/tsa-precheck-clear", "kind": "guide"},
+        {"id": "/best-time-to-get-to-the-airport", "label": "Best Timing", "group": "guide", "url": "/best-time-to-get-to-the-airport", "kind": "guide"},
+        {"id": "/how-early-should-i-arrive-for-tsa", "label": "How Early?", "group": "guide", "url": "/how-early-should-i-arrive-for-tsa", "kind": "guide"},
+        {"id": "/tsa-wait-times-by-airport", "label": "By Airport", "group": "guide", "url": "/tsa-wait-times-by-airport", "kind": "guide"},
+        {"id": "/about", "label": "About", "group": "info", "url": "/about", "kind": "info"},
+        {"id": "/contact", "label": "Contact", "group": "info", "url": "/contact", "kind": "info"},
+        {"id": "/privacy", "label": "Privacy", "group": "info", "url": "/privacy", "kind": "info"},
+        {"id": "/terms", "label": "Terms", "group": "info", "url": "/terms", "kind": "info"},
+    ]
+    for code in airport_codes:
+        if code in LIVE_AIRPORTS:
+            nodes.append(
+                {
+                    "id": airport_seo_slug(code),
+                    "label": code,
+                    "group": "airport",
+                    "url": airport_seo_slug(code),
+                    "kind": "airport",
+                }
+            )
+
+    edges = []
+
+    def add_edges(src: str, targets: List[str]) -> None:
+        for target in targets:
+            if target in {node["id"] for node in nodes} and target != src:
+                edges.append({"from": src, "to": target})
+
+    airport_targets = [airport_seo_slug(code) for code in airport_codes if code in LIVE_AIRPORTS]
+
+    add_edges("/", ["/airports", "/airport-security-wait-times", "/best-time-to-get-to-the-airport", "/methodology", "/guide/tsa-wait-times", "/how-early-should-i-arrive-for-tsa", "/guide/tsa-precheck-clear", "/tsa-wait-times-by-airport"] + airport_targets)
+    add_edges("/airports", ["/airport-security-wait-times", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear", "/methodology", "/about", "/contact"] + airport_targets)
+    add_edges("/airport-security-wait-times", ["/", "/airports", "/methodology", "/guide/tsa-wait-times", "/best-time-to-get-to-the-airport", "/how-early-should-i-arrive-for-tsa", "/guide/tsa-precheck-clear"] + airport_targets[:6])
+    add_edges("/methodology", ["/", "/airports", "/airport-security-wait-times", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear", "/best-time-to-get-to-the-airport", "/how-early-should-i-arrive-for-tsa", "/tsa-wait-times-by-airport", "/about", "/contact"])
+    add_edges("/guide/tsa-wait-times", ["/", "/airports", "/airport-security-wait-times", "/methodology", "/guide/tsa-precheck-clear"] + [airport_seo_slug(code) for code in ["LAX", "DFW", "ORD", "JFK", "MCO"] if code in LIVE_AIRPORTS])
+    add_edges("/guide/tsa-precheck-clear", ["/", "/airports", "/airport-security-wait-times", "/guide/tsa-wait-times"] + [airport_seo_slug(code) for code in ["JFK", "LGA", "ORD", "LAX"] if code in LIVE_AIRPORTS])
+    add_edges("/best-time-to-get-to-the-airport", ["/", "/airports", "/airport-security-wait-times", "/methodology"])
+    add_edges("/how-early-should-i-arrive-for-tsa", ["/", "/airports", "/airport-security-wait-times", "/methodology"])
+    add_edges("/tsa-wait-times-by-airport", ["/", "/airports", "/airport-security-wait-times", "/methodology"])
+    add_edges("/about", ["/", "/airports", "/airport-security-wait-times", "/methodology", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear"] + airport_targets)
+    add_edges("/contact", ["/", "/airports", "/airport-security-wait-times", "/about", "/methodology", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear"])
+    add_edges("/privacy", ["/", "/airports", "/airport-security-wait-times", "/about", "/methodology", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear", "/contact"])
+    add_edges("/terms", ["/", "/airports", "/airport-security-wait-times", "/about", "/methodology", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear", "/contact"])
+    for code in airport_codes:
+        if code not in LIVE_AIRPORTS:
+            continue
+        slug = airport_seo_slug(code)
+        related = [airport_seo_slug(other) for other in airport_codes if other != code and other in LIVE_AIRPORTS]
+        add_edges(slug, ["/", "/airports", "/airport-security-wait-times", "/methodology", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear", "/best-time-to-get-to-the-airport", "/how-early-should-i-arrive-for-tsa", "/tsa-wait-times-by-airport"] + related[:4])
+
+    ranks = compute_pagerank(nodes, edges)
+    ranked_nodes = sorted(
+        [
+            {
+                **node,
+                "score": round(ranks.get(node["id"], 0.0), 6),
+            }
+            for node in nodes
+        ],
+        key=lambda item: (-item["score"], item["label"]),
+    )
+
+    node_index = {node["id"]: node for node in ranked_nodes}
+    top_nodes = ranked_nodes[:10]
+    max_score = top_nodes[0]["score"] if top_nodes else 0.0
+    min_score = ranked_nodes[-1]["score"] if ranked_nodes else 0.0
+
+    return {
+        "seo": build_page_seo(
+            title="TSA Tracker Internal Link Graph | PageRank View",
+            description="Interactive PageRank view of TSA Tracker's internal link graph, showing which pages carry the most internal weight.",
+            canonical_path="/link-graph",
+        ),
+        "monetization": get_monetization_context(),
+        "nodes_json": json.dumps(ranked_nodes),
+        "edges_json": json.dumps(edges),
+        "top_nodes": top_nodes,
+        "node_index_json": json.dumps(node_index),
+        "max_score": max_score,
+        "min_score": min_score,
     }
 
 
@@ -3205,6 +3333,20 @@ def about_page():
         copy_updated_label=current_copy_date_label(),
         copy_updated_iso=current_copy_date_iso(),
     )
+
+
+@app.route("/link-graph")
+def link_graph_page():
+    if not ENABLE_INTERNAL_GRAPH:
+        abort(404)
+    return render_template("link_graph.html", **link_graph_context())
+
+
+@app.route("/wide-link-graph")
+def wide_link_graph_page():
+    if not ENABLE_INTERNAL_GRAPH:
+        abort(404)
+    return render_template("wide_link_graph.html", **link_graph_context())
 
 
 @app.route("/airports")

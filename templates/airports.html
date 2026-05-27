@@ -168,6 +168,75 @@
     .resource-list a:hover {
       text-decoration: underline;
     }
+    .airport-search-bar {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+      padding: 14px 16px;
+      background: linear-gradient(135deg, #181825 0%, #11111a 100%);
+      border: 1px solid #2a2a40;
+      border-radius: 14px;
+    }
+    .airport-search-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .airport-search-input {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid #34344d;
+      border-radius: 12px;
+      background: #0f1017;
+      color: #fff;
+      padding: 12px 14px;
+      font: inherit;
+      font-size: 0.98rem;
+      outline: none;
+    }
+    .airport-search-input::placeholder {
+      color: #8e93ab;
+    }
+    .airport-search-input:focus {
+      border-color: rgba(245, 158, 11, 0.85);
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12);
+    }
+    .airport-search-reset {
+      border: 1px solid #34344d;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.03);
+      color: #fff;
+      padding: 10px 14px;
+      font: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .airport-search-reset:hover {
+      background: rgba(255,255,255,0.07);
+    }
+    .airport-search-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+    .airport-search-empty {
+      display: none;
+      margin-top: 14px;
+      padding: 16px 18px;
+      border-radius: 14px;
+      border: 1px dashed #3a3a53;
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+      line-height: 1.6;
+    }
   </style>
 </head>
 <body>
@@ -225,10 +294,34 @@
         <p style="margin:0;color:var(--muted);line-height:1.7;">Use the airport index for the quick comparison, then open a specific airport page for checkpoint-level detail, airport-specific notes, and the official links tied to that location.</p>
       </div>
 
+      <div class="airport-search-bar" aria-label="Search airports">
+        <div class="airport-search-row">
+          <input
+            id="airports-directory-search"
+            class="airport-search-input"
+            type="search"
+            placeholder="Search by airport code, city, or name"
+            autocomplete="off"
+          >
+          <button id="airports-directory-reset" class="airport-search-reset" type="button">Clear</button>
+        </div>
+        <div class="airport-search-meta">
+          <span id="airports-directory-count">{{ airport_summaries|length }} airports shown</span>
+          <span>Tip: try LAX, New York, or Orlando</span>
+        </div>
+      </div>
+      <div id="airports-directory-empty" class="airport-search-empty">
+        No airports match that search. Try a different code, city, or airport name.
+      </div>
+
       <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">Current averages</h2>
       <div class="airports-summary-grid">
         {% for airport in airport_summaries %}
-        <a class="airport-summary-card {{ airport.tier }}" href="{{ airport.href }}">
+        <a
+          class="airport-summary-card {{ airport.tier }}"
+          href="{{ airport.href }}"
+          data-airport-search="{{ (airport.code ~ ' ' ~ airport.name ~ ' ' ~ airport.city ~ ' ' ~ airport.source_label)|lower }}"
+        >
           <div class="summary-top">
             <div class="summary-code">{{ airport.code }}</div>
             <div class="summary-time">{{ airport.updated_at }}</div>
@@ -295,6 +388,38 @@
       ]
     }
   }
+  </script>
+  <script>
+    (() => {
+      const input = document.getElementById("airports-directory-search");
+      const reset = document.getElementById("airports-directory-reset");
+      const count = document.getElementById("airports-directory-count");
+      const empty = document.getElementById("airports-directory-empty");
+      const cards = Array.from(document.querySelectorAll(".airport-summary-card"));
+      if (!input || !reset || !count || !empty || !cards.length) return;
+
+      const total = cards.length;
+      const render = () => {
+        const q = input.value.trim().toLowerCase();
+        let visible = 0;
+        cards.forEach((card) => {
+          const haystack = card.getAttribute("data-airport-search") || "";
+          const match = !q || haystack.includes(q);
+          card.style.display = match ? "" : "none";
+          if (match) visible += 1;
+        });
+        count.textContent = q ? `${visible} of ${total} airports shown` : `${total} airports shown`;
+        empty.style.display = visible ? "none" : "block";
+      };
+
+      input.addEventListener("input", render);
+      reset.addEventListener("click", () => {
+        input.value = "";
+        input.focus();
+        render();
+      });
+      render();
+    })();
   </script>
   {% include "_affiliate_scripts.html" %}
 </body>
