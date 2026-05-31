@@ -868,6 +868,13 @@ _poll_lock = threading.Lock()
 _poller_started = False
 
 
+@app.after_request
+def add_crawl_control_headers(response):
+    if request.path.startswith("/api/") or request.path == "/healthz":
+        response.headers.setdefault("X-Robots-Tag", "noindex")
+    return response
+
+
 def poll_forever() -> None:
     logger.info("poller_started poll_seconds=%s db_path=%s", POLL_SECONDS, DB_PATH)
     while True:
@@ -908,21 +915,38 @@ def airport_seo_slug(code: str) -> str:
     return f"/airports/{code.lower()}-tsa-wait-times"
 
 
-def build_page_seo(title: str, description: str, canonical_path: str) -> Dict:
+def build_breadcrumbs(*items: tuple[str, str]) -> List[Dict]:
+    return [
+        {
+            "position": index,
+            "name": name,
+            "item": f"{SITE_URL}{path}",
+        }
+        for index, (name, path) in enumerate(items, start=1)
+    ]
+
+
+def default_breadcrumb_label(title: str) -> str:
+    return title.split("|", 1)[0].strip()
+
+
+def build_page_seo(title: str, description: str, canonical_path: str, breadcrumbs: Optional[List[Dict]] = None) -> Dict:
+    if breadcrumbs is None and canonical_path != "/":
+        breadcrumbs = build_breadcrumbs(("Home", "/"), (default_breadcrumb_label(title), canonical_path))
     return {
         "title": title,
         "description": description,
         "canonical_url": f"{SITE_URL}{canonical_path}",
         "site_url": SITE_URL,
+        "breadcrumbs": breadcrumbs or [],
     }
 
 
 def home_page_seo() -> Dict:
     return build_page_seo(
-        title="Airport Security Wait Times Today | Live TSA Wait Times by Airport | TSA Tracker",
+        title="Live TSA Wait Times by Airport | TSA Tracker",
         description=(
-            "Check live airport security wait times for PHL, BOS, MIA, ORD, LAX, JFK, EWR, LGA, SEA, DFW and more. "
-            "See current TSA line conditions, best arrival timing, and official airport-backed data updated every 2 minutes."
+            "Check live TSA and airport security wait times by airport, compare current line conditions, and open airport-specific pages with official-source data and timing guidance."
         ),
         canonical_path="/",
     )
@@ -931,21 +955,25 @@ def home_page_seo() -> Dict:
 def airport_page_seo(code: str, airport_name: str) -> Dict:
     clean_name = airport_name.split("(")[0].strip()
     return build_page_seo(
-        title=f"{code} Airport Security Wait Times Today | Live TSA Line Data | {clean_name} | TSA Tracker",
+        title=f"{code} TSA Wait Times Today | {clean_name} Security Lines",
         description=(
             f"Live airport security wait times at {clean_name} ({code}). "
             f"Check current {code} security lines, terminal-specific notes, best arrival timing, and official airport resources before you leave."
         ),
         canonical_path=airport_seo_slug(code),
+        breadcrumbs=build_breadcrumbs(
+            ("Home", "/"),
+            ("Airports", "/airports"),
+            (f"{code} TSA wait times", airport_seo_slug(code)),
+        ),
     )
 
 
 def airports_directory_seo() -> Dict:
     return build_page_seo(
-        title="Airport Security Wait Times by Airport Today | Live TSA Wait Times | TSA Tracker",
+        title="TSA Wait Times by Airport | Live Security Line Tracker",
         description=(
-            "See live airport security wait times for all major airports at once, sorted by current average wait. "
-            "Open any airport page for checkpoint detail, trends, best arrival windows, and planning notes."
+            "Compare live TSA wait times by airport, sorted by current average wait, then open airport pages for checkpoint detail, trends, and arrival timing notes."
         ),
         canonical_path="/airports",
     )
@@ -953,7 +981,7 @@ def airports_directory_seo() -> Dict:
 
 def airport_security_wait_times_seo() -> Dict:
     return build_page_seo(
-        title="Airport Security Wait Times Today | Live TSA Wait Times by Airport | TSA Tracker",
+        title="Airport Security Wait Times | Live TSA Lines by Airport",
         description=(
             "Airport security wait times for major US airports, with live readings, airport-specific guidance, "
             "best arrival windows, and links to the airport pages travelers actually need."
@@ -964,7 +992,7 @@ def airport_security_wait_times_seo() -> Dict:
 
 def best_time_to_get_to_airport_seo() -> Dict:
     return build_page_seo(
-        title="Best Time to Get to the Airport | Live TSA Timing Guide | TSA Tracker",
+        title="Best Time to Get to the Airport | Live TSA Timing Guide",
         description=(
             "Learn the best time to get to the airport for morning, afternoon, and international flights using live TSA wait times, peak-hour patterns, and airport-specific timing."
         ),
@@ -974,7 +1002,7 @@ def best_time_to_get_to_airport_seo() -> Dict:
 
 def how_early_should_i_arrive_for_tsa_seo() -> Dict:
     return build_page_seo(
-        title="How Early Should I Arrive for TSA? | Airport Security Timing Guide | TSA Tracker",
+        title="How Early Should I Arrive for TSA? | Airport Security Guide",
         description=(
             "See how early to arrive for TSA based on domestic vs international flights, airport size, live wait times, and when security lines usually spike."
         ),
@@ -984,7 +1012,7 @@ def how_early_should_i_arrive_for_tsa_seo() -> Dict:
 
 def tsa_wait_times_by_airport_seo() -> Dict:
     return build_page_seo(
-        title="TSA Wait Times by Airport | Live Airport Security Wait Times | TSA Tracker",
+        title="TSA Wait Times by Airport | Live Airport Security Lines",
         description=(
             "Compare TSA wait times by airport, see which airports are busiest right now, and jump into the live airport page you actually need."
         ),
@@ -3281,6 +3309,15 @@ def favicon_ico():
 
 
 @app.before_request
+def canonicalize_trailing_slash_urls():
+    if request.path != "/" and request.path.endswith("/") and not request.path.startswith("/api/"):
+        target = request.path.rstrip("/")
+        if request.query_string:
+            target = f"{target}?{request.query_string.decode('utf-8', errors='ignore')}"
+        return redirect(target, code=301)
+
+
+@app.before_request
 def ensure_web_runtime_started() -> None:
     start_web_runtime_once()
 
@@ -3302,9 +3339,28 @@ def index():
     log_page_view("/", None)
     return render_template("index.html", **index_template_context("", home_page_seo()))
 
+@app.route("/tsa-wait-times")
+@app.route("/tsa-wait-times/")
+@app.route("/airport-wait-times")
+@app.route("/airport-wait-times/")
+@app.route("/airport-security-lines")
+@app.route("/airport-security-lines/")
+@app.route("/security-wait-times")
+@app.route("/security-wait-times/")
+def wait_times_alias():
+    return redirect("/airport-security-wait-times", code=301)
+
+@app.route("/airports/<airport_slug>/")
 @app.route("/airports/<airport_slug>")
 def airport_page(airport_slug: str):
-    m = re.fullmatch(r"([a-z]{3})-tsa-wait-times", airport_slug.strip().lower())
+    normalized_slug = airport_slug.strip().lower()
+    short_code = re.fullmatch(r"([a-z]{3})", normalized_slug)
+    if short_code:
+        code = short_code.group(1).upper()
+        if code in LIVE_AIRPORTS:
+            return redirect(airport_seo_slug(code), code=301)
+
+    m = re.fullmatch(r"([a-z]{3})-tsa-wait-times", normalized_slug)
     if not m:
         log_page_view(f"/airports/{airport_slug}", None)
         return jsonify({"error": "Not found"}), 404
@@ -3315,6 +3371,9 @@ def airport_page(airport_slug: str):
     meta = LIVE_AIRPORTS.get(code)
     if not meta:
         return jsonify({"error": "Airport page unavailable"}), 404
+    canonical_path = airport_seo_slug(code)
+    if request.path != canonical_path:
+        return redirect(canonical_path, code=301)
     return render_template("index.html", **index_template_context(code, airport_page_seo(code, meta["name"])))
 
 
@@ -3432,7 +3491,7 @@ def contact():
 @app.route("/guide/tsa-wait-times")
 def guide_tsa_wait_times():
     seo = build_page_seo(
-        title="Airport Security Wait Times Explained: How to Get Through TSA Faster in 2026 | TSA Tracker",
+        title="TSA Wait Times Explained | Airport Security Guide 2026",
         description="A complete guide to airport security wait times — how data is measured, peak hours to avoid, TSA PreCheck vs. CLEAR vs. standard lanes, airport-specific tips, and how to use live wait time data effectively.",
         canonical_path="/guide/tsa-wait-times",
     )
@@ -3451,7 +3510,7 @@ def guide_tsa_wait_times():
 @app.route("/guide/tsa-precheck-clear")
 def guide_tsa_precheck_clear():
     seo = build_page_seo(
-        title="TSA PreCheck vs CLEAR: Costs, Official Enrollment, and Which Is Worth It First | TSA Tracker",
+        title="TSA PreCheck vs CLEAR | Costs, Enrollment, Which Is Faster",
         description="Compare TSA PreCheck, CLEAR, and Global Entry. Learn how the programs work, where to enroll with official providers, and which travel cards can help offset the cost.",
         canonical_path="/guide/tsa-precheck-clear",
     )

@@ -1,0 +1,18 @@
+{% if seo.breadcrumbs and seo.breadcrumbs|length >= 2 %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {% for crumb in seo.breadcrumbs %}
+    {
+      "@type": "ListItem",
+      "position": {{ crumb.position }},
+      "name": {{ crumb.name|tojson }},
+      "item": {{ crumb.item|tojson }}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+{% endif %}

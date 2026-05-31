@@ -836,6 +836,27 @@
       line-height: 1.6;
       font-size: 0.94rem;
     }
+    .breadcrumb-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      align-items: center;
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+    .breadcrumb-nav a {
+      color: var(--muted);
+      text-decoration: none;
+    }
+    .breadcrumb-nav a:hover {
+      color: var(--amber);
+      text-decoration: underline;
+    }
+    .breadcrumb-current {
+      color: #f4f4f6;
+      font-weight: 700;
+    }
   </style>
     <script>
       window.MONETIZATION_CONFIG = {
@@ -883,8 +904,8 @@
             <span class="eyebrow-dot"></span>
             {{ live_airports|length }} airports · live utility
           </div>
-          <h1 class="hero-headline" id="hero-title">Airport Security Wait Times<br>with an <em>Operations Console</em> Feel</h1>
-          <p class="hero-sub" id="hero-sub">Not another generic travel page. TSA Tracker is built for the departure-day question that actually matters: what is happening at security right now, and do I need to move?</p>
+          <h1 class="hero-headline" id="hero-title">Live TSA Wait Times <br><em>by Airport</em></h1>
+          <p class="hero-sub" id="hero-sub">Check current airport security line conditions before you leave. TSA Tracker shows live waits, source labels, airport pages, and timing guidance for same-day departures.</p>
           <p class="hero-trust">⟳ Updated about every 2 minutes — sourced from official airport systems and labeled when a page falls back to estimates</p>
 
           <div class="hero-search-wrap">
@@ -954,6 +975,13 @@
     </section>
     {% else %}
     <section class="hero-section">
+      <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+        <a href="/">Home</a>
+        <span>/</span>
+        <a href="/airports">Airports</a>
+        <span>/</span>
+        <span class="breadcrumb-current">{{ initial_airport_code }} TSA wait times</span>
+      </nav>
       <div class="hero-eyebrow">
         <span class="eyebrow-dot"></span>
         {{ live_airports|length }} airports · real-time
@@ -1934,30 +1962,9 @@
       ]
     }
   </script>
-  <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        {
-          "@type": "ListItem",
-          "position": 1,
-          "name": "Home",
-          "item": "{{ seo.site_url }}/"
-        }
-        {% if is_airport_page %}
-        ,{
-          "@type": "ListItem",
-          "position": 2,
-          "name": "{{ initial_airport_code }} TSA Wait Times",
-          "item": "{{ seo.canonical_url }}"
-        }
-        {% endif %}
-      ]
-    }
-  </script>
   {% endif %}
 
+  {% include "_structured_breadcrumbs.html" %}
   {% include "_affiliate_scripts.html" %}
 </body>
 
