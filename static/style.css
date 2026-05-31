@@ -469,8 +469,8 @@ body {
 }
 .network-chart-frame {
   position: relative;
-  height: 520px;
-  min-height: 420px;
+  height: 460px;
+  min-height: 360px;
 }
 @media (max-width: 600px) {
   .network-chart-card {
@@ -484,8 +484,8 @@ body {
     align-self: flex-start;
   }
   .network-chart-frame {
-    height: 560px;
-    min-height: 480px;
+    height: 520px;
+    min-height: 440px;
   }
 }
 .controls { display: flex; align-items: center; gap: 8px; margin: 8px 0 12px; }

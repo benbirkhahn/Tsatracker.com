@@ -564,49 +564,73 @@ function renderLiveCards(payload, selectedCode) {
   }
 }
 
-function currentAirportAverage(rows) {
-  const normalized = (rows || []).map(normalizeCheckpointRow);
-  const active = normalized
-    .map((row) => Number(row.wait_minutes) || 0)
-    .filter((wait) => wait > 0);
-  const values = active.length
-    ? active
-    : normalized.map((row) => Number(row.wait_minutes) || 0);
-  if (!values.length) return null;
-  return values.reduce((sum, wait) => sum + wait, 0) / values.length;
-}
+const NETWORK_CHART_COLORS = [
+  "#5eead4", "#fbbf24", "#60a5fa", "#f87171", "#a78bfa", "#34d399",
+  "#fb7185", "#38bdf8", "#f97316", "#c084fc", "#22c55e", "#e879f9",
+  "#93c5fd", "#fde047", "#2dd4bf", "#fca5a5", "#86efac", "#fdba74",
+];
 
-function networkChartColor(wait) {
-  const tier = waitTierClass(wait);
-  if (tier === "crit") return "rgba(248, 113, 113, 0.72)";
-  if (tier === "high") return "rgba(251, 191, 36, 0.72)";
-  if (tier === "med") return "rgba(56, 189, 248, 0.62)";
-  return "rgba(94, 234, 212, 0.62)";
-}
-
-async function renderNetworkAverageChart(payload) {
+async function renderNetworkAverageChart() {
   const canvas = document.getElementById("network-average-chart");
   const emptyEl = document.getElementById("network-chart-empty");
-  if (!canvas || !payload) return;
+  if (!canvas) return;
+  if (networkChart) return;
+  if (emptyEl) {
+    emptyEl.textContent = "Loading historical airport comparison graph.";
+    emptyEl.style.display = "block";
+  }
 
-  const points = Object.entries(payload.live_airports || {})
-    .map(([code, info]) => {
-      const avg = currentAirportAverage(payload.data?.[code] || []);
-      return avg === null ? null : {
-        code,
-        name: info.name,
-        value: Math.round(avg * 10) / 10,
-        href: `/airports/${code.toLowerCase()}-tsa-wait-times`,
-      };
-    })
-    .filter(Boolean)
-    .sort((a, b) => b.value - a.value);
-
-  if (!points.length) {
-    if (networkChart) { networkChart.destroy(); networkChart = null; }
-    if (emptyEl) emptyEl.style.display = "block";
+  let payload;
+  try {
+    const resp = await fetch("/api/network-history-24h-average?days=30");
+    if (!resp.ok) throw new Error("Network history unavailable");
+    payload = await resp.json();
+  } catch (_e) {
+    if (emptyEl) {
+      emptyEl.textContent = "Historical comparison is unavailable right now.";
+      emptyEl.style.display = "block";
+    }
     return;
   }
+
+  const airports = (payload.airports || [])
+    .map((airport) => ({
+      ...airport,
+      points: (airport.rows || []).map((row) => (
+        Number.isFinite(Number(row.avg_wait)) ? Number(row.avg_wait) : null
+      )),
+      samples: (airport.rows || []).reduce((sum, row) => sum + (Number(row.samples) || 0), 0),
+      peak: Math.max(...(airport.rows || []).map((row) => Number(row.avg_wait) || 0)),
+    }))
+    .filter((airport) => airport.samples > 0)
+    .sort((a, b) => b.peak - a.peak);
+
+  if (!airports.length) {
+    if (emptyEl) {
+      emptyEl.textContent = "Collecting enough historical data to compare airports.";
+      emptyEl.style.display = "block";
+    }
+    return;
+  }
+
+  const labels = Array.from({ length: 24 }, (_, hour) => `${String(hour).padStart(2, "0")}:00`);
+  const datasets = airports.map((airport, index) => {
+    const color = NETWORK_CHART_COLORS[index % NETWORK_CHART_COLORS.length];
+    return {
+      label: airport.code,
+      data: airport.points,
+      borderColor: color,
+      backgroundColor: color,
+      borderWidth: 2,
+      tension: 0.28,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      spanGaps: true,
+      airportName: airport.name,
+      href: airport.href,
+      samples: airport.samples,
+    };
+  });
 
   try {
     await loadChartJs();
@@ -619,57 +643,67 @@ async function renderNetworkAverageChart(payload) {
   }
 
   if (emptyEl) emptyEl.style.display = "none";
-  if (networkChart) networkChart.destroy();
   networkChart = new Chart(canvas, {
-    type: "bar",
+    type: "line",
     data: {
-      labels: points.map((point) => point.code),
-      datasets: [{
-        label: "Current average wait (mins)",
-        data: points.map((point) => point.value),
-        backgroundColor: points.map((point) => networkChartColor(point.value)),
-        borderColor: points.map((point) => networkChartColor(point.value).replace("0.62", "1").replace("0.72", "1")),
-        borderWidth: 1,
-        borderRadius: 6,
-      }],
+      labels,
+      datasets,
     },
     options: {
-      indexAxis: "y",
       responsive: true,
       maintainAspectRatio: false,
+      interaction: { mode: "nearest", intersect: false },
       onClick: (_event, elements) => {
-        const index = elements && elements[0] ? elements[0].index : -1;
-        if (index >= 0 && points[index]) window.location.href = points[index].href;
+        const index = elements && elements[0] ? elements[0].datasetIndex : -1;
+        const dataset = index >= 0 ? datasets[index] : null;
+        if (dataset?.href) window.location.href = dataset.href;
       },
       scales: {
         x: {
+          ticks: {
+            color: "#55556a",
+            font: { family: "'IBM Plex Mono'" },
+            maxTicksLimit: 12,
+          },
+          grid: { color: "#22222e" },
+          border: { color: "#22222e" },
+        },
+        y: {
           beginAtZero: true,
           ticks: { color: "#55556a", font: { family: "'IBM Plex Mono'" } },
           grid: { color: "#22222e" },
           border: { color: "#22222e" },
           title: {
             display: true,
-            text: "Minutes",
+            text: "Average minutes",
             color: "#55556a",
             font: { family: "'IBM Plex Mono'", size: 11 },
           },
         },
-        y: {
-          ticks: { color: "#a7a7bb", font: { family: "'IBM Plex Mono'", size: 11, weight: "600" } },
-          grid: { display: false },
-          border: { color: "#22222e" },
-        },
       },
       plugins: {
-        legend: { labels: { color: "#55556a", font: { family: "'IBM Plex Mono'", size: 11 } } },
+        legend: {
+          position: "bottom",
+          labels: {
+            color: "#a7a7bb",
+            font: { family: "'IBM Plex Mono'", size: 10 },
+            boxWidth: 12,
+            boxHeight: 2,
+            usePointStyle: true,
+          },
+        },
         tooltip: {
           callbacks: {
-            title: (items) => {
-              const point = points[items[0].dataIndex];
-              return point ? `${point.code} — ${point.name}` : "";
+            title: (items) => `${items[0].label} local hour`,
+            label: (context) => {
+              const dataset = context.dataset;
+              const value = Number(context.parsed.y);
+              return `${dataset.label}: ${value.toFixed(1)} min avg`;
             },
-            label: (context) => `${context.parsed.x.toFixed(1)} min average`,
-            afterLabel: () => "Click to open airport page",
+            afterLabel: (context) => {
+              const dataset = context.dataset;
+              return `${dataset.airportName} · ${dataset.samples} samples · click to open`;
+            },
           },
         },
       },
@@ -1347,7 +1381,6 @@ async function silentRefresh() {
     // Re-render chips to keep active state in sync
     const search = document.getElementById("airport-search");
     renderAirportChips(livePayloadCache, search ? search.value : "");
-    renderNetworkAverageChart(livePayloadCache);
     // Re-render wait cards for the currently selected airport (no-op if none)
     if (selectedAirportCode) {
       renderLiveCards(livePayloadCache, selectedAirportCode);
@@ -1468,7 +1501,7 @@ async function bootstrap() {
   });
 
   renderAirportChips(livePayloadCache);
-  renderNetworkAverageChart(livePayloadCache);
+  renderNetworkAverageChart();
   renderLiveCards(livePayloadCache, null);
 
   // Auto-select airport if this is a dedicated airport page

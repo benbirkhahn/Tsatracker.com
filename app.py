@@ -868,6 +868,8 @@ _db_init_lock = threading.Lock()
 _db_initialized = False
 _poll_lock = threading.Lock()
 _poller_started = False
+_network_history_cache = {"key": None, "generated_at": None, "payload": None}
+NETWORK_HISTORY_CACHE_SECONDS = 15 * 60
 
 
 @app.after_request
@@ -3622,6 +3624,45 @@ def api_history_24h_average():
             "rows": historical_24h_average_for_airport(code, days=days),
         }
     )
+
+@app.route("/api/network-history-24h-average")
+def api_network_history_24h_average():
+    days = max(1, min(request.args.get("days", 30, type=int) or 30, 90))
+    cache_key = f"days:{days}"
+    now = utc_now()
+    cached_at = _network_history_cache.get("generated_at")
+    if (
+        _network_history_cache.get("key") == cache_key
+        and cached_at
+        and (now - cached_at).total_seconds() < NETWORK_HISTORY_CACHE_SECONDS
+        and _network_history_cache.get("payload")
+    ):
+        payload = dict(_network_history_cache["payload"])
+        payload["cached"] = True
+        return jsonify(payload)
+
+    airports = []
+    for code, meta in LIVE_AIRPORTS.items():
+        rows = historical_24h_average_for_airport(code, days=days)
+        airports.append(
+            {
+                "code": code,
+                "name": meta["name"],
+                "timezone": AIRPORT_TIME_ZONES.get(code, "UTC"),
+                "href": airport_seo_slug(code),
+                "rows": rows,
+            }
+        )
+
+    payload = {
+        "days": days,
+        "generated_at": now.isoformat(),
+        "cache_seconds": NETWORK_HISTORY_CACHE_SECONDS,
+        "cached": False,
+        "airports": airports,
+    }
+    _network_history_cache.update({"key": cache_key, "generated_at": now, "payload": payload})
+    return jsonify(payload)
 
 @app.route("/api/historical-average")
 def api_historical_average():
