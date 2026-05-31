@@ -1,4 +1,5 @@
 let chart;
+let networkChart;
 let livePayloadCache = null;
 let selectedAirportCode = null;
 let chartJsPromise = null;
@@ -561,6 +562,119 @@ function renderLiveCards(payload, selectedCode) {
   if (selectedCode === "PHL") {
     updateMapTerminalStatus(rows);
   }
+}
+
+function currentAirportAverage(rows) {
+  const normalized = (rows || []).map(normalizeCheckpointRow);
+  const active = normalized
+    .map((row) => Number(row.wait_minutes) || 0)
+    .filter((wait) => wait > 0);
+  const values = active.length
+    ? active
+    : normalized.map((row) => Number(row.wait_minutes) || 0);
+  if (!values.length) return null;
+  return values.reduce((sum, wait) => sum + wait, 0) / values.length;
+}
+
+function networkChartColor(wait) {
+  const tier = waitTierClass(wait);
+  if (tier === "crit") return "rgba(248, 113, 113, 0.72)";
+  if (tier === "high") return "rgba(251, 191, 36, 0.72)";
+  if (tier === "med") return "rgba(56, 189, 248, 0.62)";
+  return "rgba(94, 234, 212, 0.62)";
+}
+
+async function renderNetworkAverageChart(payload) {
+  const canvas = document.getElementById("network-average-chart");
+  const emptyEl = document.getElementById("network-chart-empty");
+  if (!canvas || !payload) return;
+
+  const points = Object.entries(payload.live_airports || {})
+    .map(([code, info]) => {
+      const avg = currentAirportAverage(payload.data?.[code] || []);
+      return avg === null ? null : {
+        code,
+        name: info.name,
+        value: Math.round(avg * 10) / 10,
+        href: `/airports/${code.toLowerCase()}-tsa-wait-times`,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.value - a.value);
+
+  if (!points.length) {
+    if (networkChart) { networkChart.destroy(); networkChart = null; }
+    if (emptyEl) emptyEl.style.display = "block";
+    return;
+  }
+
+  try {
+    await loadChartJs();
+  } catch (_e) {
+    if (emptyEl) {
+      emptyEl.textContent = "Network graph is loading slowly. Current airport cards are still available below.";
+      emptyEl.style.display = "block";
+    }
+    return;
+  }
+
+  if (emptyEl) emptyEl.style.display = "none";
+  if (networkChart) networkChart.destroy();
+  networkChart = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels: points.map((point) => point.code),
+      datasets: [{
+        label: "Current average wait (mins)",
+        data: points.map((point) => point.value),
+        backgroundColor: points.map((point) => networkChartColor(point.value)),
+        borderColor: points.map((point) => networkChartColor(point.value).replace("0.62", "1").replace("0.72", "1")),
+        borderWidth: 1,
+        borderRadius: 6,
+      }],
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      onClick: (_event, elements) => {
+        const index = elements && elements[0] ? elements[0].index : -1;
+        if (index >= 0 && points[index]) window.location.href = points[index].href;
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: { color: "#55556a", font: { family: "'IBM Plex Mono'" } },
+          grid: { color: "#22222e" },
+          border: { color: "#22222e" },
+          title: {
+            display: true,
+            text: "Minutes",
+            color: "#55556a",
+            font: { family: "'IBM Plex Mono'", size: 11 },
+          },
+        },
+        y: {
+          ticks: { color: "#a7a7bb", font: { family: "'IBM Plex Mono'", size: 11, weight: "600" } },
+          grid: { display: false },
+          border: { color: "#22222e" },
+        },
+      },
+      plugins: {
+        legend: { labels: { color: "#55556a", font: { family: "'IBM Plex Mono'", size: 11 } } },
+        tooltip: {
+          callbacks: {
+            title: (items) => {
+              const point = points[items[0].dataIndex];
+              return point ? `${point.code} — ${point.name}` : "";
+            },
+            label: (context) => `${context.parsed.x.toFixed(1)} min average`,
+            afterLabel: () => "Click to open airport page",
+          },
+        },
+      },
+    },
+  });
 }
 
 async function initTerminalMap(airportCode, rows) {
@@ -1233,6 +1347,7 @@ async function silentRefresh() {
     // Re-render chips to keep active state in sync
     const search = document.getElementById("airport-search");
     renderAirportChips(livePayloadCache, search ? search.value : "");
+    renderNetworkAverageChart(livePayloadCache);
     // Re-render wait cards for the currently selected airport (no-op if none)
     if (selectedAirportCode) {
       renderLiveCards(livePayloadCache, selectedAirportCode);
@@ -1353,6 +1468,7 @@ async function bootstrap() {
   });
 
   renderAirportChips(livePayloadCache);
+  renderNetworkAverageChart(livePayloadCache);
   renderLiveCards(livePayloadCache, null);
 
   // Auto-select airport if this is a dedicated airport page

@@ -1002,6 +1002,21 @@
     {% endif %}
 
     {% if not is_airport_page %}
+    <section class="network-chart-card">
+      <div class="network-chart-head">
+        <div>
+          <div class="home-eyebrow">Network graph</div>
+          <h2>Current average wait by airport</h2>
+        </div>
+        <a href="/airports" class="network-chart-link">Open airport board</a>
+      </div>
+      <p class="network-chart-copy">A single live view of the airport network, sorted by current average wait. Click a bar to open that airport page.</p>
+      <div id="network-chart-empty" class="chart-empty">Loading airport comparison graph.</div>
+      <div class="network-chart-frame">
+        <canvas id="network-average-chart" height="520"></canvas>
+      </div>
+    </section>
+
     <section class="home-rank-card">
       <div class="home-rank-header">
         <div>
