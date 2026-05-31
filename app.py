@@ -18,11 +18,13 @@ from flask import Flask, Response, abort, jsonify, redirect, render_template, re
 
 # Import Supabase integration (optional)
 try:
-    from supabase_integration import supabase_store_samples
+    from supabase_integration import supabase_historical_24h_average, supabase_history_rows, supabase_store_samples
     SUPABASE_ENABLED = True
 except ImportError:
     SUPABASE_ENABLED = False
     def supabase_store_samples(rows): pass
+    def supabase_history_rows(airport_code: str, hours: int = 12): return None
+    def supabase_historical_24h_average(airport_code: str, days: int = 30, time_zone_name: str = "UTC"): return None
 
 APP_TZ = timezone.utc
 # Bulletproof DB Path: Check for Render Disk, fallback to local
@@ -3057,6 +3059,18 @@ def normalized_current_wait_for_code(code: str) -> Dict:
 
 
 def history_for_airport(airport_code: str, hours: int = 12) -> List[Dict]:
+    supabase_rows = supabase_history_rows(airport_code, hours=hours)
+    if supabase_rows:
+        return [
+            {
+                "airport_code": r.get("airport_code", airport_code),
+                "checkpoint": r.get("checkpoint", ""),
+                "wait_minutes": r.get("wait_minutes", 0),
+                "captured_at": r.get("captured_at", ""),
+            }
+            for r in supabase_rows
+        ]
+
     cutoff = (utc_now() - timedelta(hours=hours)).isoformat()
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
@@ -3083,8 +3097,13 @@ def history_for_airport(airport_code: str, hours: int = 12) -> List[Dict]:
 
 
 def historical_24h_average_for_airport(airport_code: str, days: int = 30) -> List[Dict]:
+    time_zone_name = AIRPORT_TIME_ZONES.get(airport_code, "UTC")
+    tz = ZoneInfo(time_zone_name)
+    supabase_rows = supabase_historical_24h_average(airport_code, days=days, time_zone_name=time_zone_name)
+    if supabase_rows and any(row.get("samples", 0) for row in supabase_rows):
+        return supabase_rows
+
     cutoff = (utc_now() - timedelta(days=max(1, min(days, 90)))).isoformat()
-    tz = ZoneInfo(AIRPORT_TIME_ZONES.get(airport_code, "UTC"))
     buckets = {hour: {"sum": 0.0, "count": 0} for hour in range(24)}
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()

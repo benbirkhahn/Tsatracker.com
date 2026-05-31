@@ -86,6 +86,8 @@ This repository includes a `render.yaml` Blueprint.
 | `POLL_SECONDS` | Interval between data refreshes | `120` |
 | `DB_PATH` | Path to SQLite database | `data.db` |
 | `COLLECT_NOW_TOKEN` | Secret token to trigger manual fetch via API | Required |
+| `SUPABASE_URL` | Supabase project URL for durable historical samples | Optional |
+| `SUPABASE_KEY` | Supabase API key used server-side for durable historical samples | Optional |
 | `SITE_URL` | Used for Canonical URLs/SEO | `https://tsatracker.com` |
 | `ENABLE_X_ALERTS` | Enable abnormal wait posting to X | `false` |
 | `X_API_KEY` | X app API key | Required for X alerts |

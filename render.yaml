@@ -19,5 +19,9 @@ services:
         value: "120"
       - key: DB_PATH
         value: /data/data.db
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
       - key: COLLECT_NOW_TOKEN
         generateValue: true
