@@ -9,6 +9,9 @@ let leafletAssetPromise = null;
 const hasRIC = typeof window !== "undefined" && "requestIdleCallback" in window;
 const airportProfiles = (typeof window !== "undefined" && window.AIRPORT_PROFILES) || {};
 const COMMUNITY_REPORT_COOLDOWN_MS = 5 * 60 * 1000;
+const HISTORY_AVERAGE_MIN_BUCKETS = 18;
+const HISTORY_RECENT_HOURS = 12;
+const HISTORY_BUCKET_MINUTES = 15;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -73,6 +76,23 @@ const PHL_CONFIG = {
   ]
 };
 
+const PHL_CHECKPOINT_IDS_BY_NAME = {
+  "D/E TSA PreCheck": 4126,
+  "D/E General": 3971,
+  "A-West General": 4377,
+  "A-East TSA PreCheck": 4386,
+  "A-East General": 4368,
+  "B General": 5047,
+  "C General": 5052,
+  "F General": 5068,
+};
+
+function phlCheckpointId(row) {
+  const rawId = Number(row?.checkpoint_id);
+  if (Number.isFinite(rawId) && rawId > 0) return rawId;
+  return PHL_CHECKPOINT_IDS_BY_NAME[row?.checkpoint] || null;
+}
+
 function scheduleNonCriticalTask(fn, timeout = 800) {
   if (hasRIC) {
     window.requestIdleCallback(fn, { timeout });
@@ -89,9 +109,16 @@ function loadChartJs() {
   }
   chartJsPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
+    const timeout = window.setTimeout(() => reject(new Error("Chart.js load timed out")), 8000);
     script.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js";
-    script.onload = () => resolve(window.Chart);
-    script.onerror = reject;
+    script.onload = () => {
+      window.clearTimeout(timeout);
+      resolve(window.Chart);
+    };
+    script.onerror = () => {
+      window.clearTimeout(timeout);
+      reject(new Error("Chart.js failed to load"));
+    };
     document.head.appendChild(script);
   });
   return chartJsPromise;
@@ -607,10 +634,10 @@ async function initTerminalMap(airportCode, rows) {
 }
 
 function updateMapTerminalStatus(rows) {
-  if (!terminalMap || selectedAirportCode !== "PHL") return;
+  if (!terminalMap || selectedAirportCode !== "PHL" || !Array.isArray(rows)) return;
 
   PHL_CONFIG.terminals.forEach(t => {
-    const cpRows = rows.filter(r => t.checkpoints.includes(Number(r.checkpoint_id)));
+    const cpRows = rows.filter(r => t.checkpoints.includes(phlCheckpointId(r)));
     if (cpRows.length) {
       const bestWait = Math.min(...cpRows.map(r => Number(r.wait_minutes) || 999));
       const tier = waitTierClass(bestWait);
@@ -686,18 +713,39 @@ function renderPipeline(rows) {
   });
 }
 
-function normalizeHistory(rows) {
+function formatAirportTimeLabel(date, timeZone = "UTC") {
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).format(date);
+  } catch {
+    return date.toISOString().slice(11, 16);
+  }
+}
+
+function normalizeHistory(rows, timeZone = "UTC", bucketMinutes = HISTORY_BUCKET_MINUTES) {
   const bucket = {};
+  const bucketMs = Math.max(1, bucketMinutes) * 60 * 1000;
   rows.forEach((r) => {
     const t = new Date(r.captured_at);
-    const key = `${t.getUTCFullYear()}-${t.getUTCMonth() + 1}-${t.getUTCDate()} ${t.getUTCHours()}:${t.getUTCMinutes()}`;
-    if (!bucket[key]) bucket[key] = { ts: t, sum: 0, c: 0 };
+    if (Number.isNaN(t.getTime())) return;
+    const bucketTime = Math.floor(t.getTime() / bucketMs) * bucketMs;
+    const key = String(bucketTime);
+    if (!bucket[key]) bucket[key] = { ts: new Date(bucketTime), sum: 0, c: 0 };
     bucket[key].sum += Number(r.wait_minutes) || 0;
     bucket[key].c += 1;
   });
   return Object.values(bucket)
     .sort((a, b) => a.ts - b.ts)
-    .map((x) => ({ label: x.ts.toISOString().slice(11, 16), value: x.c ? x.sum / x.c : 0 }));
+    .map((x) => ({
+      ts: x.ts.getTime(),
+      label: formatAirportTimeLabel(x.ts, timeZone),
+      value: x.c ? x.sum / x.c : 0,
+      samples: x.c,
+    }));
 }
 
 function getStoredHistory(airportCode) {
@@ -772,32 +820,69 @@ function normalizeHistoricalAverageRows(rows) {
     }));
 }
 
-async function drawChart(points, airportCode) {
+function setHistoryChartCopy(mode, airportCode = "") {
+  const chip = document.getElementById("chart-mode-chip");
+  const tip = document.getElementById("chart-planning-tip");
+  const emptyEl = document.getElementById("chart-empty");
+
+  if (mode === "recent") {
+    if (chip) chip.textContent = "Recent live history";
+    if (tip) {
+      tip.textContent = `${airportCode} is still building a full 30-day hourly baseline, so this chart is showing recent live samples grouped into 15-minute windows.`;
+    }
+    if (emptyEl) emptyEl.textContent = "Collecting recent wait history for this airport.";
+    return;
+  }
+
+  if (chip) chip.textContent = "24-hour average";
+  if (tip) {
+    tip.textContent = "This chart shows actual wait times captured over the past 30 days grouped by local hour, building a rolling history as new data arrives. Use it to spot patterns before heading to the airport.";
+  }
+  if (emptyEl) emptyEl.textContent = airportCode ? `Loading wait history for ${airportCode}.` : "Select an airport to view recent wait history.";
+}
+
+function averageBucketCount(points) {
+  return points.filter((point) => point.value !== null && point.samples > 0).length;
+}
+
+async function drawChart(points, airportCode, mode = "average") {
   await loadChartJs();
   const ctx = document.getElementById("history-chart");
   if (chart) chart.destroy();
+  const isRecent = mode === "recent";
   chart = new Chart(ctx, {
-    type: "bar",
+    type: isRecent ? "line" : "bar",
     data: {
       labels: points.map((p) => p.label),
       datasets: [{
-        label: `${airportCode} 24-hour historical avg wait (mins)`,
+        label: isRecent
+          ? `${airportCode} recent avg wait (mins)`
+          : `${airportCode} 24-hour historical avg wait (mins)`,
         data: points.map((p) => p.value),
         borderColor: "#5eead4",
-        backgroundColor: "rgba(94,234,212,0.22)",
-        borderWidth: 1,
-        borderRadius: 6,
+        backgroundColor: isRecent ? "rgba(94,234,212,0.12)" : "rgba(94,234,212,0.22)",
+        borderWidth: isRecent ? 2 : 1,
+        borderRadius: isRecent ? 0 : 6,
+        fill: false,
+        tension: isRecent ? 0.28 : 0,
+        pointRadius: isRecent ? 2 : 0,
       }],
     },
     options: {
       responsive: true,
       scales: {
         x: {
-          ticks: { color: "#55556a", font: { family: "'IBM Plex Mono'" } },
+          ticks: {
+            color: "#55556a",
+            font: { family: "'IBM Plex Mono'" },
+            autoSkip: true,
+            maxTicksLimit: isRecent ? 8 : 12,
+          },
           grid: { color: "#22222e" },
           border: { color: "#22222e" },
         },
         y: {
+          beginAtZero: true,
           ticks: { color: "#55556a", font: { family: "'IBM Plex Mono'" } },
           grid: { color: "#22222e" },
           border: { color: "#22222e" },
@@ -826,16 +911,53 @@ async function loadHistory(airportCode) {
   const emptyEl = document.getElementById("chart-empty");
   if (!airportCode) {
     if (chart) { chart.destroy(); chart = null; }
+    setHistoryChartCopy("average");
     emptyEl.style.display = "block";
     return;
   }
-  const resp = await fetch(`/api/history-24h-average?airport=${airportCode}&days=30`);
-  const payload = await resp.json();
-  const points = normalizeHistoricalAverageRows(payload.rows || []);
-  const hasData = points.some((point) => point.value !== null);
+  try {
+    const averageResp = await fetch(`/api/history-24h-average?airport=${airportCode}&days=30`);
+    const averagePayload = await averageResp.json();
+    const averagePoints = normalizeHistoricalAverageRows(averagePayload.rows || []);
+    const averageBuckets = averageBucketCount(averagePoints);
 
-  emptyEl.style.display = hasData ? "none" : "block";
-  if (hasData) drawChart(points, airportCode);
+    if (averageBuckets >= HISTORY_AVERAGE_MIN_BUCKETS) {
+      setHistoryChartCopy("average", airportCode);
+      await drawChart(averagePoints, airportCode, "average");
+      emptyEl.style.display = "none";
+      return;
+    }
+
+    const recentResp = await fetch(`/api/history?airport=${airportCode}&hours=${HISTORY_RECENT_HOURS}`);
+    const recentPayload = await recentResp.json();
+    const recentPoints = normalizeHistory(
+      recentPayload.rows || [],
+      recentPayload.timezone || averagePayload.timezone || "UTC",
+      HISTORY_BUCKET_MINUTES
+    );
+
+    if (recentPoints.length) {
+      setHistoryChartCopy("recent", airportCode);
+      await drawChart(recentPoints, airportCode, "recent");
+      emptyEl.style.display = "none";
+      return;
+    }
+
+    if (averageBuckets > 0) {
+      setHistoryChartCopy("average", airportCode);
+      await drawChart(averagePoints, airportCode, "average");
+      emptyEl.style.display = "none";
+      return;
+    }
+
+    if (chart) { chart.destroy(); chart = null; }
+    setHistoryChartCopy("recent", airportCode);
+    emptyEl.style.display = "block";
+  } catch (_e) {
+    if (chart) { chart.destroy(); chart = null; }
+    setHistoryChartCopy("recent", airportCode);
+    emptyEl.style.display = "block";
+  }
 }
 
 // Source status label
@@ -1031,7 +1153,7 @@ async function selectAirport(code, shouldPush = true) {
   renderAirportChips(livePayloadCache, document.getElementById("airport-search").value);
   renderLiveCards(livePayloadCache, code);
   fetchCommunityStatus(code);
-  void initTerminalMap(code, livePayloadCache);
+  void initTerminalMap(code, livePayloadCache?.data?.[code] || []);
   scheduleNonCriticalTask(() => loadHistory(code));
 
   // Scroll to results (only if the user explicitly clicked)

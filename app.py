@@ -3574,12 +3574,15 @@ def api_live():
 @app.route("/api/history")
 def api_history():
     code = request.args.get("airport", "PHL").upper()
-    hours = int(request.args.get("hours", "12"))
+    hours = request.args.get("hours", 12, type=int) or 12
+    hours = max(1, min(hours, 720))
     if code not in LIVE_AIRPORTS:
         return jsonify({"error": "Unknown airport"}), 400
     return jsonify(
         {
             "airport": code,
+            "hours": hours,
+            "timezone": AIRPORT_TIME_ZONES.get(code, "UTC"),
             "generated_at": utc_now().isoformat(),
             "rows": history_for_airport(code, hours=hours),
         }
@@ -3684,7 +3687,7 @@ def api_tsa_wait_times():
 @app.route("/api/pipeline")
 def api_pipeline():
     public = [
-        {"code": a["code"], "name": a["name"], "status": a["status"], "note": a.get("public_note", "")}
+        {"code": a["code"], "name": a["name"], "status": a.get("status", "IN_RESEARCH"), "note": a.get("public_note", "")}
         for a in PIPELINE_AIRPORTS
     ]
     return jsonify({"generated_at": utc_now().isoformat(), "airports": public})
