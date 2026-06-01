@@ -172,6 +172,20 @@ function loadLeafletAssets() {
   return leafletAssetPromise;
 }
 
+async function fetchJsonWithTimeout(url, timeoutMs = 10000) {
+  const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const timeout = window.setTimeout(() => {
+    if (controller) controller.abort();
+  }, timeoutMs);
+  try {
+    const resp = await fetch(url, controller ? { signal: controller.signal } : undefined);
+    if (!resp.ok) throw new Error(`Request failed with ${resp.status}`);
+    return await resp.json();
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
 function fmtMinutes(v) {
   const n = Number(v);
   if (Number.isNaN(n) || n < 0) return null; // null = truly closed/no data
@@ -580,14 +594,13 @@ async function renderNetworkAverageChart() {
     emptyEl.style.display = "block";
   }
 
+  const chartJsReady = loadChartJs();
   let payload;
   try {
-    const resp = await fetch("/api/network-history-24h-average?days=30");
-    if (!resp.ok) throw new Error("Network history unavailable");
-    payload = await resp.json();
+    payload = await fetchJsonWithTimeout("/api/network-history-24h-average?days=30", 12000);
   } catch (_e) {
     if (emptyEl) {
-      emptyEl.textContent = "Historical comparison is unavailable right now.";
+      emptyEl.textContent = "Historical comparison is still warming up. Current airport cards are available below.";
       emptyEl.style.display = "block";
     }
     return;
@@ -633,7 +646,7 @@ async function renderNetworkAverageChart() {
   });
 
   try {
-    await loadChartJs();
+    await chartJsReady;
   } catch (_e) {
     if (emptyEl) {
       emptyEl.textContent = "Network graph is loading slowly. Current airport cards are still available below.";

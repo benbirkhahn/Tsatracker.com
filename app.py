@@ -3098,10 +3098,15 @@ def history_for_airport(airport_code: str, hours: int = 12) -> List[Dict]:
     ]
 
 
-def historical_24h_average_for_airport(airport_code: str, days: int = 30) -> List[Dict]:
+def historical_24h_average_for_airport(airport_code: str, days: int = 30, sample_limit: int = 100000) -> List[Dict]:
     time_zone_name = AIRPORT_TIME_ZONES.get(airport_code, "UTC")
     tz = ZoneInfo(time_zone_name)
-    supabase_rows = supabase_historical_24h_average(airport_code, days=days, time_zone_name=time_zone_name)
+    supabase_rows = supabase_historical_24h_average(
+        airport_code,
+        days=days,
+        time_zone_name=time_zone_name,
+        limit=max(1000, min(sample_limit, 100000)),
+    )
     if supabase_rows and any(row.get("samples", 0) for row in supabase_rows):
         return supabase_rows
 
@@ -3115,8 +3120,9 @@ def historical_24h_average_for_airport(airport_code: str, days: int = 30) -> Lis
         FROM samples
         WHERE airport_code = ? AND captured_at >= ?
         ORDER BY captured_at ASC
+        LIMIT ?
         """,
-        (airport_code, cutoff),
+        (airport_code, cutoff, max(1000, min(sample_limit, 100000))),
     )
     rows = cur.fetchall()
     conn.close()
@@ -3643,7 +3649,7 @@ def api_network_history_24h_average():
 
     airports = []
     for code, meta in LIVE_AIRPORTS.items():
-        rows = historical_24h_average_for_airport(code, days=days)
+        rows = historical_24h_average_for_airport(code, days=days, sample_limit=20000)
         airports.append(
             {
                 "code": code,
