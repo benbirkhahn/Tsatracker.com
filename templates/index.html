@@ -54,8 +54,8 @@
       display: none;
     }
     .home-mode .main {
-      max-width: 1180px;
-      padding: 0 28px 96px;
+      max-width: 1440px;
+      padding: 0 clamp(18px, 3vw, 44px) 96px;
     }
     .home-mode .top-ad,
     .home-mode .utility-card {
@@ -611,6 +611,9 @@
       text-transform: uppercase;
     }
     @media (max-width: 980px) {
+      .home-mode .main {
+        padding: 0 14px 84px;
+      }
       .home-hero-shell,
       .home-strip,
       .home-section-grid,
@@ -632,7 +635,7 @@
         flex-wrap: wrap;
       }
       .home-mode .main {
-        padding: 0 16px 72px;
+        padding: 0 12px 72px;
       }
       .home-hero-panel,
       .home-command-panel,
