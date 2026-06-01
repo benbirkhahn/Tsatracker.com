@@ -1512,6 +1512,7 @@ async function bootstrap() {
 
   scheduleNonCriticalTask(async () => {
     const select = document.getElementById("airport-select");
+    if (!select) return;
     Object.keys(livePayloadCache.live_airports || {}).forEach((code) => {
       const opt = document.createElement("option");
       opt.value = code;
