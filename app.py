@@ -24,7 +24,7 @@ except ImportError:
     SUPABASE_ENABLED = False
     def supabase_store_samples(rows): pass
     def supabase_history_rows(airport_code: str, hours: int = 12): return None
-    def supabase_historical_24h_average(airport_code: str, days: int = 30, time_zone_name: str = "UTC"): return None
+    def supabase_historical_24h_average(airport_code: str, days: int = 30, time_zone_name: str = "UTC", limit: int = 100000): return None
 
 APP_TZ = timezone.utc
 # Bulletproof DB Path: Check for Render Disk, fallback to local
@@ -870,6 +870,7 @@ _poll_lock = threading.Lock()
 _poller_started = False
 _network_history_cache = {"key": None, "generated_at": None, "payload": None}
 NETWORK_HISTORY_CACHE_SECONDS = 15 * 60
+HOURLY_AGGREGATE_MAX_DAYS = 90
 
 
 @app.after_request
@@ -1922,6 +1923,19 @@ def init_db() -> None:
         )
         """
     )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS hourly_wait_aggregates (
+            airport_code TEXT NOT NULL,
+            local_date TEXT NOT NULL,
+            local_hour INTEGER NOT NULL,
+            wait_sum REAL NOT NULL DEFAULT 0,
+            sample_count INTEGER NOT NULL DEFAULT 0,
+            refreshed_at TEXT NOT NULL,
+            PRIMARY KEY (airport_code, local_date, local_hour)
+        )
+        """
+    )
     # Migrate existing DBs that don't yet have lane_type
     try:
         cur.execute("ALTER TABLE samples ADD COLUMN lane_type TEXT NOT NULL DEFAULT 'STANDARD'")
@@ -1959,8 +1973,86 @@ def init_db() -> None:
         ON social_posts (platform, event_key)
         """
     )
+    cur.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_hourly_wait_aggregates_airport_date
+        ON hourly_wait_aggregates (airport_code, local_date)
+        """
+    )
     conn.commit()
     conn.close()
+
+
+def hourly_aggregate_bucket(airport_code: str, wait_minutes: float, captured_at: str) -> Optional[Dict]:
+    try:
+        tz = ZoneInfo(AIRPORT_TIME_ZONES.get(airport_code, "UTC"))
+        captured = datetime.fromisoformat(str(captured_at).replace("Z", "+00:00"))
+        if captured.tzinfo is None:
+            captured = captured.replace(tzinfo=timezone.utc)
+        local_dt = captured.astimezone(tz)
+        return {
+            "airport_code": airport_code,
+            "local_date": local_dt.date().isoformat(),
+            "local_hour": local_dt.hour,
+            "wait_sum": clamp_wait_minutes(float(wait_minutes)),
+            "sample_count": 1,
+        }
+    except Exception:
+        return None
+
+
+def upsert_hourly_aggregate_buckets(conn: sqlite3.Connection, buckets: List[Dict]) -> None:
+    if not buckets:
+        return
+    now_iso = utc_now().isoformat()
+    conn.executemany(
+        """
+        INSERT INTO hourly_wait_aggregates (
+            airport_code, local_date, local_hour, wait_sum, sample_count, refreshed_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(airport_code, local_date, local_hour) DO UPDATE SET
+            wait_sum = hourly_wait_aggregates.wait_sum + excluded.wait_sum,
+            sample_count = hourly_wait_aggregates.sample_count + excluded.sample_count,
+            refreshed_at = excluded.refreshed_at
+        """,
+        [
+            (
+                bucket["airport_code"],
+                bucket["local_date"],
+                int(bucket["local_hour"]),
+                float(bucket["wait_sum"]),
+                int(bucket["sample_count"]),
+                now_iso,
+            )
+            for bucket in buckets
+        ],
+    )
+
+
+def update_hourly_aggregates_for_rows(rows: List[Dict]) -> None:
+    buckets = []
+    for row in rows:
+        airport_code = str(row.get("airport_code", "")).upper()
+        if airport_code not in LIVE_AIRPORTS:
+            continue
+        bucket = hourly_aggregate_bucket(
+            airport_code,
+            row.get("wait_minutes", 0),
+            row.get("captured_at", ""),
+        )
+        if bucket:
+            buckets.append(bucket)
+    if not buckets:
+        return
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        upsert_hourly_aggregate_buckets(conn, buckets)
+        cutoff = (utc_now() - timedelta(days=HOURLY_AGGREGATE_MAX_DAYS + 7)).date().isoformat()
+        conn.execute("DELETE FROM hourly_wait_aggregates WHERE local_date < ?", (cutoff,))
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def db_insert_rows(rows: List[Dict]) -> None:
@@ -1987,6 +2079,7 @@ def db_insert_rows(rows: List[Dict]) -> None:
     )
     conn.commit()
     conn.close()
+    update_hourly_aggregates_for_rows(rows)
 
     # Also store in Supabase for historical analysis
     if SUPABASE_ENABLED:
@@ -3098,18 +3191,126 @@ def history_for_airport(airport_code: str, hours: int = 12) -> List[Dict]:
     ]
 
 
+def read_hourly_aggregate_rows(airport_code: str, days: int = 30) -> List[Dict]:
+    bounded_days = max(1, min(days, HOURLY_AGGREGATE_MAX_DAYS))
+    tz = ZoneInfo(AIRPORT_TIME_ZONES.get(airport_code, "UTC"))
+    cutoff_date = (utc_now().astimezone(tz) - timedelta(days=bounded_days)).date().isoformat()
+    buckets = {hour: {"sum": 0.0, "count": 0} for hour in range(24)}
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT local_hour, SUM(wait_sum), SUM(sample_count)
+        FROM hourly_wait_aggregates
+        WHERE airport_code = ? AND local_date >= ?
+        GROUP BY local_hour
+        """,
+        (airport_code, cutoff_date),
+    )
+    rows = cur.fetchall()
+    conn.close()
+    for local_hour, wait_sum, sample_count in rows:
+        try:
+            hour = int(local_hour)
+            if hour not in buckets:
+                continue
+            buckets[hour]["sum"] = float(wait_sum or 0)
+            buckets[hour]["count"] = int(sample_count or 0)
+        except Exception:
+            continue
+
+    return [
+        {
+            "hour": hour,
+            "label": f"{hour:02d}:00",
+            "avg_wait": round(bucket["sum"] / bucket["count"], 1) if bucket["count"] else None,
+            "samples": bucket["count"],
+        }
+        for hour, bucket in buckets.items()
+    ]
+
+
+def refresh_hourly_aggregates_from_local_samples(airport_code: str, days: int = 30) -> None:
+    bounded_days = max(1, min(days, HOURLY_AGGREGATE_MAX_DAYS))
+    tz = ZoneInfo(AIRPORT_TIME_ZONES.get(airport_code, "UTC"))
+    cutoff_dt = utc_now() - timedelta(days=bounded_days + 2)
+    cutoff_date = (utc_now().astimezone(tz) - timedelta(days=bounded_days)).date().isoformat()
+    aggregate: Dict[tuple, Dict] = {}
+
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT wait_minutes, captured_at
+        FROM samples
+        WHERE airport_code = ? AND captured_at >= ?
+        ORDER BY captured_at ASC
+        """,
+        (airport_code, cutoff_dt.isoformat()),
+    )
+    for wait_minutes, captured_at in cur.fetchall():
+        bucket = hourly_aggregate_bucket(airport_code, wait_minutes, captured_at)
+        if not bucket or bucket["local_date"] < cutoff_date:
+            continue
+        key = (bucket["airport_code"], bucket["local_date"], bucket["local_hour"])
+        current = aggregate.setdefault(
+            key,
+            {
+                "airport_code": bucket["airport_code"],
+                "local_date": bucket["local_date"],
+                "local_hour": bucket["local_hour"],
+                "wait_sum": 0.0,
+                "sample_count": 0,
+            },
+        )
+        current["wait_sum"] += bucket["wait_sum"]
+        current["sample_count"] += 1
+
+    conn.execute(
+        "DELETE FROM hourly_wait_aggregates WHERE airport_code = ? AND local_date >= ?",
+        (airport_code, cutoff_date),
+    )
+    if aggregate:
+        now_iso = utc_now().isoformat()
+        conn.executemany(
+            """
+            INSERT INTO hourly_wait_aggregates (
+                airport_code, local_date, local_hour, wait_sum, sample_count, refreshed_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    bucket["airport_code"],
+                    bucket["local_date"],
+                    int(bucket["local_hour"]),
+                    float(bucket["wait_sum"]),
+                    int(bucket["sample_count"]),
+                    now_iso,
+                )
+                for bucket in aggregate.values()
+            ],
+        )
+    conn.commit()
+    conn.close()
+
+
+def aggregate_rows_have_samples(rows: List[Dict]) -> bool:
+    return any(int(row.get("samples") or 0) > 0 for row in rows)
+
+
 def historical_24h_average_for_airport(airport_code: str, days: int = 30, sample_limit: int = 100000) -> List[Dict]:
+    aggregate_rows = read_hourly_aggregate_rows(airport_code, days=days)
+    if aggregate_rows_have_samples(aggregate_rows):
+        return aggregate_rows
+
+    refresh_hourly_aggregates_from_local_samples(airport_code, days=days)
+    aggregate_rows = read_hourly_aggregate_rows(airport_code, days=days)
+    if aggregate_rows_have_samples(aggregate_rows):
+        return aggregate_rows
+
     time_zone_name = AIRPORT_TIME_ZONES.get(airport_code, "UTC")
     tz = ZoneInfo(time_zone_name)
-    supabase_rows = supabase_historical_24h_average(
-        airport_code,
-        days=days,
-        time_zone_name=time_zone_name,
-        limit=max(1000, min(sample_limit, 100000)),
-    )
-    if supabase_rows and any(row.get("samples", 0) for row in supabase_rows):
-        return supabase_rows
-
     cutoff = (utc_now() - timedelta(days=max(1, min(days, 90)))).isoformat()
     buckets = {hour: {"sum": 0.0, "count": 0} for hour in range(24)}
     conn = sqlite3.connect(DB_PATH)
