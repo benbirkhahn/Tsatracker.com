@@ -40,6 +40,9 @@
     .stat-value { color: #fff; font-size: 1.7rem; line-height: 1; font-weight: 700; margin-bottom: 4px; }
     .stat-sub, .airport-card .name, .link-card .copy { color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
     .airport-card .code, .link-card .label { color: var(--amber); font-weight: 700; }
+    .compact-airport-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .compact-airport-links a { border: 1px solid #2a2a40; border-radius: 999px; padding: 7px 10px; background: rgba(255,255,255,0.03); font-weight: 700; }
+    .compact-airport-links a:hover { background: rgba(255,255,255,0.06); text-decoration: none; }
     .link-card .label { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; }
     .link-card .title { color: var(--text); font-weight: 700; margin: 6px 0; }
     .faq-item { margin-top: 10px; }
@@ -129,6 +132,14 @@
         </a>
         {% endfor %}
       </div>
+      {% if supporting_airports %}
+      <h3 style="margin:20px 0 8px;">More live airport pages</h3>
+      <div class="compact-airport-links">
+        {% for airport in supporting_airports %}
+        <a href="{{ airport.href }}">{{ airport.code }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
 
       <h2 style="margin:34px 0 10px;">Related pages</h2>
       <div class="link-grid">

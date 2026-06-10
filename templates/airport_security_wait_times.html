@@ -46,10 +46,13 @@
       padding: 12px 14px;
       color: inherit;
       text-decoration: none;
+      white-space: normal;
+      letter-spacing: 0;
+      font-family: inherit;
     }
     .airport-chip:hover { border-color: #44445f; text-decoration: none; }
     .airport-chip .code { color: var(--amber); font-weight: 700; margin-bottom: 2px; }
-    .airport-chip .name { color: var(--text); font-size: 0.92rem; line-height: 1.45; }
+    .airport-chip .name { color: var(--text); font-size: 0.92rem; line-height: 1.45; overflow-wrap: break-word; }
     .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 16px 0 18px; }
     .stat-card { background: var(--surface2); border: 1px solid #2a2a40; border-radius: 12px; padding: 14px 16px; }
     .stat-label { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 8px; }
@@ -143,14 +146,14 @@
       <h2 style="margin:34px 0 10px;">Open the airport page that matches your trip</h2>
       <p>The best search result for you is usually the airport page, not the general homepage. Each one adds airport-specific notes, terminal context, and a history chart to help you time your arrival.</p>
       <div class="airport-grid">
-        {% for airport in airport_pages[:8] %}
+        {% for airport in airport_pages %}
         <a class="airport-chip" href="{{ airport.href }}">
           <div class="code">{{ airport.code }}</div>
           <div class="name">{{ airport.name }}</div>
         </a>
         {% endfor %}
       </div>
-      <p style="margin-top:12px;">If your airport is not listed here, check the <a href="/airports">airport index</a> first. It is the fastest way to jump into a live page and compare options.</p>
+      <p style="margin-top:12px;">For current averages, freshness labels, and search by code or city, use the <a href="/airports">airport index</a>.</p>
 
       <h2 style="margin:34px 0 10px;">How to use live wait times well</h2>
       <ul class="content-list">

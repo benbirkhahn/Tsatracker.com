@@ -1428,6 +1428,7 @@ def intent_page_context(page_key: str) -> Dict:
     page = INTENT_PAGE_CONTENT[page_key]
     overview = build_airport_overview_context()
     featured_codes = ["JFK", "LAX", "ORD", "ATL", "MCO", "DFW", "BOS", "MIA"]
+    featured_code_set = set(featured_codes)
     featured_airports = []
     for code in featured_codes:
         if code in LIVE_AIRPORTS:
@@ -1438,12 +1439,18 @@ def intent_page_context(page_key: str) -> Dict:
                     "href": airport_seo_slug(code),
                 }
             )
+    supporting_airports = [
+        airport
+        for airport in overview["airport_pages"]
+        if airport["code"] not in featured_code_set
+    ]
     return {
         "page": page,
         "seo": page["seo"](),
         "monetization": get_monetization_context(),
         "airport_pages": overview["airport_pages"],
         "featured_airports": featured_airports,
+        "supporting_airports": supporting_airports,
         "fastest_airport": overview["fastest_airport"],
         "slowest_airport": overview["slowest_airport"],
         "overall_average": overview["overall_average"],
@@ -1623,7 +1630,7 @@ def compute_pagerank(nodes: List[Dict], edges: List[Dict], alpha: float = 0.85, 
 
 
 def link_graph_context() -> Dict:
-    airport_codes = ["PHL", "BOS", "MIA", "ORD", "LAX", "JFK", "DFW", "SEA", "LGA", "EWR"]
+    airport_codes = sorted(LIVE_AIRPORTS.keys())
     nodes = [
         {"id": "/", "label": "Home", "group": "core", "url": "/", "kind": "core"},
         {"id": "/airports", "label": "Airports", "group": "core", "url": "/airports", "kind": "core"},
@@ -1640,52 +1647,69 @@ def link_graph_context() -> Dict:
         {"id": "/terms", "label": "Terms", "group": "info", "url": "/terms", "kind": "info"},
     ]
     for code in airport_codes:
-        if code in LIVE_AIRPORTS:
-            nodes.append(
-                {
-                    "id": airport_seo_slug(code),
-                    "label": code,
-                    "group": "airport",
-                    "url": airport_seo_slug(code),
-                    "kind": "airport",
-                }
-            )
+        nodes.append(
+            {
+                "id": airport_seo_slug(code),
+                "label": code,
+                "group": "airport",
+                "url": airport_seo_slug(code),
+                "kind": "airport",
+            }
+        )
 
     edges = []
+    edge_keys = set()
+    node_ids = {node["id"] for node in nodes}
 
     def add_edges(src: str, targets: List[str]) -> None:
         for target in targets:
-            if target in {node["id"] for node in nodes} and target != src:
+            key = (src, target)
+            if src in node_ids and target in node_ids and target != src and key not in edge_keys:
                 edges.append({"from": src, "to": target})
+                edge_keys.add(key)
 
-    airport_targets = [airport_seo_slug(code) for code in airport_codes if code in LIVE_AIRPORTS]
+    airport_targets = [airport_seo_slug(code) for code in airport_codes]
+    guide_targets = [
+        "/guide/tsa-wait-times",
+        "/guide/tsa-precheck-clear",
+        "/best-time-to-get-to-the-airport",
+        "/how-early-should-i-arrive-for-tsa",
+        "/tsa-wait-times-by-airport",
+    ]
+    hub_targets = ["/", "/airports", "/airport-security-wait-times", "/methodology"]
 
     add_edges("/", ["/airports", "/airport-security-wait-times", "/best-time-to-get-to-the-airport", "/methodology", "/guide/tsa-wait-times", "/how-early-should-i-arrive-for-tsa", "/guide/tsa-precheck-clear", "/tsa-wait-times-by-airport"] + airport_targets)
     add_edges("/airports", ["/airport-security-wait-times", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear", "/methodology", "/about", "/contact"] + airport_targets)
-    add_edges("/airport-security-wait-times", ["/", "/airports", "/methodology", "/guide/tsa-wait-times", "/best-time-to-get-to-the-airport", "/how-early-should-i-arrive-for-tsa", "/guide/tsa-precheck-clear"] + airport_targets[:6])
+    add_edges("/airport-security-wait-times", ["/", "/airports", "/methodology", "/guide/tsa-wait-times", "/best-time-to-get-to-the-airport", "/how-early-should-i-arrive-for-tsa", "/guide/tsa-precheck-clear"] + airport_targets)
     add_edges("/methodology", ["/", "/airports", "/airport-security-wait-times", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear", "/best-time-to-get-to-the-airport", "/how-early-should-i-arrive-for-tsa", "/tsa-wait-times-by-airport", "/about", "/contact"])
-    add_edges("/guide/tsa-wait-times", ["/", "/airports", "/airport-security-wait-times", "/methodology", "/guide/tsa-precheck-clear"] + [airport_seo_slug(code) for code in ["LAX", "DFW", "ORD", "JFK", "MCO"] if code in LIVE_AIRPORTS])
+    add_edges("/guide/tsa-wait-times", ["/", "/airports", "/airport-security-wait-times", "/methodology", "/guide/tsa-precheck-clear"] + airport_targets)
     add_edges("/guide/tsa-precheck-clear", ["/", "/airports", "/airport-security-wait-times", "/guide/tsa-wait-times"] + [airport_seo_slug(code) for code in ["JFK", "LGA", "ORD", "LAX"] if code in LIVE_AIRPORTS])
-    add_edges("/best-time-to-get-to-the-airport", ["/", "/airports", "/airport-security-wait-times", "/methodology"])
-    add_edges("/how-early-should-i-arrive-for-tsa", ["/", "/airports", "/airport-security-wait-times", "/methodology"])
-    add_edges("/tsa-wait-times-by-airport", ["/", "/airports", "/airport-security-wait-times", "/methodology"])
+    add_edges("/best-time-to-get-to-the-airport", hub_targets + airport_targets)
+    add_edges("/how-early-should-i-arrive-for-tsa", hub_targets + airport_targets)
+    add_edges("/tsa-wait-times-by-airport", hub_targets + airport_targets)
     add_edges("/about", ["/", "/airports", "/airport-security-wait-times", "/methodology", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear"] + airport_targets)
     add_edges("/contact", ["/", "/airports", "/airport-security-wait-times", "/about", "/methodology", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear"])
     add_edges("/privacy", ["/", "/airports", "/airport-security-wait-times", "/about", "/methodology", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear", "/contact"])
     add_edges("/terms", ["/", "/airports", "/airport-security-wait-times", "/about", "/methodology", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear", "/contact"])
     for code in airport_codes:
-        if code not in LIVE_AIRPORTS:
-            continue
         slug = airport_seo_slug(code)
-        related = [airport_seo_slug(other) for other in airport_codes if other != code and other in LIVE_AIRPORTS]
-        add_edges(slug, ["/", "/airports", "/airport-security-wait-times", "/methodology", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear", "/best-time-to-get-to-the-airport", "/how-early-should-i-arrive-for-tsa", "/tsa-wait-times-by-airport"] + related[:4])
+        related = [airport["href"] for airport in related_airports_for_code(code)]
+        add_edges(slug, hub_targets + guide_targets + related)
 
     ranks = compute_pagerank(nodes, edges)
+    in_degree = {node["id"]: 0 for node in nodes}
+    out_degree = {node["id"]: 0 for node in nodes}
+    for edge in edges:
+        out_degree[edge["from"]] += 1
+        in_degree[edge["to"]] += 1
+
     ranked_nodes = sorted(
         [
             {
                 **node,
                 "score": round(ranks.get(node["id"], 0.0), 6),
+                "in_degree": in_degree[node["id"]],
+                "out_degree": out_degree[node["id"]],
             }
             for node in nodes
         ],
@@ -1695,7 +1719,18 @@ def link_graph_context() -> Dict:
     node_index = {node["id"]: node for node in ranked_nodes}
     top_nodes = ranked_nodes[:10]
     max_score = top_nodes[0]["score"] if top_nodes else 0.0
-    min_score = ranked_nodes[-1]["score"] if ranked_nodes else 0.0
+    lowest_node = ranked_nodes[-1] if ranked_nodes else None
+    min_score = lowest_node["score"] if lowest_node else 0.0
+    modeled_airports = {node["label"] for node in nodes if node["kind"] == "airport"}
+    missing_live_airports = sorted(set(LIVE_AIRPORTS.keys()) - modeled_airports)
+    weak_pages = sorted(
+        [node for node in ranked_nodes if node["kind"] in {"core", "guide", "airport"}],
+        key=lambda item: (item["in_degree"], item["score"], item["label"]),
+    )[:8]
+    weak_airports = sorted(
+        [node for node in ranked_nodes if node["kind"] == "airport"],
+        key=lambda item: (item["in_degree"], item["score"], item["label"]),
+    )[:8]
 
     return {
         "seo": build_page_seo(
@@ -1710,6 +1745,16 @@ def link_graph_context() -> Dict:
         "node_index_json": json.dumps(node_index),
         "max_score": max_score,
         "min_score": min_score,
+        "lowest_node": lowest_node,
+        "graph_summary": {
+            "node_count": len(ranked_nodes),
+            "edge_count": len(edges),
+            "live_airport_count": len(LIVE_AIRPORTS),
+            "modeled_airport_count": len(modeled_airports),
+            "missing_live_airports": missing_live_airports,
+        },
+        "weak_pages": weak_pages,
+        "weak_airports": weak_airports,
     }
 
 
