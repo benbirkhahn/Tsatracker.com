@@ -847,6 +847,18 @@ PIPELINE_AIRPORTS = [
 ]
 
 app = Flask(__name__)
+LANE_TYPE_LABELS = {
+    "STANDARD": "Standard",
+    "PRECHECK": "PreCheck",
+    "CLEAR": "CLEAR",
+    "CLEAR_PRECHECK": "CLEAR + PreCheck",
+}
+LANE_TYPE_SORT_ORDER = {
+    "STANDARD": 0,
+    "PRECHECK": 1,
+    "CLEAR": 2,
+    "CLEAR_PRECHECK": 3,
+}
 _mia_cache = {"key": None, "endpoint": None, "fetched_at": None}
 _clt_cache = {
     "key": None,
@@ -871,6 +883,31 @@ _poller_started = False
 _network_history_cache = {"key": None, "generated_at": None, "payload": None}
 NETWORK_HISTORY_CACHE_SECONDS = 15 * 60
 HOURLY_AGGREGATE_MAX_DAYS = 90
+
+
+def _lane_type_key(raw: object) -> str:
+    return str(raw or "STANDARD").strip().upper()
+
+
+def lane_type_label(raw: object) -> str:
+    key = _lane_type_key(raw)
+    return LANE_TYPE_LABELS.get(key, re.sub(r"[_-]+", " ", key).title())
+
+
+def _lane_display_sort_key(lane: Dict) -> tuple:
+    lane_type = lane.get("lane_type") if isinstance(lane, dict) else getattr(lane, "lane_type", "")
+    key = _lane_type_key(lane_type)
+    return (LANE_TYPE_SORT_ORDER.get(key, len(LANE_TYPE_SORT_ORDER)), lane_type_label(key))
+
+
+@app.template_filter("lane_label")
+def lane_label_filter(raw: object) -> str:
+    return lane_type_label(raw)
+
+
+@app.template_filter("lane_sort")
+def lane_sort_filter(lanes: List[Dict]) -> List[Dict]:
+    return sorted(lanes or [], key=_lane_display_sort_key)
 
 
 @app.after_request
@@ -1195,11 +1232,20 @@ INTENT_PAGE_CONTENT = {
 }
 
 
+def _forecast_hour(row: Dict) -> int:
+    try:
+        return int(row.get("hour", -1))
+    except (TypeError, ValueError):
+        return -1
+
+
 def arrival_guidance_for_airport(payload: Dict) -> Dict:
     forecast = payload.get("hourlyForecast", []) if payload else []
     if forecast:
+        best_candidates = [row for row in forecast if 5 <= _forecast_hour(row) <= 22]
+        best_ordered = sorted(best_candidates or forecast, key=lambda row: float(row.get("waittime", 0)))
         ordered = sorted(forecast, key=lambda row: float(row.get("waittime", 0)))
-        best = ordered[0]
+        best = best_ordered[0]
         worst = ordered[-1]
         best_label = best.get("timeslot", "late morning")
         risk_label = worst.get("timeslot", "the busiest bank")
@@ -1229,7 +1275,7 @@ def airport_page_editorial_context(code: str, payload: Optional[Dict], checkpoin
     notice = airport_status_notice_for_code(code)
     source_type = (payload or {}).get("sourceType", "estimated_fallback")
     source_reason = (payload or {}).get("sourceReason", "")
-    checkpoint_count = len(checkpoints)
+    checkpoint_count = len({c["checkpoint"] for c in checkpoints})
     link_count = len(guide.get("links", []))
 
     if source_type == "live_direct":

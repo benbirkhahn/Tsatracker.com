@@ -149,10 +149,10 @@
           {% if name == ns.best %}<span class="cp-best-tag">BEST ENTRY</span>{% endif %}
         </div>
         <div class="lanes">
-          {% for lane in lanes %}
+          {% for lane in lanes|lane_sort %}
           {% set w = lane.wait_minutes|float %}
           <div class="lane">
-            <span>{{ lane.lane_type|title }}</span>
+            <span>{{ lane.lane_type|lane_label }}</span>
             <b class="{% if w <= 0 %}w-dim{% elif w <= 15 %}w-low{% elif w <= 30 %}w-med{% else %}w-high{% endif %}">
               {% if w <= 0 %}closed{% else %}{{ w|round|int }} min{% endif %}
             </b>
