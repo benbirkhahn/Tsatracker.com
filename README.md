@@ -137,6 +137,8 @@ Script:
 | :--- | :--- |
 | `GSC_PROPERTY` | Search Console property, e.g. `https://tsatracker.com/` or `sc-domain:tsatracker.com` |
 | `GSC_SERVICE_ACCOUNT_FILE` | Path to the service account JSON file |
+| `GA4_SERVICE_ACCOUNT_FILE` | Optional GA4-only service account JSON file |
+| `GA4_AUTH_MODE` | Optional auth mode override for GA4 commands |
 | `GSC_SITEMAP_URL` | Absolute sitemap URL, e.g. `https://tsatracker.com/sitemap.xml` |
 | `GSC_LANGUAGE_CODE` | Optional inspection language code, e.g. `en-US` |
 
@@ -159,9 +161,23 @@ Inspect from a file:
 python3 scripts/gsc_automation.py inspect --urls-file urls.txt
 ```
 
+List GA4 properties visible to the current auth:
+```bash
+python3 scripts/gsc_automation.py list-ga4-properties
+```
+
+Print a combined internal views + Search Console + GA4 report:
+```bash
+python3 scripts/gsc_automation.py --auth-mode adc --property sc-domain:tsatracker.com --quota-project YOUR_QUOTA_PROJECT_ID --ga4-credentials /path/to/ga4-service-account.json --ga4-property-id 530792269 report --days 7
+```
+
 ### Notes
 - This script uses the official `sitemaps.submit` and `urlInspection.index.inspect` APIs.
 - It does **not** automate normal `Request indexing`; Google does not expose that as a general API for these pages.
+- The daily `views` column in `report` comes from the app's `page_views` table via `DB_PATH`, so it reflects the live site when run on the deployed host.
+- Search Console reporting requires a quota project for ADC user credentials. Set `GSC_QUOTA_PROJECT` or pass `--quota-project` if you see the quota-project error.
+- GA4 reporting requires `GA4_PROPERTY_ID`. If ADC auth is missing the Analytics scope or gets blocked, use your own OAuth client or a service account that has access to the GA4 property.
+- If you use a GA4 service account, pass `--ga4-credentials` or set `GA4_SERVICE_ACCOUNT_FILE`; the report command can use Search Console ADC plus GA4 service-account access at the same time.
 
 ---
 
