@@ -1,14 +1,5 @@
-.venv/
-venv/
+.env
 __pycache__/
 *.pyc
-data.db
-*.log
-/tmp/
 .DS_Store
-.env
-.gemini/
-.vscode/
-*.swp
-*.swo
-.gitignore_aionui_*
+*.db
