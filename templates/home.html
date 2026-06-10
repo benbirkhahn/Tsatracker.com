@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% if monetization.adsense_client %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
+  {% include "_adsense_head.html" %}
+  <meta name="google-site-verification" content="BrgIHs-VGqw0TKjsx0U-HzG_tED2LE_9kwy3qR58ObQ" />
+  <meta name="fo-verify" content="2e38fbfa-7430-401b-9aff-ed0c496d850c" />
+  <title>{{ seo.title }}</title>
+  <meta name="description" content="{{ seo.description }}">
+  <link rel="canonical" href="{{ seo.canonical_url }}">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{ seo.title }}">
+  <meta property="og:description" content="{{ seo.description }}">
+  <meta property="og:url" content="{{ seo.canonical_url }}">
+  <meta property="og:image" content="{{ seo.site_url }}/static/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ seo.title }}">
+  <meta name="twitter:description" content="{{ seo.description }}">
+  <meta name="twitter:image" content="{{ seo.site_url }}/static/og-image.png">
+  <style>
+    :root{
+      --bg:#15181d; --surface:#1f242b; --surface-2:#262c35;
+      --border:#363d47; --text:#f1efe8; --muted:#9aa0a8; --dim:#6b7178;
+      --green:#5dcaa5; --green-bright:#9fe1cb; --green-deep:#085041;
+      --amber:#fac775; --red:#f09595;
+      --mono:'SF Mono',ui-monospace,'Cascadia Code',Menlo,Consolas,monospace;
+      --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased}
+    a{color:inherit;text-decoration:none}
+    .wrap{max-width:920px;margin:0 auto;padding:0 20px}
+    header{border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(21,24,29,.92);backdrop-filter:blur(8px);z-index:10}
+    .nav{display:flex;align-items:center;justify-content:space-between;height:60px}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:16px}
+    .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+    @keyframes pulse{50%{opacity:.4}}
+    .nav-links{display:flex;gap:22px;font-size:14px;color:var(--muted)}
+    .nav-links a:hover{color:var(--text)}
+    .hero{padding:36px 0 8px}
+    h1{font-size:26px;font-weight:600;margin-bottom:6px}
+    .sub{color:var(--muted);font-size:15px;margin-bottom:22px}
+    .stats{display:flex;gap:18px;font-size:13px;color:var(--muted);margin-bottom:22px;flex-wrap:wrap}
+    .stats b{color:var(--text);font-family:var(--mono)}
+    .search-row{display:flex;gap:10px;margin-bottom:26px}
+    .search{flex:1;display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0 14px;height:48px}
+    .search input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:15px;height:100%}
+    .search input::placeholder{color:var(--dim)}
+    .board-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+    .board-head h2{font-size:13px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+    .sorts{display:flex;gap:6px}
+    .sorts button{background:none;border:1px solid var(--border);color:var(--muted);font-size:12px;padding:5px 12px;border-radius:99px;cursor:pointer;font-family:var(--sans)}
+    .sorts button.on{background:var(--surface-2);color:var(--text);border-color:var(--dim)}
+    .board{font-family:var(--mono);font-size:14px}
+    .row{display:grid;grid-template-columns:60px 1fr 120px 86px;gap:12px;align-items:center;padding:12px 14px;border-radius:9px;background:var(--surface);margin-bottom:5px;transition:background .12s}
+    .row:hover{background:var(--surface-2)}
+    .row .code{font-weight:600}
+    .row .city{color:var(--muted);font-family:var(--sans);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .src{font-size:11px;font-family:var(--sans)}
+    .src.live{color:var(--green)}
+    .src.est{color:var(--amber)}
+    .wait{text-align:right;font-weight:600}
+    .w-low{color:var(--green-bright)} .w-med{color:var(--amber)} .w-high,.w-crit{color:var(--red)}
+    .row.closed{opacity:.45}
+    .row.closed .wait{color:var(--dim);font-weight:400}
+    .board-note{font-size:12px;color:var(--dim);margin-top:10px}
+    .board-note a{text-decoration:underline;color:var(--muted)}
+    .cta-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:30px 0}
+    .cta{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px}
+    .cta:hover{background:var(--surface-2)}
+    .cta .t{font-weight:600;font-size:15px;color:var(--green-bright);margin-bottom:4px}
+    .cta .d{font-size:13px;color:var(--muted)}
+    .links{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:30px}
+    .links a{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--muted)}
+    .links a:hover{color:var(--text);background:var(--surface-2)}
+    footer{border-top:1px solid var(--border);margin-top:20px;padding:24px 0 40px;font-size:13px;color:var(--dim)}
+    footer a{color:var(--muted);margin-right:14px}
+    footer a:hover{color:var(--text)}
+    .ad-slot{margin:26px 0;text-align:center}
+    @media(max-width:600px){
+      .row{grid-template-columns:52px 1fr 72px}
+      .src{display:none}
+      .cta-row{grid-template-columns:1fr}
+      .nav-links{gap:14px;font-size:13px}
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="/"><span class="dot" aria-hidden="true"></span>TSA Tracker</a>
+    <nav class="nav-links">
+      <a href="/airports">Airports</a>
+      <a href="/best-time-to-get-to-the-airport">Timing</a>
+      <a href="/guide/tsa-wait-times">Guides</a>
+      <a href="/methodology">Methodology</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>Live TSA wait times by airport</h1>
+    <p class="sub">Official airport feeds, refreshed about every 2 minutes. No guesses, no crowd reports.</p>
+    <div class="stats">
+      <span><b>{{ live_count }}</b> airports live</span>
+      {% if estimated_count %}<span><b>{{ estimated_count }}</b> on estimated fallback</span>{% endif %}
+      <span>network average <b>{{ overall_average }}</b> min</span>
+      {% if slowest_airport %}<span>slowest now <b>{{ slowest_airport.code }}</b> · {{ slowest_airport.wait_description }}</span>{% endif %}
+    </div>
+    <div class="search-row">
+      <div class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--dim)" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="q" type="text" placeholder="Search airport or city…" autocomplete="off" aria-label="Search airports">
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="board-head">
+      <h2>Live board — {{ airport_summaries|length }} airports</h2>
+      <div class="sorts" role="group" aria-label="Sort airports">
+        <button class="on" data-sort="wait">Longest wait</button>
+        <button data-sort="code">A–Z</button>
+        <button data-sort="trend">Rising</button>
+      </div>
+    </div>
+    <div class="board" id="board">
+      {% for a in airport_summaries %}
+      <a class="row{% if a.is_closed %} closed{% endif %}" href="/airports/{{ a.href }}"
+         data-code="{{ a.code }}" data-city="{{ a.city|lower }}" data-wait="{{ a.current_wait }}"
+         data-trend="{{ 1 if a.trend == 'rising' else (-1 if a.trend == 'falling' else 0) }}">
+        <span class="code">{{ a.code }}</span>
+        <span class="city">{{ a.city or a.name }}</span>
+        {% if a.is_live %}<span class="src live">● live · {{ a.source_label }}</span>
+        {% else %}<span class="src est">estimated</span>{% endif %}
+        <span class="wait w-{{ a.tier }}">{% if a.is_closed %}closed{% else %}{{ a.current_wait|round|int }} {{ a.trend_arrow }}{% endif %}</span>
+      </a>
+      {% endfor %}
+    </div>
+    <p class="board-note">↑ rising · ↓ falling over the last 30 minutes. Estimated rows use the historical model when an airport's live feed is unavailable. <a href="/methodology">How we label data →</a></p>
+  </section>
+
+  {% if monetization.adsense_client %}
+  <div class="ad-slot">
+    <ins class="adsbygoogle" style="display:block" data-ad-client="{{ monetization.adsense_client }}"
+         data-ad-slot="{{ monetization.adsense_slot_bottom or monetization.adsense_slot_top }}" data-ad-format="auto" data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+  {% endif %}
+
+  <section class="cta-row">
+    <a class="cta" href="/best-time-to-get-to-the-airport">
+      <div class="t">When should I leave? →</div>
+      <div class="d">Combine the live wait, the trend, and your airport's historical curve to time your departure.</div>
+    </a>
+    <a class="cta" href="/guide/tsa-precheck-clear">
+      <div class="t">Standard line slow today? →</div>
+      <div class="d">Compare TSA PreCheck and CLEAR against actual checkpoint bottlenecks.</div>
+    </a>
+  </section>
+
+  <section class="links">
+    <a href="/airports">All airport pages →</a>
+    <a href="/how-early-should-i-arrive-for-tsa">How early for TSA? →</a>
+    <a href="/guide/tsa-wait-times">TSA wait times explained →</a>
+    <a href="/tsa-wait-times-by-airport">Compare airports →</a>
+  </section>
+
+  <footer>
+    <a href="/airports">Airports</a>
+    <a href="/methodology">Methodology</a>
+    <a href="/about">About</a>
+    <a href="/contact">Contact</a>
+    <a href="/privacy">Privacy</a>
+    <a href="/terms">Terms</a>
+    <div style="margin-top:10px">TSA Tracker · live security wait times from official airport systems, refreshed ~every 2 minutes.</div>
+  </footer>
+</main>
+
+<script>
+(function(){
+  var q=document.getElementById("q"),board=document.getElementById("board");
+  var rows=Array.prototype.slice.call(board.querySelectorAll(".row"));
+  function apply(){
+    var term=(q.value||"").trim().toLowerCase();
+    rows.forEach(function(r){
+      var hit=!term||r.dataset.code.toLowerCase().indexOf(term)>-1||r.dataset.city.indexOf(term)>-1;
+      r.style.display=hit?"":"none";
+    });
+  }
+  q.addEventListener("input",apply);
+  document.querySelectorAll(".sorts button").forEach(function(b){
+    b.addEventListener("click",function(){
+      document.querySelectorAll(".sorts button").forEach(function(x){x.classList.remove("on")});
+      b.classList.add("on");
+      var m=b.dataset.sort;
+      rows.sort(function(a,c){
+        if(m==="code")return a.dataset.code<c.dataset.code?-1:1;
+        if(m==="trend")return (c.dataset.trend-a.dataset.trend)||(c.dataset.wait-a.dataset.wait);
+        return c.dataset.wait-a.dataset.wait;
+      });
+      rows.forEach(function(r){board.appendChild(r)});
+    });
+  });
+  setTimeout(function(){location.reload()},150000);
+})();
+</script>
+</body>
+</html>

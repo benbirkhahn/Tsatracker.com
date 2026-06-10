@@ -1450,8 +1450,51 @@ def intent_page_context(page_key: str) -> Dict:
     }
 
 
+def compute_airport_trends(window_minutes: int = 30) -> Dict[str, Dict]:
+    """Compare recent average wait (last 10 min) vs the window start (25-40 min ago)
+    for every airport in one query. Returns {code: {direction, delta}}."""
+    now = utc_now()
+    recent_cutoff = (now - timedelta(minutes=10)).isoformat()
+    old_start = (now - timedelta(minutes=window_minutes + 10)).isoformat()
+    old_end = (now - timedelta(minutes=window_minutes - 5)).isoformat()
+    trends: Dict[str, Dict] = {}
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT airport_code,
+                   AVG(CASE WHEN captured_at >= ? THEN wait_minutes END) AS recent_avg,
+                   AVG(CASE WHEN captured_at >= ? AND captured_at <= ? THEN wait_minutes END) AS old_avg
+            FROM samples
+            WHERE captured_at >= ? AND wait_minutes > 0
+            GROUP BY airport_code
+            """,
+            (recent_cutoff, old_start, old_end, old_start),
+        )
+        for code, recent_avg, old_avg in cur.fetchall():
+            if recent_avg is None or old_avg is None:
+                continue
+            delta = round(float(recent_avg) - float(old_avg), 1)
+            if delta >= 2.0:
+                direction = "rising"
+            elif delta <= -2.0:
+                direction = "falling"
+            else:
+                direction = "steady"
+            trends[code] = {"direction": direction, "delta": delta}
+        conn.close()
+    except Exception as e:
+        logger.warning("trend_computation_failed: %s", e)
+    return trends
+
+
+TREND_ARROWS = {"rising": "↑", "falling": "↓", "steady": "→"}
+
+
 def build_airport_overview_context() -> Dict:
     snapshot = latest_snapshot()
+    trends = compute_airport_trends()
     airport_summaries = []
     total_wait = 0.0
     live_count = 0
@@ -1487,13 +1530,19 @@ def build_airport_overview_context() -> Dict:
                 "updated_at": format_utc_timestamp(updated_at),
                 "source_type": source_type,
                 "source_label": source_label,
+                "is_live": source_type == "live_direct",
+                "is_closed": current_wait <= 0,
+                "trend": trends.get(code, {}).get("direction", "steady"),
+                "trend_delta": trends.get(code, {}).get("delta", 0.0),
+                "trend_arrow": TREND_ARROWS.get(trends.get(code, {}).get("direction", "steady"), "→"),
             }
         )
 
     airport_summaries.sort(key=lambda item: (-item["current_wait"], item["code"]))
-    fastest_airport = min(airport_summaries, key=lambda item: item["current_wait"], default=None)
-    slowest_airport = max(airport_summaries, key=lambda item: item["current_wait"], default=None)
-    overall_average = round(total_wait / len(airport_summaries), 1) if airport_summaries else 0.0
+    rankable = [a for a in airport_summaries if a["current_wait"] > 0]
+    fastest_airport = min(rankable, key=lambda item: item["current_wait"], default=None)
+    slowest_airport = max(rankable, key=lambda item: item["current_wait"], default=None)
+    overall_average = round(sum(a["current_wait"] for a in rankable) / len(rankable), 1) if rankable else 0.0
 
     airport_pages = []
     for code, meta in sorted(LIVE_AIRPORTS.items()):
@@ -3565,7 +3614,7 @@ def favicon_apple():
 @app.route("/")
 def index():
     log_page_view("/", None)
-    return render_template("index.html", **index_template_context("", home_page_seo()))
+    return render_template("home.html", **index_template_context("", home_page_seo()))
 
 @app.route("/tsa-wait-times")
 @app.route("/tsa-wait-times/")
