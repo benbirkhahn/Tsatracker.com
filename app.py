@@ -1389,7 +1389,11 @@ def index_template_context(initial_airport_code: str, seo: Dict) -> Dict:
         logger.error("Error building monetization context for %s: %s", initial_airport_code or "HOME", e)
         monetization = get_monetization_context("")
     airport_overview = build_airport_overview_context()
+    airport_summary = next(
+        (a for a in airport_overview["airport_summaries"] if a["code"] == initial_airport_code), None
+    ) if is_airport_page else None
     return {
+        "airport_summary": airport_summary,
         "live_airports": LIVE_AIRPORTS,
         "pipeline_airports": PIPELINE_AIRPORTS,
         "initial_airport_code": initial_airport_code,
@@ -3651,7 +3655,7 @@ def airport_page(airport_slug: str):
     canonical_path = airport_seo_slug(code)
     if request.path != canonical_path:
         return redirect(canonical_path, code=301)
-    return render_template("index.html", **index_template_context(code, airport_page_seo(code, meta["name"])))
+    return render_template("airport.html", **index_template_context(code, airport_page_seo(code, meta["name"])))
 
 
 @app.route("/about")
