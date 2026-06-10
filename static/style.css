@@ -1158,3 +1158,37 @@ body.ad-blocker-active .featured-offer {
 .leaflet-popup-tip {
   background: var(--surface) !important;
 }
+
+/* ── V2 THEME OVERRIDE — harmonize legacy pages with the redesigned core pages ── */
+:root {
+  --bg:       #15181d;
+  --surface:  #1f242b;
+  --surface2: #262c35;
+  --border:   #363d47;
+  --border2:  #424a56;
+  --text:     #f1efe8;
+  --muted:    #9aa0a8;
+  --amber:    #fac775;
+  --amber-dim:#fac77522;
+  --green:    #5dcaa5;
+  --yellow:   #fac775;
+  --orange:   #f0997b;
+  --red:      #f09595;
+  --blue:     #9fe1cb;
+  --mono:     'SF Mono', ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+  --sans:     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --display:  -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --tier-low-border:  #5dcaa5;
+  --tier-low-bg:      #0f2a22;
+  --tier-med-border:  #fac775;
+  --tier-med-bg:      #2a2210;
+  --tier-high-border: #f0997b;
+  --tier-high-bg:     #2a1810;
+  --tier-crit-border: #f09595;
+  --tier-crit-bg:     #2a1212;
+  --tier-none-border: #363d47;
+  --tier-none-bg:     #1f242b;
+}
+.home-mode { background: var(--bg) !important; }
+.header { background: rgba(21,24,29,.92) !important; border-bottom: 1px solid var(--border); }
+h1, h2, h3, .header-home-link { letter-spacing: 0 !important; text-transform: none !important; }
