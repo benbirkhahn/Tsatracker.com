@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <link rel="icon" href="/favicon.ico" sizes="any">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   {% if monetization.adsense_client %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
@@ -13,415 +14,128 @@
   <meta property="og:title" content="{{ seo.title }}">
   <meta property="og:description" content="{{ seo.description }}">
   <meta property="og:url" content="{{ seo.canonical_url }}">
-  <meta property="og:image" content="{{ seo.site_url }}/static/og-image.png">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="{{ seo.title }}">
-  <meta name="twitter:description" content="{{ seo.description }}">
-  <meta name="twitter:image" content="{{ seo.site_url }}/static/og-image.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Oswald:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css">
   <style>
-    .airports-hero {
-      display: grid;
-      gap: 18px;
-      margin-top: 6px;
+    :root{
+      --bg:#15181d; --surface:#1f242b; --surface-2:#262c35;
+      --border:#363d47; --text:#f1efe8; --muted:#9aa0a8; --dim:#6b7178;
+      --green:#5dcaa5; --green-bright:#9fe1cb; --green-deep:#085041;
+      --amber:#fac775; --red:#f09595;
+      --mono:'SF Mono',ui-monospace,'Cascadia Code',Menlo,Consolas,monospace;
+      --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
     }
-    .summary-metrics {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 12px;
-      margin-top: 18px;
-    }
-    .metric-box {
-      background: linear-gradient(135deg, #181825 0%, #11111a 100%);
-      border: 1px solid #2a2a40;
-      border-radius: 14px;
-      padding: 14px 16px;
-    }
-    .metric-label {
-      font-family: var(--mono);
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: .12em;
-      color: var(--amber);
-      margin-bottom: 8px;
-    }
-    .metric-value {
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: #fff;
-      line-height: 1.1;
-      margin-bottom: 4px;
-    }
-    .metric-sub {
-      color: var(--muted);
-      font-size: .88rem;
-      line-height: 1.4;
-    }
-    .airports-summary-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 12px;
-      margin-top: 14px;
-    }
-    .airport-summary-card {
-      background: var(--surface2);
-      border: 1px solid #2a2a40;
-      border-radius: 14px;
-      padding: 14px 15px;
-      text-decoration: none;
-      color: inherit;
-      transition: transform .12s ease, border-color .12s ease, background .12s ease;
-    }
-    .airport-summary-card:hover {
-      transform: translateY(-1px);
-      border-color: #44445f;
-      background: #1d1d28;
-    }
-    .airport-summary-card.low { border-left: 4px solid var(--green); }
-    .airport-summary-card.med { border-left: 4px solid var(--yellow); }
-    .airport-summary-card.high { border-left: 4px solid var(--orange); }
-    .airport-summary-card.crit { border-left: 4px solid var(--red); }
-    .summary-top {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 8px;
-    }
-    .summary-code {
-      font-family: var(--mono);
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--amber);
-      letter-spacing: .06em;
-    }
-    .summary-time {
-      font-family: var(--mono);
-      font-size: .74rem;
-      color: var(--muted);
-      white-space: nowrap;
-    }
-    .summary-airport {
-      font-size: 1rem;
-      font-weight: 600;
-      line-height: 1.35;
-      color: #fff;
-      margin-bottom: 10px;
-    }
-    .summary-wait {
-      font-family: var(--display);
-      font-size: 2.15rem;
-      line-height: 1;
-      letter-spacing: -.03em;
-      margin-bottom: 6px;
-    }
-    .summary-meta {
-      color: var(--muted);
-      font-size: .88rem;
-      line-height: 1.45;
-    }
-    .directory-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 14px;
-      margin-top: 20px;
-    }
-    .directory-card {
-      background: var(--surface2);
-      border: 1px solid #2a2a40;
-      border-radius: 10px;
-      padding: 16px 18px;
-    }
-    .directory-card .code {
-      color: var(--amber);
-      font-size: 1.1rem;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-    .directory-card .name {
-      color: var(--text);
-      line-height: 1.5;
-      margin-bottom: 6px;
-    }
-    .directory-card .city {
-      color: var(--muted);
-      font-size: 0.9rem;
-      margin-bottom: 10px;
-    }
-    .directory-card a {
-      color: var(--amber);
-      text-decoration: none;
-      font-weight: 600;
-    }
-    .directory-card a:hover {
-      text-decoration: underline;
-    }
-    .resource-list a {
-      color: var(--amber);
-      text-decoration: none;
-    }
-    .resource-list a:hover {
-      text-decoration: underline;
-    }
-    .airport-search-bar {
-      display: grid;
-      gap: 10px;
-      margin-top: 18px;
-      padding: 14px 16px;
-      background: linear-gradient(135deg, #181825 0%, #11111a 100%);
-      border: 1px solid #2a2a40;
-      border-radius: 14px;
-    }
-    .airport-search-row {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 10px;
-      align-items: center;
-    }
-    .airport-search-input {
-      width: 100%;
-      min-width: 0;
-      border: 1px solid #34344d;
-      border-radius: 12px;
-      background: #0f1017;
-      color: #fff;
-      padding: 12px 14px;
-      font: inherit;
-      font-size: 0.98rem;
-      outline: none;
-    }
-    .airport-search-input::placeholder {
-      color: #8e93ab;
-    }
-    .airport-search-input:focus {
-      border-color: rgba(245, 158, 11, 0.85);
-      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12);
-    }
-    .airport-search-reset {
-      border: 1px solid #34344d;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.03);
-      color: #fff;
-      padding: 10px 14px;
-      font: inherit;
-      font-size: 0.82rem;
-      font-weight: 700;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    .airport-search-reset:hover {
-      background: rgba(255,255,255,0.07);
-    }
-    .airport-search-meta {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      color: var(--muted);
-      font-size: 0.88rem;
-      line-height: 1.5;
-    }
-    .airport-search-empty {
-      display: none;
-      margin-top: 14px;
-      padding: 16px 18px;
-      border-radius: 14px;
-      border: 1px dashed #3a3a53;
-      background: rgba(255,255,255,0.03);
-      color: var(--muted);
-      line-height: 1.6;
-    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased}
+    a{color:inherit;text-decoration:none}
+    .wrap{max-width:920px;margin:0 auto;padding:0 20px}
+    header{border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(21,24,29,.92);backdrop-filter:blur(8px);z-index:10}
+    .nav{display:flex;align-items:center;justify-content:space-between;height:60px}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:16px}
+    .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+    @keyframes pulse{50%{opacity:.4}}
+    .nav-links{display:flex;gap:22px;font-size:14px;color:var(--muted)}
+    .nav-links a:hover{color:var(--text)}
+    .hero{padding:36px 0 8px}
+    h1{font-size:26px;font-weight:600;margin-bottom:6px}
+    .sub{color:var(--muted);font-size:15px;margin-bottom:20px}
+    .search-row{display:flex;margin-bottom:24px}
+    .search{flex:1;display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0 14px;height:48px}
+    .search input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:15px;height:100%}
+    .search input::placeholder{color:var(--dim)}
+    h2{font-size:13px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin:26px 0 12px}
+    .board{font-family:var(--mono);font-size:14px}
+    .row{display:grid;grid-template-columns:60px 1fr 120px 86px;gap:12px;align-items:center;padding:12px 14px;border-radius:9px;background:var(--surface);margin-bottom:5px;transition:background .12s}
+    .row:hover{background:var(--surface-2)}
+    .row .code{font-weight:600}
+    .row .city{color:var(--muted);font-family:var(--sans);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .src{font-size:11px;font-family:var(--sans)}
+    .src.live{color:var(--green)} .src.est{color:var(--amber)}
+    .wait{text-align:right;font-weight:600}
+    .w-low{color:var(--green-bright)} .w-med{color:var(--amber)} .w-high,.w-crit{color:var(--red)}
+    .row.closed{opacity:.45}
+    .row.closed .wait{color:var(--dim);font-weight:400}
+    .soon{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+    .soon-card{background:var(--surface);border:1px dashed var(--border);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+    .soon-card b{color:var(--muted);font-family:var(--mono);margin-right:8px}
+    footer{border-top:1px solid var(--border);margin-top:36px;padding:24px 0 40px;font-size:13px;color:var(--dim)}
+    footer a{color:var(--muted);margin-right:14px}
+    @media(max-width:600px){.row{grid-template-columns:52px 1fr 72px}.src{display:none}.nav-links{gap:14px;font-size:13px}}
   </style>
 </head>
 <body>
-  <header class="header">
-    <a href="/" class="header-home-link">
-      <span class="logo-shield">✈️</span>
-      <div>
-        <div class="logo-name">TSA Tracker</div>
-        <div class="logo-tag">Live airport data</div>
-      </div>
-    </a>
-    <nav class="header-nav">
-      <a href="/" class="header-nav-link">Home</a>
-      <a href="/airports" class="header-nav-link active">Airports</a>
-      <a href="/about" class="header-nav-link">About</a>
-      <a href="/methodology" class="header-nav-link">Methodology</a>
-    </nav>
-    <div class="header-external-links">
-      <span class="header-external-label">More from Ben</span>
-      <a href="https://benbirkhahn.com" class="header-external-link primary" target="_blank" rel="noopener">Other Projects</a>
-      <a href="https://github.com/benbirkhahn" class="header-external-link" target="_blank" rel="noopener">GitHub</a>
-      <a href="https://www.linkedin.com/in/benjamin-birkhahn-421870240" class="header-external-link" target="_blank" rel="noopener">LinkedIn</a>
-    </div>
-  </header>
 
-  <main class="main">
-    <section class="card content-card" style="max-width:960px;margin:0 auto;">
-      <div class="airports-hero">
-        <div>
-          <h1 style="font-size:2rem;font-weight:700;margin-bottom:8px;">Live Airport Security Wait Times at a Glance</h1>
-          <p class="muted" style="margin-bottom:0;">See every live airport on one page, sorted by current average wait. Use the cards below for the quick read, then open a specific airport page for checkpoint-level detail.</p>
-        </div>
-
-        <div class="summary-metrics">
-          <div class="metric-box">
-            <div class="metric-label">Average across live airports</div>
-            <div class="metric-value">{{ "%.1f"|format(overall_average) }} min</div>
-            <div class="metric-sub">{{ live_count }} live, {{ estimated_count }} fallback</div>
-          </div>
-          <div class="metric-box">
-            <div class="metric-label">Fastest airport</div>
-            <div class="metric-value">{{ fastest_airport.code }}</div>
-            <div class="metric-sub">{{ fastest_airport.wait_description }} average</div>
-          </div>
-          <div class="metric-box">
-            <div class="metric-label">Slowest airport</div>
-            <div class="metric-value">{{ slowest_airport.code }}</div>
-            <div class="metric-sub">{{ slowest_airport.wait_description }} average</div>
-          </div>
-        </div>
-      </div>
-
-      <div style="background:var(--surface2);border:1px solid #2a2a40;border-radius:12px;padding:16px 18px;margin-top:8px;">
-        <p style="margin:0 0 8px;font-weight:700;color:var(--text);">How to use this page</p>
-        <p style="margin:0;color:var(--muted);line-height:1.7;">Use the airport index for the quick comparison, then open a specific airport page for checkpoint-level detail, airport-specific notes, and the official links tied to that location.</p>
-      </div>
-
-      <div class="airport-search-bar" aria-label="Search airports">
-        <div class="airport-search-row">
-          <input
-            id="airports-directory-search"
-            class="airport-search-input"
-            type="search"
-            placeholder="Search by airport code, city, or name"
-            autocomplete="off"
-          >
-          <button id="airports-directory-reset" class="airport-search-reset" type="button">Clear</button>
-        </div>
-        <div class="airport-search-meta">
-          <span id="airports-directory-count">{{ airport_summaries|length }} airports shown</span>
-          <span>Tip: try LAX, New York, or Orlando</span>
-        </div>
-      </div>
-      <div id="airports-directory-empty" class="airport-search-empty">
-        No airports match that search. Try a different code, city, or airport name.
-      </div>
-
-      <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">Current averages</h2>
-      <div class="airports-summary-grid">
-        {% for airport in airport_summaries %}
-        <a
-          class="airport-summary-card {{ airport.tier }}"
-          href="{{ airport.href }}"
-          data-airport-search="{{ (airport.code ~ ' ' ~ airport.name ~ ' ' ~ airport.city ~ ' ' ~ airport.source_label)|lower }}"
-        >
-          <div class="summary-top">
-            <div class="summary-code">{{ airport.code }}</div>
-            <div class="summary-time">{{ airport.updated_at }}</div>
-          </div>
-          <div class="summary-airport">{{ airport.name }}</div>
-          <div class="summary-wait">{{ "%.1f"|format(airport.current_wait) }} min</div>
-          <div class="summary-meta">{{ airport.source_label }}{% if airport.city %} · {{ airport.city }}{% endif %}</div>
-        </a>
-        {% endfor %}
-      </div>
-
-      <h2 style="font-size:1.2rem;font-weight:700;margin:32px 0 12px;">Helpful Planning Pages</h2>
-      <ul class="content-list resource-list">
-        <li><a href="/airport-security-wait-times">Airport security wait times guide</a> for the fastest path to the live page that matters.</li>
-        <li><a href="/guide/tsa-wait-times">TSA wait times explained</a> for timing strategy, peak hours, and screening tips.</li>
-        <li><a href="/guide/tsa-precheck-clear">TSA PreCheck vs CLEAR</a> for enrollment and card-benefit guidance.</li>
-        <li><a href="/methodology">Methodology</a> for data sourcing, polling, and limitations.</li>
-        <li><a href="/about">About TSA Tracker</a> for site coverage and how the airport feeds work.</li>
-        <li><a href="/contact">Contact</a> for airport requests, bug reports, and partnerships.</li>
-      </ul>
-
-      <h2 style="font-size:1.2rem;font-weight:700;margin:32px 0 10px;">What the averages mean</h2>
-      <p class="muted" style="line-height:1.7;">Some airports expose direct live readings. Others fall back to an estimated value if a source is temporarily unavailable. That is why the page labels live and fallback airports separately instead of blending them into one average without context.</p>
-    </section>
-  </main>
-
-  <footer class="footer">
-    <div>TSA Tracker — live security wait times. Data refreshes every ~2 minutes.</div>
-    <div class="footer-links">
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="/"><span class="dot" aria-hidden="true"></span>TSA Tracker</a>
+    <nav class="nav-links">
       <a href="/airports">Airports</a>
-      <span>·</span>
-      <a href="/airport-security-wait-times">Airport Wait Times</a>
-      <span>·</span>
-      <a href="/about">About</a>
-      <span>·</span>
+      <a href="/best-time-to-get-to-the-airport">Timing</a>
+      <a href="/guide/tsa-wait-times">Guides</a>
       <a href="/methodology">Methodology</a>
-      <span>·</span>
-      <a href="/guide/tsa-wait-times">TSA Guide</a>
-      <span>·</span>
-      <a href="/guide/tsa-precheck-clear">PreCheck vs CLEAR</a>
-      <span>·</span>
-      <a href="/contact">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>All airports</h1>
+    <p class="sub">{{ live_count }} airports on official live feeds · network average {{ overall_average }} min right now.</p>
+    <div class="search-row">
+      <div class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--dim)" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="q" type="text" placeholder="Search airport or city…" autocomplete="off" aria-label="Search airports">
+      </div>
     </div>
+  </section>
+
+  <section>
+    <div class="board" id="board">
+      {% for a in airport_summaries %}
+      <a class="row{% if a.is_closed %} closed{% endif %}" href="/airports/{{ a.href }}"
+         data-code="{{ a.code }}" data-city="{{ a.city|lower }} {{ a.name|lower }}">
+        <span class="code">{{ a.code }}</span>
+        <span class="city">{{ a.name }}</span>
+        {% if a.is_live %}<span class="src live">● live · {{ a.source_label }}</span>
+        {% else %}<span class="src est">estimated</span>{% endif %}
+        <span class="wait w-{{ a.tier }}">{% if a.is_closed %}closed{% else %}{{ a.current_wait|round|int }} {{ a.trend_arrow }}{% endif %}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if pipeline_airports %}
+  <section>
+    <h2>Coming soon</h2>
+    <div class="soon">
+      {% for p in pipeline_airports %}
+      <div class="soon-card"><b>{{ p.code }}</b>{{ p.name.split('(')[0].strip() }}</div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <footer>
+    <a href="/">Live board</a>
+    <a href="/methodology">Methodology</a>
+    <a href="/about">About</a>
+    <a href="/contact">Contact</a>
+    <a href="/privacy">Privacy</a>
+    <a href="/terms">Terms</a>
+    <div style="margin-top:10px">TSA Tracker · live security wait times from official airport systems.</div>
   </footer>
+</main>
 
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "CollectionPage",
-    "name": "{{ seo.title }}",
-    "description": "{{ seo.description }}",
-    "url": "{{ seo.canonical_url }}",
-    "mainEntity": {
-      "@type": "ItemList",
-      "itemListElement": [
-        {% for airport in airport_pages %}
-        {
-          "@type": "ListItem",
-          "position": {{ loop.index }},
-          "url": "{{ seo.site_url }}{{ airport.href }}",
-          "name": "{{ airport.code }} TSA wait times"
-        }{% if not loop.last %},{% endif %}
-        {% endfor %}
-      ]
-    }
-  }
-  </script>
-  <script>
-    (() => {
-      const input = document.getElementById("airports-directory-search");
-      const reset = document.getElementById("airports-directory-reset");
-      const count = document.getElementById("airports-directory-count");
-      const empty = document.getElementById("airports-directory-empty");
-      const cards = Array.from(document.querySelectorAll(".airport-summary-card"));
-      if (!input || !reset || !count || !empty || !cards.length) return;
-
-      const total = cards.length;
-      const render = () => {
-        const q = input.value.trim().toLowerCase();
-        let visible = 0;
-        cards.forEach((card) => {
-          const haystack = card.getAttribute("data-airport-search") || "";
-          const match = !q || haystack.includes(q);
-          card.style.display = match ? "" : "none";
-          if (match) visible += 1;
-        });
-        count.textContent = q ? `${visible} of ${total} airports shown` : `${total} airports shown`;
-        empty.style.display = visible ? "none" : "block";
-      };
-
-      input.addEventListener("input", render);
-      reset.addEventListener("click", () => {
-        input.value = "";
-        input.focus();
-        render();
-      });
-      render();
-    })();
-  </script>
-  {% include "_structured_breadcrumbs.html" %}
-  {% include "_affiliate_scripts.html" %}
+<script>
+(function(){
+  var q=document.getElementById("q");
+  var rows=document.querySelectorAll("#board .row");
+  q.addEventListener("input",function(){
+    var t=q.value.trim().toLowerCase();
+    rows.forEach(function(r){
+      r.style.display=(!t||r.dataset.code.toLowerCase().indexOf(t)>-1||r.dataset.city.indexOf(t)>-1)?"":"none";
+    });
+  });
+  setTimeout(function(){location.reload()},150000);
+})();
+</script>
 </body>
 </html>

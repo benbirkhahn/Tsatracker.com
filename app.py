@@ -1572,6 +1572,7 @@ def build_airport_overview_context() -> Dict:
 def airport_directory_context() -> Dict:
     overview = build_airport_overview_context()
     return {
+        "pipeline_airports": PIPELINE_AIRPORTS,
         "airport_pages": overview["airport_pages"],
         "airport_summaries": overview["airport_summaries"],
         "overall_average": overview["overall_average"],
@@ -3692,6 +3693,35 @@ def wide_link_graph_page():
 @app.route("/airports")
 def airports_page():
     return render_template("airports.html", **airport_directory_context())
+
+
+@app.route("/when-should-i-leave")
+def when_should_i_leave_page():
+    log_page_view("/when-should-i-leave", None)
+    overview = build_airport_overview_context()
+    calc_airports = {
+        a["code"]: {
+            "name": a["name"],
+            "city": a["city"],
+            "wait": a["current_wait"],
+            "live": a["is_live"],
+            "trend": a["trend"],
+            "delta": a["trend_delta"],
+        }
+        for a in overview["airport_summaries"]
+    }
+    seo = build_page_seo(
+        "When Should I Leave for the Airport? Live TSA Calculator | TSA Tracker",
+        "Enter your airport and flight time. We combine the live TSA wait, the current trend, and 30 days of hourly history into one recommended departure time.",
+        "/when-should-i-leave",
+    )
+    return render_template(
+        "calculator.html",
+        seo=seo,
+        monetization=get_monetization_context(),
+        calc_airports_json=json.dumps(calc_airports),
+        airport_summaries=overview["airport_summaries"],
+    )
 
 
 @app.route("/airport-security-wait-times")
