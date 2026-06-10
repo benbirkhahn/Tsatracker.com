@@ -90,7 +90,7 @@
   <section>
     <div class="board" id="board">
       {% for a in airport_summaries %}
-      <a class="row{% if a.is_closed %} closed{% endif %}" href="/airports/{{ a.href }}"
+      <a class="row{% if a.is_closed %} closed{% endif %}" href="{{ a.href }}"
          data-code="{{ a.code }}" data-city="{{ a.city|lower }} {{ a.name|lower }}">
         <span class="code">{{ a.code }}</span>
         <span class="city">{{ a.name }}</span>

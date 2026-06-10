@@ -225,7 +225,7 @@
     <h2>Nearby and related airports</h2>
     <div class="related">
       {% for r in related_airports %}
-      <a href="/airports/{{ r.href }}"><span class="rc">{{ r.code }}</span>{{ r.name.split('(')[0].strip() }}</a>
+      <a href="{{ r.href }}"><span class="rc">{{ r.code }}</span>{{ r.name.split('(')[0].strip() }}</a>
       {% endfor %}
     </div>
   </section>

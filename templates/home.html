@@ -136,7 +136,7 @@
     </div>
     <div class="board" id="board">
       {% for a in airport_summaries %}
-      <a class="row{% if a.is_closed %} closed{% endif %}" href="/airports/{{ a.href }}"
+      <a class="row{% if a.is_closed %} closed{% endif %}" href="{{ a.href }}"
          data-code="{{ a.code }}" data-city="{{ a.city|lower }}" data-wait="{{ a.current_wait }}"
          data-trend="{{ 1 if a.trend == 'rising' else (-1 if a.trend == 'falling' else 0) }}">
         <span class="code">{{ a.code }}</span>
