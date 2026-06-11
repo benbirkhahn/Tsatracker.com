@@ -203,7 +203,40 @@
     <h2>{{ initial_airport_code }} playbook</h2>
     <div class="play">
       {% for item in airport_editorial.bullets %}
-      <div class="play-card"><div class="t"><span>→</span>{% if loop.first %}Data status{% else %}Local knowledge{% endif %}</div>{{ item }}</div>
+      <div class="play-card"><div class="t"><span>→</span>{% if loop.first %}Data status{% else %}Airport context{% endif %}</div>{{ item }}</div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if airport_guide.terminal_notes %}
+  <section>
+    <h2>Terminals at a glance</h2>
+    <div class="play">
+      {% for item in airport_guide.terminal_notes %}
+      <div class="play-card"><div class="t"><span>→</span>Terminal note</div>{{ item }}</div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if airport_guide.airline_notes %}
+  <section>
+    <h2>Airline notes</h2>
+    <div class="play">
+      {% for item in airport_guide.airline_notes %}
+      <div class="play-card"><div class="t"><span>→</span>Airline routing</div>{{ item }}</div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if airport_guide.tips %}
+  <section>
+    <h2>Local tips</h2>
+    <div class="play">
+      {% for item in airport_guide.tips %}
+      <div class="play-card"><div class="t"><span>→</span>Local tip</div>{{ item }}</div>
       {% endfor %}
     </div>
   </section>

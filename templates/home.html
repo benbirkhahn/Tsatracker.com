@@ -81,6 +81,13 @@
     .links{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:30px}
     .links a{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--muted)}
     .links a:hover{color:var(--text);background:var(--surface-2)}
+    .info-section{margin:30px 0}
+    .info-section h2{font-size:13px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+    .explainer{display:grid;gap:10px}
+    .explainer p,.faq-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--muted)}
+    .explainer strong,.faq-item h3{display:block;color:var(--text);font-size:14px;margin-bottom:5px;font-weight:600}
+    .faq-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .faq-item p{margin:0}
     footer{border-top:1px solid var(--border);margin-top:20px;padding:24px 0 40px;font-size:13px;color:var(--dim)}
     footer a{color:var(--muted);margin-right:14px}
     footer a:hover{color:var(--text)}
@@ -89,6 +96,7 @@
       .row{grid-template-columns:52px 1fr 72px}
       .src{display:none}
       .cta-row{grid-template-columns:1fr}
+      .faq-grid{grid-template-columns:1fr}
       .nav-links{gap:14px;font-size:13px}
     }
   </style>
@@ -171,9 +179,40 @@
 
   <section class="links">
     <a href="/airports">All airport pages →</a>
-    <a href="/how-early-should-i-arrive-for-tsa">How early for TSA? →</a>
+    <a href="/best-time-to-get-to-the-airport">Best time to get to the airport →</a>
     <a href="/guide/tsa-wait-times">TSA wait times explained →</a>
-    <a href="/tsa-wait-times-by-airport">Compare airports →</a>
+    <a href="/airports">Compare airports →</a>
+  </section>
+
+  <section class="info-section" aria-labelledby="how-it-works-title">
+    <h2 id="how-it-works-title">How TSA Tracker works</h2>
+    <div class="explainer">
+      <p><strong>Data sourcing</strong>TSA Tracker reads wait-time data from official airport-controlled systems when an airport publishes a usable feed. Each source is normalized into checkpoint, lane type, wait minutes, and capture time so airports can be compared without hiding their local differences.</p>
+      <p><strong>Live vs estimated labeling</strong>Rows marked live are backed by a recent official airport reading. If a live source is unavailable or stale, the page is labeled estimated and uses a historical fallback so travelers can still see planning context without mistaking it for a current checkpoint measurement.</p>
+      <p><strong>Reading trends</strong>The arrow beside each wait compares recent conditions with the prior window, and the airport page chart shows the normal 30-day pattern by hour. A low number with a rising trend deserves more caution than a low number during a historically quiet part of the day.</p>
+    </div>
+  </section>
+
+  <section class="info-section" aria-labelledby="home-faq-title">
+    <h2 id="home-faq-title">FAQ</h2>
+    <div class="faq-grid">
+      <div class="faq-item">
+        <h3>How often do wait times update?</h3>
+        <p>Live airport feeds are checked about every 2 minutes. The page also shows source labels so you can tell whether a row is live or using fallback context.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Why is my airport missing?</h3>
+        <p>Some airports do not publish a public wait-time source that can be verified and monitored. TSA Tracker only marks an airport live when the source is official and consistently reachable.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Should I use the airport average or checkpoint cards?</h3>
+        <p>Use checkpoint cards when they are available. At airports with separate terminals or lane types, the checkpoint tied to your trip is more useful than an airport-wide average.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Do low TSA waits mean I can arrive late?</h3>
+        <p>No. The TSA line is only one part of the trip. Leave time for parking, bag drop, terminal walks, boarding cutoffs, and any extra screening your itinerary may require.</p>
+      </div>
+    </div>
   </section>
 
   <footer>
