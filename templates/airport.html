@@ -64,11 +64,18 @@
     .lane b{font-weight:600}
     .w-low{color:var(--green-bright)} .w-med{color:var(--amber)} .w-high,.w-crit{color:var(--red)} .w-dim{color:var(--dim)}
     .empty{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:18px;font-size:14px;color:var(--muted)}
-    .chart-panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px}
+    .chart-panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;position:relative}
     .chart{display:flex;align-items:flex-end;gap:3px;height:130px;margin-bottom:8px}
-    .bar{flex:1;border-radius:3px 3px 0 0;background:var(--surface-2);min-width:0}
+    .bar{appearance:none;-webkit-appearance:none;display:block;flex:1;border:0;border-radius:3px 3px 0 0;background:var(--surface-2);min-width:0;cursor:pointer;padding:0;touch-action:manipulation;transition:filter .12s,transform .12s}
+    .bar:hover,.bar:focus-visible{filter:brightness(1.35);transform:translateY(-2px);outline:2px solid var(--text);outline-offset:2px}
     .bar.now{outline:2px solid var(--green-bright)}
     .bar.g{background:#2c5e4c}.bar.a{background:#6b5520}.bar.r{background:#6e3434}
+    .chart-tooltip{position:absolute;z-index:4;top:0;left:0;min-width:142px;max-width:190px;padding:8px 10px;border:1px solid #4d5663;border-radius:8px;background:#101318;color:var(--text);box-shadow:0 10px 24px rgba(0,0,0,.35);font-size:12px;line-height:1.35;pointer-events:none;opacity:0;visibility:hidden;transform:translate(-50%,-100%);transition:opacity .1s}
+    .chart-tooltip.is-visible{opacity:1;visibility:visible}
+    .chart-tooltip.below{transform:translate(-50%,0)}
+    .chart-tooltip .tt-hour{display:block;font-family:var(--mono);font-weight:700;color:var(--green-bright)}
+    .chart-tooltip .tt-value{display:block;margin-top:2px;font-weight:600}
+    .chart-tooltip .tt-samples{display:block;margin-top:2px;color:var(--muted)}
     .x-axis{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);font-family:var(--mono)}
     .chart-note{font-size:12px;color:var(--dim);margin-top:10px}
     .chart-note .k{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin:0 4px 0 10px}
@@ -171,6 +178,7 @@
     <h2>Today vs the 30-day pattern</h2>
     <div class="chart-panel">
       <div class="chart" id="chart"><span style="color:var(--dim);font-size:13px;align-self:center">Loading…</span></div>
+      <div class="chart-tooltip" id="chart-tooltip" role="status" aria-live="polite"></div>
       <div class="x-axis"><span>12a</span><span>4a</span><span>8a</span><span>12p</span><span>4p</span><span>8p</span><span>11p</span></div>
       <div class="chart-note">Bar height = typical wait at that hour ({{ airport_city or initial_airport_code }} local, 30-day history).
         <span class="k" style="background:#2c5e4c"></span>under 15
@@ -277,22 +285,94 @@
 
 <script>
 (function(){
+  function hourLabel(hour){
+    var suffix = hour >= 12 ? "PM" : "AM";
+    var display = hour % 12 || 12;
+    return display + ":00 " + suffix;
+  }
+  function localHour(timeZone){
+    try {
+      var raw = new Intl.DateTimeFormat("en-US", {
+        hour: "numeric",
+        hour12: false,
+        timeZone: timeZone || "UTC"
+      }).format(new Date());
+      return Number(raw) % 24;
+    } catch (_e) {
+      return new Date().getHours();
+    }
+  }
+  function formatAverage(value){
+    return Math.round(value * 10) / 10;
+  }
+  function showTooltip(bar, tooltip, chart, panel){
+    var avg = bar.dataset.avg !== "" ? Number(bar.dataset.avg) : NaN;
+    var samples = Number(bar.dataset.samples || 0);
+    var hour = Number(bar.dataset.hour);
+    var hasAverage = Number.isFinite(avg);
+    tooltip.innerHTML = '<span class="tt-hour">' + hourLabel(hour) + '</span>' +
+      '<span class="tt-value">' + (hasAverage ? formatAverage(avg) + ' min average' : 'No average yet') + '</span>' +
+      '<span class="tt-samples">' + (samples ? samples + ' samples in 30 days' : 'No 30-day samples yet') + '</span>';
+
+    var panelRect = panel.getBoundingClientRect();
+    var chartRect = chart.getBoundingClientRect();
+    var barRect = bar.getBoundingClientRect();
+    var minLeft = 78;
+    var maxLeft = Math.max(minLeft, panelRect.width - 78);
+    var left = Math.min(maxLeft, Math.max(minLeft, barRect.left - panelRect.left + barRect.width / 2));
+    var top = barRect.top - panelRect.top - 10;
+    var below = top < 48;
+    tooltip.style.left = left + "px";
+    tooltip.style.top = (below ? chartRect.top - panelRect.top + 8 : top) + "px";
+    tooltip.classList.toggle("below", below);
+    tooltip.classList.add("is-visible");
+  }
+  function hideTooltip(tooltip){
+    tooltip.classList.remove("is-visible");
+  }
+
   fetch("/api/history-24h-average?airport={{ initial_airport_code }}&days=30")
     .then(function(r){return r.json()})
     .then(function(data){
       var rows = data.rows || [];
       var byHour = {};
-      rows.forEach(function(r){ byHour[r.hour] = r.avg_wait; });
+      rows.forEach(function(r){ byHour[r.hour] = r; });
       var vals = [];
-      for(var h=0; h<24; h++) vals.push(byHour[h] != null ? Number(byHour[h]) : 0);
-      var max = Math.max.apply(null, vals.concat([1]));
-      var nowHour = new Date().getHours();
+      for(var h=0; h<24; h++){
+        var row = byHour[h] || {};
+        var avg = row.avg_wait != null && Number.isFinite(Number(row.avg_wait)) ? Number(row.avg_wait) : null;
+        vals.push({ hour: h, avg: avg, samples: Number(row.samples || 0) });
+      }
+      var numericVals = vals.map(function(p){ return p.avg; }).filter(function(v){ return v != null; });
+      var max = Math.max.apply(null, numericVals.concat([1]));
+      var nowHour = localHour(data.timezone);
       var el = document.getElementById("chart");
-      el.innerHTML = vals.map(function(v,i){
-        var cls = v < 15 ? "g" : v < 30 ? "a" : "r";
-        if (v <= 0) cls = "";
-        return '<div class="bar '+cls+(i===nowHour?' now':'')+'" style="height:'+Math.max(5, v/max*100)+'%" title="'+i+':00 — avg '+Math.round(v)+' min"></div>';
-      }).join("");
+      var panel = el.closest(".chart-panel");
+      var tooltip = document.getElementById("chart-tooltip");
+      el.innerHTML = "";
+      vals.forEach(function(point, i){
+        var v = point.avg;
+        var hasAverage = v != null;
+        var cls = hasAverage ? (v < 15 ? "g" : v < 30 ? "a" : "r") : "";
+        var bar = document.createElement("button");
+        bar.type = "button";
+        bar.className = "bar " + cls + (i === nowHour ? " now" : "");
+        bar.style.height = Math.max(5, hasAverage ? v / max * 100 : 5) + "%";
+        bar.dataset.hour = String(point.hour);
+        bar.dataset.avg = hasAverage ? String(v) : "";
+        bar.dataset.samples = String(point.samples || 0);
+        bar.setAttribute("aria-label", hourLabel(point.hour) + ": " + (hasAverage ? formatAverage(v) + " minute average wait" : "no average data yet"));
+        bar.addEventListener("mouseenter", function(){ showTooltip(bar, tooltip, el, panel); });
+        bar.addEventListener("mousemove", function(){ showTooltip(bar, tooltip, el, panel); });
+        bar.addEventListener("focus", function(){ showTooltip(bar, tooltip, el, panel); });
+        bar.addEventListener("click", function(){ showTooltip(bar, tooltip, el, panel); });
+        bar.addEventListener("mouseleave", function(){ if (document.activeElement !== bar) hideTooltip(tooltip); });
+        bar.addEventListener("blur", function(){ hideTooltip(tooltip); });
+        el.appendChild(bar);
+      });
+      document.addEventListener("pointerdown", function(evt){
+        if (!panel.contains(evt.target)) hideTooltip(tooltip);
+      });
     })
     .catch(function(){ document.getElementById("chart").innerHTML = '<span style="color:var(--dim);font-size:13px;align-self:center">Historical chart unavailable</span>'; });
   setTimeout(function(){location.reload()}, 150000);

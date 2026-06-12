@@ -1031,6 +1031,7 @@ async function drawChart(points, airportCode, mode = "average") {
     },
     options: {
       responsive: true,
+      interaction: { mode: "index", intersect: false },
       scales: {
         x: {
           ticks: {
@@ -1057,6 +1058,14 @@ async function drawChart(points, airportCode, mode = "average") {
         legend: { labels: { color: "#55556a", font: { family: "'IBM Plex Mono'", size: 11 } } },
         tooltip: {
           callbacks: {
+            title: (items) => `${items[0].label} local hour`,
+            label: (context) => {
+              const value = Number(context.parsed.y);
+              const prefix = isRecent ? "Recent average" : "30-day average";
+              return Number.isFinite(value)
+                ? `${prefix}: ${value.toFixed(1)} min`
+                : `${prefix}: no data`;
+            },
             afterLabel: (context) => {
               const point = points[context.dataIndex];
               return point && point.samples ? `${point.samples} samples` : "";
