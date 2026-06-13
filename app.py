@@ -23,7 +23,7 @@ try:
 except ImportError:
     SUPABASE_ENABLED = False
     def supabase_store_samples(rows): pass
-    def supabase_history_rows(airport_code: str, hours: int = 12): return None
+    def supabase_history_rows(airport_code: str, hours: int = 12, limit: int = 50000): return None
     def supabase_historical_24h_average(airport_code: str, days: int = 30, time_zone_name: str = "UTC", limit: int = 100000): return None
 
 APP_TZ = timezone.utc
@@ -883,6 +883,9 @@ _poller_started = False
 _network_history_cache = {"key": None, "generated_at": None, "payload": None}
 NETWORK_HISTORY_CACHE_SECONDS = 15 * 60
 HOURLY_AGGREGATE_MAX_DAYS = 90
+CHECKPOINT_HISTORY_MIN_SAMPLES = 8
+CHECKPOINT_HISTORY_MIN_BUCKETS = 2
+CHECKPOINT_HISTORY_MAX_GROUPS = 10
 
 
 def _lane_type_key(raw: object) -> str:
@@ -3355,6 +3358,110 @@ def historical_24h_average_for_airport(airport_code: str, days: int = 30, sample
     ]
 
 
+def checkpoint_24h_average_for_airport(airport_code: str, days: int = 30, sample_limit: int = 100000) -> List[Dict]:
+    bounded_days = max(1, min(days, 90))
+    time_zone_name = AIRPORT_TIME_ZONES.get(airport_code, "UTC")
+    tz = ZoneInfo(time_zone_name)
+    raw_rows = None
+
+    if SUPABASE_ENABLED:
+        raw_rows = supabase_history_rows(airport_code, hours=bounded_days * 24, limit=sample_limit)
+
+    if raw_rows:
+        rows = [
+            (
+                str(row.get("checkpoint", "")).strip(),
+                row.get("wait_minutes", 0),
+                row.get("captured_at", ""),
+            )
+            for row in raw_rows
+        ]
+    else:
+        cutoff = (utc_now() - timedelta(days=bounded_days)).isoformat()
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT checkpoint, wait_minutes, captured_at
+            FROM samples
+            WHERE airport_code = ? AND captured_at >= ?
+            ORDER BY captured_at ASC
+            LIMIT ?
+            """,
+            (airport_code, cutoff, max(1000, min(sample_limit, 100000))),
+        )
+        rows = cur.fetchall()
+        conn.close()
+
+    groups: Dict[str, Dict] = {}
+    for checkpoint, wait_minutes, captured_at in rows:
+        checkpoint = str(checkpoint or "").strip()
+        if not checkpoint:
+            continue
+        if airport_code == "ORD":
+            checkpoint = ord_friendly_checkpoint(checkpoint)
+        try:
+            wait = clamp_wait_minutes(float(wait_minutes))
+            if wait <= 0:
+                continue
+            captured = datetime.fromisoformat(str(captured_at).replace("Z", "+00:00"))
+            if captured.tzinfo is None:
+                captured = captured.replace(tzinfo=timezone.utc)
+            local_hour = captured.astimezone(tz).hour
+        except Exception:
+            continue
+        group = groups.setdefault(
+            checkpoint,
+            {
+                "checkpoint": checkpoint,
+                "buckets": {hour: {"sum": 0.0, "count": 0} for hour in range(24)},
+            },
+        )
+        group["buckets"][local_hour]["sum"] += wait
+        group["buckets"][local_hour]["count"] += 1
+
+    out = []
+    for checkpoint, group in groups.items():
+        rows_24h = []
+        total_samples = 0
+        bucket_count = 0
+        peak_hour = None
+        peak_avg = None
+        for hour, bucket in group["buckets"].items():
+            count = int(bucket["count"])
+            avg_wait = round(bucket["sum"] / count, 1) if count else None
+            if count:
+                total_samples += count
+                bucket_count += 1
+            if avg_wait is not None and (peak_avg is None or avg_wait > peak_avg):
+                peak_hour = hour
+                peak_avg = avg_wait
+            rows_24h.append(
+                {
+                    "hour": hour,
+                    "label": f"{hour:02d}:00",
+                    "avg_wait": avg_wait,
+                    "samples": count,
+                }
+            )
+        if total_samples < CHECKPOINT_HISTORY_MIN_SAMPLES or bucket_count < CHECKPOINT_HISTORY_MIN_BUCKETS:
+            continue
+        out.append(
+            {
+                "checkpoint": checkpoint,
+                "label": checkpoint,
+                "samples": total_samples,
+                "buckets": bucket_count,
+                "peak_hour": peak_hour,
+                "peak_avg": peak_avg,
+                "rows": rows_24h,
+            }
+        )
+
+    out.sort(key=lambda group: (-int(group["samples"]), -(float(group["peak_avg"] or 0)), group["checkpoint"]))
+    return out[:CHECKPOINT_HISTORY_MAX_GROUPS]
+
+
 def x_alerts_enabled() -> bool:
     return ENABLE_X_ALERTS and all([X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET])
 
@@ -3853,15 +3960,37 @@ def api_history():
 def api_history_24h_average():
     code = request.args.get("airport", "PHL").upper()
     days = request.args.get("days", 30, type=int)
+    include_checkpoints = str(request.args.get("include_checkpoints", "")).lower() in {"1", "true", "yes"}
     if code not in LIVE_AIRPORTS:
         return jsonify({"error": "Unknown airport"}), 400
+    bounded_days = max(1, min(days, 90))
+    payload = {
+        "airport": code,
+        "days": bounded_days,
+        "timezone": AIRPORT_TIME_ZONES.get(code, "UTC"),
+        "generated_at": utc_now().isoformat(),
+        "rows": historical_24h_average_for_airport(code, days=bounded_days),
+    }
+    if include_checkpoints:
+        payload["checkpoint_groups"] = checkpoint_24h_average_for_airport(code, days=bounded_days)
+        payload["checkpoint_min_samples"] = CHECKPOINT_HISTORY_MIN_SAMPLES
+    return jsonify(payload)
+
+@app.route("/api/checkpoint-history-24h-average")
+def api_checkpoint_history_24h_average():
+    code = request.args.get("airport", "PHL").upper()
+    days = request.args.get("days", 30, type=int)
+    if code not in LIVE_AIRPORTS:
+        return jsonify({"error": "Unknown airport"}), 400
+    bounded_days = max(1, min(days, 90))
     return jsonify(
         {
             "airport": code,
-            "days": max(1, min(days, 90)),
+            "days": bounded_days,
             "timezone": AIRPORT_TIME_ZONES.get(code, "UTC"),
             "generated_at": utc_now().isoformat(),
-            "rows": historical_24h_average_for_airport(code, days=days),
+            "min_samples": CHECKPOINT_HISTORY_MIN_SAMPLES,
+            "groups": checkpoint_24h_average_for_airport(code, days=bounded_days),
         }
     )
 

@@ -76,6 +76,16 @@
     .chart-tooltip .tt-hour{display:block;font-family:var(--mono);font-weight:700;color:var(--green-bright)}
     .chart-tooltip .tt-value{display:block;margin-top:2px;font-weight:600}
     .chart-tooltip .tt-samples{display:block;margin-top:2px;color:var(--muted)}
+    .chart-tooltip .tt-source{display:block;margin-top:4px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .pattern-tools{display:none;align-items:center;gap:10px;margin:12px 0 0;flex-wrap:wrap}
+    .pattern-tools.is-visible{display:flex}
+    .pattern-toggle{display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;background:#191d23}
+    .pattern-toggle button{appearance:none;-webkit-appearance:none;border:0;border-right:1px solid var(--border);background:transparent;color:var(--muted);font:600 12px var(--sans);padding:8px 10px;cursor:pointer}
+    .pattern-toggle button:last-child{border-right:0}
+    .pattern-toggle button.active{background:var(--surface-2);color:var(--text)}
+    .checkpoint-select{min-width:210px;max-width:100%;height:34px;border:1px solid var(--border);border-radius:9px;background:#191d23;color:var(--text);font-size:12px;padding:0 10px}
+    .checkpoint-select[hidden]{display:none}
+    .pattern-insight{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.45}
     .x-axis{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);font-family:var(--mono)}
     .chart-note{font-size:12px;color:var(--dim);margin-top:10px}
     .chart-note .k{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin:0 4px 0 10px}
@@ -95,7 +105,7 @@
     .ad-slot{margin:26px 0;text-align:center}
     footer{border-top:1px solid var(--border);margin-top:36px;padding:24px 0 40px;font-size:13px;color:var(--dim)}
     footer a{color:var(--muted);margin-right:14px}
-    @media(max-width:600px){.play{grid-template-columns:1fr}.hero-num{margin-left:0;text-align:left}.nav-links{gap:14px;font-size:13px}}
+    @media(max-width:600px){.play{grid-template-columns:1fr}.hero-num{margin-left:0;text-align:left}.nav-links{gap:14px;font-size:13px}.pattern-tools{align-items:stretch}.pattern-toggle,.checkpoint-select{width:100%}.pattern-toggle button{flex:1}}
   </style>
 </head>
 <body>
@@ -180,6 +190,14 @@
       <div class="chart" id="chart"><span style="color:var(--dim);font-size:13px;align-self:center">Loading…</span></div>
       <div class="chart-tooltip" id="chart-tooltip" role="status" aria-live="polite"></div>
       <div class="x-axis"><span>12a</span><span>4a</span><span>8a</span><span>12p</span><span>4p</span><span>8p</span><span>11p</span></div>
+      <div class="pattern-tools" id="pattern-tools" aria-label="Pattern chart scope">
+        <div class="pattern-toggle" role="group" aria-label="Pattern chart scope">
+          <button type="button" class="active" id="pattern-airport-btn">Airport-wide</button>
+          <button type="button" id="pattern-checkpoint-btn">Checkpoint lens</button>
+        </div>
+        <select class="checkpoint-select" id="checkpoint-pattern-select" aria-label="Choose checkpoint pattern" hidden></select>
+      </div>
+      <div class="pattern-insight" id="pattern-insight">Airport-wide 30-day hourly pattern.</div>
       <div class="chart-note">Bar height = typical wait at that hour ({{ airport_city or initial_airport_code }} local, 30-day history).
         <span class="k" style="background:#2c5e4c"></span>under 15
         <span class="k" style="background:#6b5520"></span>15–30
@@ -285,6 +303,27 @@
 
 <script>
 (function(){
+  var chartState = {
+    mode: "airport",
+    nowHour: new Date().getHours(),
+    airportPoints: [],
+    checkpointGroups: [],
+    selectedCheckpoint: ""
+  };
+  var el = document.getElementById("chart");
+  var panel = el.closest(".chart-panel");
+  var tooltip = document.getElementById("chart-tooltip");
+  var tools = document.getElementById("pattern-tools");
+  var airportBtn = document.getElementById("pattern-airport-btn");
+  var checkpointBtn = document.getElementById("pattern-checkpoint-btn");
+  var checkpointSelect = document.getElementById("checkpoint-pattern-select");
+  var insight = document.getElementById("pattern-insight");
+
+  function escapeHtml(value){
+    return String(value || "").replace(/[&<>"']/g, function(ch){
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch];
+    });
+  }
   function hourLabel(hour){
     var suffix = hour >= 12 ? "PM" : "AM";
     var display = hour % 12 || 12;
@@ -309,10 +348,12 @@
     var avg = bar.dataset.avg !== "" ? Number(bar.dataset.avg) : NaN;
     var samples = Number(bar.dataset.samples || 0);
     var hour = Number(bar.dataset.hour);
+    var source = bar.dataset.source || "Airport-wide";
     var hasAverage = Number.isFinite(avg);
     tooltip.innerHTML = '<span class="tt-hour">' + hourLabel(hour) + '</span>' +
       '<span class="tt-value">' + (hasAverage ? formatAverage(avg) + ' min average' : 'No average yet') + '</span>' +
-      '<span class="tt-samples">' + (samples ? samples + ' samples in 30 days' : 'No 30-day samples yet') + '</span>';
+      '<span class="tt-samples">' + (samples ? samples + ' samples in 30 days' : 'No 30-day samples yet') + '</span>' +
+      '<span class="tt-source">' + escapeHtml(source) + '</span>';
 
     var panelRect = panel.getBoundingClientRect();
     var chartRect = chart.getBoundingClientRect();
@@ -330,49 +371,129 @@
   function hideTooltip(tooltip){
     tooltip.classList.remove("is-visible");
   }
+  function normalizeRows(rows){
+    var byHour = {};
+    (rows || []).forEach(function(r){ byHour[r.hour] = r; });
+    var points = [];
+    for(var h=0; h<24; h++){
+      var row = byHour[h] || {};
+      var avg = row.avg_wait != null && Number.isFinite(Number(row.avg_wait)) ? Number(row.avg_wait) : null;
+      points.push({ hour: h, avg: avg, samples: Number(row.samples || 0) });
+    }
+    return points;
+  }
+  function peakPoint(points){
+    return points.reduce(function(best, point){
+      if (point.avg == null) return best;
+      if (!best || point.avg > best.avg) return point;
+      return best;
+    }, null);
+  }
+  function totalSamples(points){
+    return points.reduce(function(sum, point){ return sum + Number(point.samples || 0); }, 0);
+  }
+  function setInsight(text){
+    if (insight) insight.textContent = text;
+  }
+  function setMode(mode){
+    chartState.mode = mode;
+    airportBtn.classList.toggle("active", mode === "airport");
+    checkpointBtn.classList.toggle("active", mode === "checkpoint");
+    checkpointSelect.hidden = mode !== "checkpoint";
+  }
+  function selectedCheckpointGroup(){
+    return chartState.checkpointGroups.find(function(group){
+      return group.checkpoint === chartState.selectedCheckpoint;
+    }) || chartState.checkpointGroups[0];
+  }
+  function renderBars(points, sourceLabel){
+    var numericVals = points.map(function(p){ return p.avg; }).filter(function(v){ return v != null; });
+    var max = Math.max.apply(null, numericVals.concat([1]));
+    el.innerHTML = "";
+    points.forEach(function(point, i){
+      var v = point.avg;
+      var hasAverage = v != null;
+      var cls = hasAverage ? (v < 15 ? "g" : v < 30 ? "a" : "r") : "";
+      var bar = document.createElement("button");
+      bar.type = "button";
+      bar.className = "bar " + cls + (i === chartState.nowHour ? " now" : "");
+      bar.style.height = Math.max(5, hasAverage ? v / max * 100 : 5) + "%";
+      bar.dataset.hour = String(point.hour);
+      bar.dataset.avg = hasAverage ? String(v) : "";
+      bar.dataset.samples = String(point.samples || 0);
+      bar.dataset.source = sourceLabel;
+      bar.setAttribute("aria-label", sourceLabel + ", " + hourLabel(point.hour) + ": " + (hasAverage ? formatAverage(v) + " minute average wait" : "no average data yet"));
+      bar.addEventListener("mouseenter", function(){ showTooltip(bar, tooltip, el, panel); });
+      bar.addEventListener("mousemove", function(){ showTooltip(bar, tooltip, el, panel); });
+      bar.addEventListener("focus", function(){ showTooltip(bar, tooltip, el, panel); });
+      bar.addEventListener("click", function(){ showTooltip(bar, tooltip, el, panel); });
+      bar.addEventListener("mouseleave", function(){ if (document.activeElement !== bar) hideTooltip(tooltip); });
+      bar.addEventListener("blur", function(){ hideTooltip(tooltip); });
+      el.appendChild(bar);
+    });
+  }
+  function renderAirportPattern(){
+    setMode("airport");
+    renderBars(chartState.airportPoints, "{{ initial_airport_code }} airport-wide");
+    var peak = peakPoint(chartState.airportPoints);
+    if (peak) {
+      setInsight("Airport-wide baseline peaks around " + hourLabel(peak.hour).toLowerCase() + " at " + formatAverage(peak.avg) + " minutes on average.");
+    } else {
+      setInsight("Airport-wide baseline is still building enough 30-day samples.");
+    }
+  }
+  function renderCheckpointPattern(){
+    var group = selectedCheckpointGroup();
+    if (!group) {
+      renderAirportPattern();
+      return;
+    }
+    chartState.selectedCheckpoint = group.checkpoint;
+    checkpointSelect.value = group.checkpoint;
+    setMode("checkpoint");
+    var points = normalizeRows(group.rows || []);
+    renderBars(points, group.label || group.checkpoint);
+    var peak = peakPoint(points);
+    if (peak) {
+      setInsight((group.label || group.checkpoint) + " usually peaks around " + hourLabel(peak.hour).toLowerCase() + " at " + formatAverage(peak.avg) + " minutes, based on " + totalSamples(points) + " open-checkpoint samples.");
+    } else {
+      setInsight((group.label || group.checkpoint) + " is still building checkpoint-level coverage.");
+    }
+  }
+  function enableCheckpointLens(groups){
+    chartState.checkpointGroups = groups || [];
+    if (!chartState.checkpointGroups.length) return;
+    chartState.selectedCheckpoint = chartState.checkpointGroups[0].checkpoint;
+    checkpointSelect.innerHTML = "";
+    chartState.checkpointGroups.forEach(function(group){
+      var option = document.createElement("option");
+      option.value = group.checkpoint;
+      option.textContent = group.label || group.checkpoint;
+      checkpointSelect.appendChild(option);
+    });
+    tools.classList.add("is-visible");
+  }
+
+  airportBtn.addEventListener("click", renderAirportPattern);
+  checkpointBtn.addEventListener("click", renderCheckpointPattern);
+  checkpointSelect.addEventListener("change", function(){
+    chartState.selectedCheckpoint = checkpointSelect.value;
+    renderCheckpointPattern();
+  });
+  document.addEventListener("pointerdown", function(evt){
+    if (!panel.contains(evt.target)) hideTooltip(tooltip);
+  });
 
   fetch("/api/history-24h-average?airport={{ initial_airport_code }}&days=30")
     .then(function(r){return r.json()})
     .then(function(data){
-      var rows = data.rows || [];
-      var byHour = {};
-      rows.forEach(function(r){ byHour[r.hour] = r; });
-      var vals = [];
-      for(var h=0; h<24; h++){
-        var row = byHour[h] || {};
-        var avg = row.avg_wait != null && Number.isFinite(Number(row.avg_wait)) ? Number(row.avg_wait) : null;
-        vals.push({ hour: h, avg: avg, samples: Number(row.samples || 0) });
-      }
-      var numericVals = vals.map(function(p){ return p.avg; }).filter(function(v){ return v != null; });
-      var max = Math.max.apply(null, numericVals.concat([1]));
-      var nowHour = localHour(data.timezone);
-      var el = document.getElementById("chart");
-      var panel = el.closest(".chart-panel");
-      var tooltip = document.getElementById("chart-tooltip");
-      el.innerHTML = "";
-      vals.forEach(function(point, i){
-        var v = point.avg;
-        var hasAverage = v != null;
-        var cls = hasAverage ? (v < 15 ? "g" : v < 30 ? "a" : "r") : "";
-        var bar = document.createElement("button");
-        bar.type = "button";
-        bar.className = "bar " + cls + (i === nowHour ? " now" : "");
-        bar.style.height = Math.max(5, hasAverage ? v / max * 100 : 5) + "%";
-        bar.dataset.hour = String(point.hour);
-        bar.dataset.avg = hasAverage ? String(v) : "";
-        bar.dataset.samples = String(point.samples || 0);
-        bar.setAttribute("aria-label", hourLabel(point.hour) + ": " + (hasAverage ? formatAverage(v) + " minute average wait" : "no average data yet"));
-        bar.addEventListener("mouseenter", function(){ showTooltip(bar, tooltip, el, panel); });
-        bar.addEventListener("mousemove", function(){ showTooltip(bar, tooltip, el, panel); });
-        bar.addEventListener("focus", function(){ showTooltip(bar, tooltip, el, panel); });
-        bar.addEventListener("click", function(){ showTooltip(bar, tooltip, el, panel); });
-        bar.addEventListener("mouseleave", function(){ if (document.activeElement !== bar) hideTooltip(tooltip); });
-        bar.addEventListener("blur", function(){ hideTooltip(tooltip); });
-        el.appendChild(bar);
-      });
-      document.addEventListener("pointerdown", function(evt){
-        if (!panel.contains(evt.target)) hideTooltip(tooltip);
-      });
+      chartState.nowHour = localHour(data.timezone);
+      chartState.airportPoints = normalizeRows(data.rows || []);
+      renderAirportPattern();
+      fetch("/api/checkpoint-history-24h-average?airport={{ initial_airport_code }}&days=30")
+        .then(function(r){ return r.ok ? r.json() : { groups: [] }; })
+        .then(function(checkpointData){ enableCheckpointLens(checkpointData.groups || []); })
+        .catch(function(){});
     })
     .catch(function(){ document.getElementById("chart").innerHTML = '<span style="color:var(--dim);font-size:13px;align-self:center">Historical chart unavailable</span>'; });
   setTimeout(function(){location.reload()}, 150000);
