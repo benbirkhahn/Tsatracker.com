@@ -84,10 +84,11 @@ This repository includes a `render.yaml` Blueprint.
 | :--- | :--- | :--- |
 | `ENABLE_POLLER` | Legacy toggle for choosing collector mode outside the web process | `true` |
 | `POLL_SECONDS` | Interval between data refreshes | `120` |
+| `SUPABASE_SAMPLE_MINUTES` | Minimum interval between durable Supabase historical writes. Local SQLite still follows `POLL_SECONDS`. | `10` |
 | `DB_PATH` | Path to SQLite database | `data.db` |
 | `COLLECT_NOW_TOKEN` | Secret token to trigger manual fetch via API | Required |
 | `SUPABASE_URL` | Supabase project URL for durable historical samples | Optional |
-| `SUPABASE_KEY` | Supabase API key used server-side for durable historical samples | Optional |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only Supabase service role key for durable historical samples. Never expose this in browser code. | Optional |
 | `SITE_URL` | Used for Canonical URLs/SEO | `https://tsatracker.com` |
 | `ENABLE_X_ALERTS` | Enable abnormal wait posting to X | `false` |
 | `X_API_KEY` | X app API key | Required for X alerts |

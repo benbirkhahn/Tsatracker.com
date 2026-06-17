@@ -19,7 +19,9 @@ This guide sets up free long-term historical storage for TSA wait times using Su
 4. Wait ~2 min for deployment
 5. Go to **Settings → API** and copy:
    - `Project URL` → `SUPABASE_URL`
-   - `anon public` key → `SUPABASE_KEY`
+   - `service_role` key → `SUPABASE_SERVICE_ROLE_KEY`
+
+The service role key is a server secret. Do not put it in frontend JavaScript or a public `NEXT_PUBLIC_`/browser-visible environment variable.
 
 ### 2. Set Environment Variables
 
@@ -27,7 +29,8 @@ Add to your deployment (Render, Vercel, or local .env):
 
 ```bash
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your-anon-key-here
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
+SUPABASE_SAMPLE_MINUTES=10
 ```
 
 ### 3. Initialize the Database
@@ -54,11 +57,28 @@ CREATE TABLE historical_samples (
 );
 
 CREATE INDEX idx_airport_time ON historical_samples(airport_code, captured_at);
+
+ALTER TABLE historical_samples ENABLE ROW LEVEL SECURITY;
+REVOKE ALL PRIVILEGES ON TABLE historical_samples FROM anon, authenticated;
+GRANT SELECT, INSERT ON TABLE historical_samples TO service_role;
+
+CREATE POLICY "service_role can read historical samples"
+ON historical_samples
+FOR SELECT
+TO service_role
+USING (true);
+
+CREATE POLICY "service_role can insert historical samples"
+ON historical_samples
+FOR INSERT
+TO service_role
+WITH CHECK (true);
 ```
 
 ### 4. That's it!
 
 Data starts flowing automatically. Every 2 minutes when your collector runs, new wait times are stored in both SQLite (local) and Supabase (cloud).
+By default, Supabase writes are downsampled to every 10 minutes so the free database quota is not exhausted by high-frequency raw samples.
 
 ## Usage
 
@@ -139,7 +159,7 @@ async function showPeakHours(airport) {
 
 ## Troubleshooting
 
-### "SUPABASE_URL or SUPABASE_KEY not set"
+### "SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set"
 Make sure you set both environment variables before running the app.
 
 ### "Table does not exist"
@@ -155,11 +175,9 @@ This is non-blocking. Local SQLite storage continues to work. Check your keys ar
 
 ## Data Retention
 
-The free tier includes 500MB. TSA wait times are ~200 bytes per sample. With 14 airports × 30 samples/day, that's:
+The free tier includes 500MB. Keep Supabase as downsampled durable history and use local SQLite for high-frequency recent samples.
 
-- 14 × 30 × 200 bytes = 84KB/day
-- ~25MB per year
-- **20 years of data on free tier**
+At the default 10-minute Supabase interval, recent observed traffic is roughly one fifth of the previous 2-minute write volume. Keep raw Supabase history capped with a retention cleanup when the table approaches the free-plan limit.
 
 ## Cost
 

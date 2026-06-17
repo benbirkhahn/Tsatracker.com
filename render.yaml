@@ -17,11 +17,13 @@ services:
         value: "true"
       - key: POLL_SECONDS
         value: "120"
+      - key: SUPABASE_SAMPLE_MINUTES
+        value: "10"
       - key: DB_PATH
         value: /data/data.db
       - key: SUPABASE_URL
         sync: false
-      - key: SUPABASE_KEY
+      - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: COLLECT_NOW_TOKEN
         generateValue: true

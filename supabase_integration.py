@@ -5,7 +5,7 @@ Stores all wait time samples for long-term trend analysis.
 
 Setup:
 1. Create free Supabase project at supabase.com
-2. Set SUPABASE_URL and SUPABASE_KEY env vars
+2. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY env vars
 3. Run: python supabase_integration.py --init
 4. In app.py, call supabase_store_samples(rows) after db_insert_rows()
 """
@@ -15,6 +15,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 import json
+import time
 
 try:
     from supabase import create_client, Client
@@ -27,10 +28,16 @@ APP_TZ = timezone.utc
 
 # Initialize Supabase client
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "").strip()
+SUPABASE_KEY = (
+    os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+    or os.getenv("SUPABASE_KEY", "").strip()
+)
+_sample_minutes_env = os.getenv("SUPABASE_SAMPLE_MINUTES", "").strip()
+SUPABASE_SAMPLE_MINUTES = int(_sample_minutes_env) if _sample_minutes_env.isdigit() else 10
 
 supabase_client: Optional[Client] = None
 _supabase_unavailable_logged = False
+_last_supabase_store_bucket: Optional[int] = None
 
 def init_supabase() -> Optional[Client]:
     """Initialize and return Supabase client."""
@@ -39,9 +46,12 @@ def init_supabase() -> Optional[Client]:
         return supabase_client
     if not SUPABASE_URL or not SUPABASE_KEY:
         if not _supabase_unavailable_logged:
-            logger.warning("SUPABASE_URL or SUPABASE_KEY not set. Supabase disabled.")
+            logger.warning("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set. Supabase disabled.")
             _supabase_unavailable_logged = True
         return None
+    if not os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip() and not _supabase_unavailable_logged:
+        logger.warning("Using legacy SUPABASE_KEY. Set SUPABASE_SERVICE_ROLE_KEY for RLS-protected server access.")
+        _supabase_unavailable_logged = True
     try:
         supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
         logger.info("Supabase client initialized")
@@ -81,6 +91,13 @@ def create_tables() -> None:
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         );
         CREATE INDEX idx_airport_time ON historical_samples(airport_code, captured_at);
+        ALTER TABLE historical_samples ENABLE ROW LEVEL SECURITY;
+        REVOKE ALL PRIVILEGES ON TABLE historical_samples FROM anon, authenticated;
+        GRANT SELECT, INSERT ON TABLE historical_samples TO service_role;
+        CREATE POLICY "service_role can read historical samples"
+            ON historical_samples FOR SELECT TO service_role USING (true);
+        CREATE POLICY "service_role can insert historical samples"
+            ON historical_samples FOR INSERT TO service_role WITH CHECK (true);
         """)
 
 def supabase_store_samples(rows: List[Dict]) -> None:
@@ -89,6 +106,12 @@ def supabase_store_samples(rows: List[Dict]) -> None:
         return
 
     try:
+        global _last_supabase_store_bucket
+        sample_seconds = max(1, SUPABASE_SAMPLE_MINUTES) * 60
+        current_bucket = int(time.time() // sample_seconds)
+        if _last_supabase_store_bucket == current_bucket:
+            return
+
         data = [
             {
                 "airport_code": r.get("airport_code"),
@@ -101,6 +124,7 @@ def supabase_store_samples(rows: List[Dict]) -> None:
             for r in rows
         ]
         supabase_client.table("historical_samples").insert(data).execute()
+        _last_supabase_store_bucket = current_bucket
         logger.info("Stored %d samples in Supabase", len(data))
     except Exception as e:
         logger.error("Failed to store samples in Supabase: %s", e)
@@ -126,6 +150,24 @@ def _select_historical_samples(airport_code: str, cutoff: str, columns: str, lim
             break
         start += page_size
     return rows
+
+def _select_historical_hourly_aggregates(airport_code: str, cutoff: str, limit: int = 100000) -> List[Dict]:
+    response = (
+        supabase_client.table("historical_samples_hourly")
+        .select("hour_bucket,airport_code,checkpoint,wait_sum,sample_count")
+        .eq("airport_code", airport_code)
+        .gte("hour_bucket", cutoff)
+        .order("hour_bucket")
+        .limit(limit)
+        .execute()
+    )
+    return response.data if response else []
+
+def _captured_datetime(value: str) -> datetime:
+    captured = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    if captured.tzinfo is None:
+        captured = captured.replace(tzinfo=timezone.utc)
+    return captured
 
 def supabase_history_rows(airport_code: str, hours: int = 12, limit: int = 50000) -> Optional[List[Dict]]:
     """Read recent raw samples from Supabase. Returns None if Supabase is unavailable."""
@@ -162,20 +204,32 @@ def supabase_historical_24h_average(airport_code: str, days: int = 30, time_zone
             columns="wait_minutes,captured_at",
             limit=limit,
         )
+        aggregate_rows = _select_historical_hourly_aggregates(
+            airport_code=airport_code,
+            cutoff=cutoff,
+            limit=limit,
+        )
         tz = ZoneInfo(time_zone_name)
         buckets = {hour: {"sum": 0.0, "count": 0} for hour in range(24)}
 
         for row in rows:
             try:
                 wait = max(0.0, min(float(row.get("wait_minutes", 0)), 180.0))
-                captured = datetime.fromisoformat(str(row.get("captured_at", "")).replace("Z", "+00:00"))
-                if captured.tzinfo is None:
-                    captured = captured.replace(tzinfo=timezone.utc)
-                local_hour = captured.astimezone(tz).hour
+                local_hour = _captured_datetime(row.get("captured_at", "")).astimezone(tz).hour
             except Exception:
                 continue
             buckets[local_hour]["sum"] += wait
             buckets[local_hour]["count"] += 1
+
+        for row in aggregate_rows:
+            try:
+                local_hour = _captured_datetime(row.get("hour_bucket", "")).astimezone(tz).hour
+                wait_sum = float(row.get("wait_sum") or 0)
+                sample_count = int(row.get("sample_count") or 0)
+            except Exception:
+                continue
+            buckets[local_hour]["sum"] += wait_sum
+            buckets[local_hour]["count"] += sample_count
 
         return [
             {
@@ -204,13 +258,14 @@ def get_average_wait_at_hour(airport_code: str, hour: int, days: int = 30) -> Op
         cutoff = (datetime.now(APP_TZ) - timedelta(days=days)).isoformat()
 
         # Query Supabase
-        response = supabase_client.table("historical_samples").select("wait_minutes").where(
+        response = supabase_client.table("historical_samples").select("wait_minutes,captured_at").where(
             f"airport_code=eq.{airport_code}"
         ).where(
             f"captured_at.gte.{cutoff}"
         ).execute()
 
         rows = response.data if response else []
+        aggregate_rows = _select_historical_hourly_aggregates(airport_code, cutoff)
 
         # Filter by hour
         hourly_data = []
@@ -219,10 +274,18 @@ def get_average_wait_at_hour(airport_code: str, hour: int, days: int = 30) -> Op
             if ts.hour == hour:
                 hourly_data.append(float(row.get("wait_minutes", 0)))
 
-        if not hourly_data:
+        aggregate_sum = 0.0
+        aggregate_count = 0
+        for row in aggregate_rows:
+            ts = _captured_datetime(row.get("hour_bucket", ""))
+            if ts.hour == hour:
+                aggregate_sum += float(row.get("wait_sum") or 0)
+                aggregate_count += int(row.get("sample_count") or 0)
+
+        if not hourly_data and not aggregate_count:
             return None
 
-        return sum(hourly_data) / len(hourly_data)
+        return (sum(hourly_data) + aggregate_sum) / (len(hourly_data) + aggregate_count)
 
     except Exception as e:
         logger.error("Failed to query average wait: %s", e)
@@ -246,8 +309,9 @@ def get_peak_hours(airport_code: str, days: int = 30, top_n: int = 3) -> List[Di
         ).execute()
 
         rows = response.data if response else []
+        aggregate_rows = _select_historical_hourly_aggregates(airport_code, cutoff)
 
-        # Group by hour
+        # Group by UTC hour.
         hourly_avg = {}
         for row in rows:
             try:
@@ -256,19 +320,35 @@ def get_peak_hours(airport_code: str, days: int = 30, top_n: int = 3) -> List[Di
                 wait = float(row.get("wait_minutes", 0))
 
                 if hour not in hourly_avg:
-                    hourly_avg[hour] = []
-                hourly_avg[hour].append(wait)
+                    hourly_avg[hour] = {"sum": 0.0, "count": 0}
+                hourly_avg[hour]["sum"] += wait
+                hourly_avg[hour]["count"] += 1
             except:
+                pass
+
+        for row in aggregate_rows:
+            try:
+                hour = _captured_datetime(row.get("hour_bucket", "")).hour
+                wait_sum = float(row.get("wait_sum") or 0)
+                sample_count = int(row.get("sample_count") or 0)
+                if sample_count <= 0:
+                    continue
+                if hour not in hourly_avg:
+                    hourly_avg[hour] = {"sum": 0.0, "count": 0}
+                hourly_avg[hour]["sum"] += wait_sum
+                hourly_avg[hour]["count"] += sample_count
+            except Exception:
                 pass
 
         # Calculate averages
         hourly_results = [
             {
                 "hour": h,
-                "avg_wait": sum(waits) / len(waits),
-                "samples": len(waits)
+                "avg_wait": bucket["sum"] / bucket["count"],
+                "samples": bucket["count"],
             }
-            for h, waits in hourly_avg.items()
+            for h, bucket in hourly_avg.items()
+            if bucket["count"]
         ]
 
         # Sort by wait time, descending
@@ -279,11 +359,91 @@ def get_peak_hours(airport_code: str, days: int = 30, top_n: int = 3) -> List[Di
         logger.error("Failed to query peak hours: %s", e)
         return []
 
+def supabase_checkpoint_24h_average(
+    airport_code: str,
+    days: int = 30,
+    time_zone_name: str = "UTC",
+    limit: int = 100000,
+) -> Optional[List[Dict]]:
+    """Build local-hour checkpoint average buckets from raw and compact Supabase samples."""
+    if not init_supabase():
+        return None
+
+    try:
+        from zoneinfo import ZoneInfo
+
+        bounded_days = max(1, min(days, 90))
+        cutoff = (datetime.now(APP_TZ) - timedelta(days=bounded_days)).isoformat()
+        raw_rows = _select_historical_samples(
+            airport_code=airport_code,
+            cutoff=cutoff,
+            columns="checkpoint,wait_minutes,captured_at",
+            limit=limit,
+        )
+        aggregate_rows = _select_historical_hourly_aggregates(airport_code, cutoff, limit=limit)
+        tz = ZoneInfo(time_zone_name)
+        groups: Dict[str, Dict] = {}
+
+        def group_for(checkpoint: str) -> Dict:
+            return groups.setdefault(
+                checkpoint,
+                {
+                    "checkpoint": checkpoint,
+                    "buckets": {hour: {"sum": 0.0, "count": 0} for hour in range(24)},
+                },
+            )
+
+        for row in raw_rows:
+            checkpoint = str(row.get("checkpoint") or "").strip()
+            if not checkpoint:
+                continue
+            try:
+                wait = max(0.0, min(float(row.get("wait_minutes", 0)), 180.0))
+                local_hour = _captured_datetime(row.get("captured_at", "")).astimezone(tz).hour
+            except Exception:
+                continue
+            bucket = group_for(checkpoint)["buckets"][local_hour]
+            bucket["sum"] += wait
+            bucket["count"] += 1
+
+        for row in aggregate_rows:
+            checkpoint = str(row.get("checkpoint") or "").strip()
+            if not checkpoint:
+                continue
+            try:
+                local_hour = _captured_datetime(row.get("hour_bucket", "")).astimezone(tz).hour
+                wait_sum = float(row.get("wait_sum") or 0)
+                sample_count = int(row.get("sample_count") or 0)
+            except Exception:
+                continue
+            bucket = group_for(checkpoint)["buckets"][local_hour]
+            bucket["sum"] += wait_sum
+            bucket["count"] += sample_count
+
+        return [
+            {
+                "checkpoint": checkpoint,
+                "rows": [
+                    {
+                        "hour": hour,
+                        "label": f"{hour:02d}:00",
+                        "avg_wait": round(bucket["sum"] / bucket["count"], 1) if bucket["count"] else None,
+                        "samples": bucket["count"],
+                    }
+                    for hour, bucket in group["buckets"].items()
+                ],
+            }
+            for checkpoint, group in groups.items()
+        ]
+    except Exception as e:
+        logger.error("Failed to query Supabase checkpoint averages: %s", e)
+        return None
+
 def init_command():
     """CLI: Initialize Supabase table."""
     print("Initializing Supabase...")
     if not SUPABASE_URL or not SUPABASE_KEY:
-        print("ERROR: Set SUPABASE_URL and SUPABASE_KEY environment variables")
+        print("ERROR: Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables")
         return 1
 
     client = init_supabase()

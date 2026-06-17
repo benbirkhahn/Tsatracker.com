@@ -18,13 +18,19 @@ from flask import Flask, Response, abort, jsonify, redirect, render_template, re
 
 # Import Supabase integration (optional)
 try:
-    from supabase_integration import supabase_historical_24h_average, supabase_history_rows, supabase_store_samples
+    from supabase_integration import (
+        supabase_checkpoint_24h_average,
+        supabase_historical_24h_average,
+        supabase_history_rows,
+        supabase_store_samples,
+    )
     SUPABASE_ENABLED = True
 except ImportError:
     SUPABASE_ENABLED = False
     def supabase_store_samples(rows): pass
     def supabase_history_rows(airport_code: str, hours: int = 12, limit: int = 50000): return None
     def supabase_historical_24h_average(airport_code: str, days: int = 30, time_zone_name: str = "UTC", limit: int = 100000): return None
+    def supabase_checkpoint_24h_average(airport_code: str, days: int = 30, time_zone_name: str = "UTC", limit: int = 100000): return None
 
 APP_TZ = timezone.utc
 # Bulletproof DB Path: Check for Render Disk, fallback to local
@@ -3363,11 +3369,21 @@ def checkpoint_24h_average_for_airport(airport_code: str, days: int = 30, sample
     time_zone_name = AIRPORT_TIME_ZONES.get(airport_code, "UTC")
     tz = ZoneInfo(time_zone_name)
     raw_rows = None
+    aggregate_groups = None
 
     if SUPABASE_ENABLED:
-        raw_rows = supabase_history_rows(airport_code, hours=bounded_days * 24, limit=sample_limit)
+        aggregate_groups = supabase_checkpoint_24h_average(
+            airport_code,
+            days=bounded_days,
+            time_zone_name=time_zone_name,
+            limit=sample_limit,
+        )
+        if not aggregate_groups:
+            raw_rows = supabase_history_rows(airport_code, hours=bounded_days * 24, limit=sample_limit)
 
-    if raw_rows:
+    if aggregate_groups:
+        rows = []
+    elif raw_rows:
         rows = [
             (
                 str(row.get("checkpoint", "")).strip(),
@@ -3394,31 +3410,57 @@ def checkpoint_24h_average_for_airport(airport_code: str, days: int = 30, sample
         conn.close()
 
     groups: Dict[str, Dict] = {}
-    for checkpoint, wait_minutes, captured_at in rows:
-        checkpoint = str(checkpoint or "").strip()
-        if not checkpoint:
-            continue
-        if airport_code == "ORD":
-            checkpoint = ord_friendly_checkpoint(checkpoint)
-        try:
-            wait = clamp_wait_minutes(float(wait_minutes))
-            if wait <= 0:
+    if aggregate_groups:
+        for aggregate_group in aggregate_groups:
+            checkpoint = str(aggregate_group.get("checkpoint") or "").strip()
+            if not checkpoint:
                 continue
-            captured = datetime.fromisoformat(str(captured_at).replace("Z", "+00:00"))
-            if captured.tzinfo is None:
-                captured = captured.replace(tzinfo=timezone.utc)
-            local_hour = captured.astimezone(tz).hour
-        except Exception:
-            continue
-        group = groups.setdefault(
-            checkpoint,
-            {
-                "checkpoint": checkpoint,
-                "buckets": {hour: {"sum": 0.0, "count": 0} for hour in range(24)},
-            },
-        )
-        group["buckets"][local_hour]["sum"] += wait
-        group["buckets"][local_hour]["count"] += 1
+            if airport_code == "ORD":
+                checkpoint = ord_friendly_checkpoint(checkpoint)
+            group = groups.setdefault(
+                checkpoint,
+                {
+                    "checkpoint": checkpoint,
+                    "buckets": {hour: {"sum": 0.0, "count": 0} for hour in range(24)},
+                },
+            )
+            for row in aggregate_group.get("rows") or []:
+                try:
+                    hour = int(row.get("hour"))
+                    samples = int(row.get("samples") or 0)
+                    avg_wait = row.get("avg_wait")
+                    if hour not in group["buckets"] or samples <= 0 or avg_wait is None:
+                        continue
+                    group["buckets"][hour]["sum"] += float(avg_wait) * samples
+                    group["buckets"][hour]["count"] += samples
+                except Exception:
+                    continue
+    else:
+        for checkpoint, wait_minutes, captured_at in rows:
+            checkpoint = str(checkpoint or "").strip()
+            if not checkpoint:
+                continue
+            if airport_code == "ORD":
+                checkpoint = ord_friendly_checkpoint(checkpoint)
+            try:
+                wait = clamp_wait_minutes(float(wait_minutes))
+                if wait <= 0:
+                    continue
+                captured = datetime.fromisoformat(str(captured_at).replace("Z", "+00:00"))
+                if captured.tzinfo is None:
+                    captured = captured.replace(tzinfo=timezone.utc)
+                local_hour = captured.astimezone(tz).hour
+            except Exception:
+                continue
+            group = groups.setdefault(
+                checkpoint,
+                {
+                    "checkpoint": checkpoint,
+                    "buckets": {hour: {"sum": 0.0, "count": 0} for hour in range(24)},
+                },
+            )
+            group["buckets"][local_hour]["sum"] += wait
+            group["buckets"][local_hour]["count"] += 1
 
     out = []
     for checkpoint, group in groups.items():
