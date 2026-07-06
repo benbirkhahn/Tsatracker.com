@@ -851,6 +851,23 @@ PIPELINE_AIRPORTS = [
         "name": "Ronald Reagan Washington National (DCA)",
     },
 ]
+PIPELINE_AIRPORT_CODES = {airport["code"] for airport in PIPELINE_AIRPORTS}
+
+LEGACY_PAGE_REDIRECTS = {
+    "/airport-wait-times": "/airport-security-wait-times",
+    "/airport-security-lines": "/airport-security-wait-times",
+    "/security-wait-times": "/airport-security-wait-times",
+    "/tsa-security-wait-times": "/airport-security-wait-times",
+    "/tsa-wait-times": "/airport-security-wait-times",
+    "/tsa-wait-times-by-airport": "/airports",
+    "/how-early-should-i-arrive-for-tsa": "/best-time-to-get-to-the-airport",
+    "/how-early-to-arrive-at-airport": "/best-time-to-get-to-the-airport",
+    "/best-time-to-arrive-at-airport": "/best-time-to-get-to-the-airport",
+    "/when-to-leave-for-airport": "/when-should-i-leave",
+    "/tsa-wait-times-explained": "/guide/tsa-wait-times",
+    "/tsa-precheck-vs-clear": "/guide/tsa-precheck-clear",
+    "/clear-vs-tsa-precheck": "/guide/tsa-precheck-clear",
+}
 
 app = Flask(__name__)
 LANE_TYPE_LABELS = {
@@ -3690,6 +3707,44 @@ def favicon_ico():
 
 
 @app.before_request
+def canonicalize_public_origin():
+    if request.method not in {"GET", "HEAD"}:
+        return None
+
+    canonical = urlparse(SITE_URL)
+    canonical_host = canonical.netloc.lower()
+    if not canonical.scheme or not canonical_host:
+        return None
+
+    request_host = request.host.split(":", 1)[0].lower()
+    forwarded_proto = request.headers.get("X-Forwarded-Proto", request.scheme)
+    request_scheme = forwarded_proto.split(",", 1)[0].strip().lower()
+    if request_scheme not in {"http", "https"}:
+        request_scheme = request.scheme
+
+    is_www_variant = request_host == f"www.{canonical_host}"
+    is_insecure_canonical = request_host == canonical_host and request_scheme != canonical.scheme
+    if not (is_www_variant or is_insecure_canonical):
+        return None
+
+    target = f"{canonical.scheme}://{canonical.netloc}{request.full_path}"
+    if target.endswith("?"):
+        target = target[:-1]
+    return redirect(target, code=301)
+
+
+@app.before_request
+def redirect_legacy_paths():
+    if request.method not in {"GET", "HEAD"}:
+        return None
+    normalized_path = request.path.rstrip("/") if request.path != "/" else request.path
+    target = LEGACY_PAGE_REDIRECTS.get(normalized_path)
+    if target:
+        return redirect(target, code=301)
+    return None
+
+
+@app.before_request
 def canonicalize_trailing_slash_urls():
     if request.path != "/" and request.path.endswith("/") and not request.path.startswith("/api/"):
         target = request.path.rstrip("/")
@@ -3740,6 +3795,8 @@ def airport_page(airport_slug: str):
         code = short_code.group(1).upper()
         if code in LIVE_AIRPORTS:
             return redirect(airport_seo_slug(code), code=301)
+        if code in PIPELINE_AIRPORT_CODES:
+            return redirect("/airports", code=301)
 
     m = re.fullmatch(r"([a-z]{3})-tsa-wait-times", normalized_slug)
     if not m:
@@ -3747,7 +3804,7 @@ def airport_page(airport_slug: str):
         return jsonify({"error": "Not found"}), 404
     code = m.group(1).upper()
     log_page_view(f"/airports/{airport_slug}", code)
-    if code == "DEN" and code not in LIVE_AIRPORTS:
+    if code not in LIVE_AIRPORTS and code in PIPELINE_AIRPORT_CODES:
         return redirect("/airports", code=301)
     meta = LIVE_AIRPORTS.get(code)
     if not meta:
@@ -3756,6 +3813,19 @@ def airport_page(airport_slug: str):
     if request.path != canonical_path:
         return redirect(canonical_path, code=301)
     return render_template("airport.html", **index_template_context(code, airport_page_seo(code, meta["name"])))
+
+
+@app.route("/<legacy_airport_slug>")
+def legacy_top_level_airport_page(legacy_airport_slug: str):
+    m = re.fullmatch(r"([a-zA-Z]{3})-tsa-wait-times", legacy_airport_slug.strip())
+    if not m:
+        abort(404)
+    code = m.group(1).upper()
+    if code in LIVE_AIRPORTS:
+        return redirect(airport_seo_slug(code), code=301)
+    if code in PIPELINE_AIRPORT_CODES:
+        return redirect("/airports", code=301)
+    abort(404)
 
 
 @app.route("/about")
@@ -3777,15 +3847,11 @@ def about_page():
 
 @app.route("/link-graph")
 def link_graph_page():
-    if not ENABLE_INTERNAL_GRAPH:
-        abort(404)
     return render_template("link_graph.html", **link_graph_context())
 
 
 @app.route("/wide-link-graph")
 def wide_link_graph_page():
-    if not ENABLE_INTERNAL_GRAPH:
-        abort(404)
     return render_template("wide_link_graph.html", **link_graph_context("/wide-link-graph"))
 
 

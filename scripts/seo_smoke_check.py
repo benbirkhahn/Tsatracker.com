@@ -107,16 +107,41 @@ with site.app.test_client() as client:
     for path, target in {
         "/tsa-wait-times-by-airport": "/airports",
         "/how-early-should-i-arrive-for-tsa": "/best-time-to-get-to-the-airport",
+        "/tsa-security-wait-times": "/airport-security-wait-times",
+        "/how-early-to-arrive-at-airport": "/best-time-to-get-to-the-airport",
+        "/when-to-leave-for-airport": "/when-should-i-leave",
+        "/tsa-wait-times-explained": "/guide/tsa-wait-times",
+        "/tsa-precheck-vs-clear": "/guide/tsa-precheck-clear",
+        "/lax-tsa-wait-times": "/airports/lax-tsa-wait-times",
+        "/airports/den-tsa-wait-times": "/airports",
+        "/airports/iah-tsa-wait-times": "/airports",
     }.items():
         response = assert_status(client, path, 301)
         location = response.headers.get("Location", "")
         if urlparse(location).path != target:
             record_failure(f"{path}: expected redirect to {target}, got {location}")
 
+    for base_url, expected in {
+        "http://www.tsatracker.com": "https://tsatracker.com/",
+        "http://tsatracker.com": "https://tsatracker.com/",
+    }.items():
+        response = client.get("/", base_url=base_url, follow_redirects=False)
+        location = response.headers.get("Location", "")
+        if response.status_code != 301 or location != expected:
+            record_failure(f"{base_url}/: expected canonical origin redirect to {expected}, got {response.status_code} {location}")
+
     for path in ("/link-graph", "/wide-link-graph"):
         robots = robots_contents(rendered[path])
         if robots != ["noindex"]:
             record_failure(f"{path}: expected robots noindex, got {robots}")
+
+    site.ENABLE_INTERNAL_GRAPH = False
+    for path in ("/link-graph", "/wide-link-graph"):
+        response = assert_status(client, path, 200)
+        robots = robots_contents(response.get_data(as_text=True))
+        if robots != ["noindex"]:
+            record_failure(f"{path}: expected noindex even with graph flag disabled, got {robots}")
+    site.ENABLE_INTERNAL_GRAPH = True
 
     ad_loader = "pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"
     for path in ("/privacy", "/terms", "/contact"):
