@@ -47,20 +47,26 @@ _poll_env = os.getenv("POLL_SECONDS", "").strip()
 POLL_SECONDS = int(_poll_env) if _poll_env.isdigit() else 120
 COLLECT_NOW_TOKEN = os.getenv("COLLECT_NOW_TOKEN")
 ENABLE_POLLER = os.getenv("ENABLE_POLLER", "true").lower() == "true"
-ENABLE_ADSENSE = True
-ADSENSE_CLIENT = os.getenv("ADSENSE_CLIENT", "ca-pub-3769301792129016").strip()
-ADSENSE_SLOT_TOP = os.getenv("ADSENSE_SLOT_TOP", "").strip()
-ADSENSE_SLOT_BOTTOM = os.getenv("ADSENSE_SLOT_BOTTOM", "").strip()
-ADSENSE_SLOT_GUIDE = os.getenv("ADSENSE_SLOT_GUIDE", "8161510326").strip()
+ENABLE_ADSENSE = os.getenv("ENABLE_ADSENSE", "false").lower() == "true"
+ADSENSE_CLIENT = os.getenv("ADSENSE_CLIENT", "").strip()
+# Legacy slot names remain environment fallbacks, but one slot is never reused
+# across responsive display and Multiplex formats.
+ADSENSE_SLOT_DISPLAY = os.getenv(
+    "ADSENSE_SLOT_DISPLAY",
+    os.getenv("ADSENSE_SLOT_BOTTOM", os.getenv("ADSENSE_SLOT_TOP", "")),
+).strip()
+ADSENSE_SLOT_MULTIPLEX = os.getenv(
+    "ADSENSE_SLOT_MULTIPLEX",
+    os.getenv("ADSENSE_SLOT_GUIDE", ""),
+).strip()
 ENABLE_INTERNAL_GRAPH = os.getenv("ENABLE_INTERNAL_GRAPH", "false").lower() == "true"
-if not ADSENSE_SLOT_BOTTOM:
-    ADSENSE_SLOT_BOTTOM = ADSENSE_SLOT_GUIDE
 
 # Emerald Ad Network (Performance ads)
 EMERALD_ID = os.getenv("EMERALD_ID", "519508").strip()
 EMERALD_TAG = os.getenv("EMERALD_TAG", "1").strip()
-GA_MEASUREMENT_ID = os.getenv("GA_MEASUREMENT_ID", "G-9MN7W14PC1").strip()
-SKIMLINKS_SCRIPT_URL = os.getenv("SKIMLINKS_SCRIPT_URL", "https://s.skimresources.com/js/302030X1790019.skimlinks.js").strip()
+ENABLE_ANALYTICS = os.getenv("ENABLE_ANALYTICS", "false").lower() == "true"
+GA_MEASUREMENT_ID = os.getenv("GA_MEASUREMENT_ID", "").strip()
+SKIMLINKS_SCRIPT_URL = os.getenv("SKIMLINKS_SCRIPT_URL", "").strip()
 
 
 SPONSOR_CTA_URL = os.getenv("SPONSOR_CTA_URL", "mailto:ads@tsatracker.com").strip()
@@ -147,22 +153,38 @@ def get_best_offer_id(airport_code: str = None) -> str:
         return "KIWI"
 
 
-def get_monetization_context(airport_code: str = "") -> Dict:
+def get_monetization_context(
+    airport_code: str = "",
+    page_type: str = "none",
+    enable_affiliate_links: bool = False,
+) -> Dict:
     """Returns a dictionary of all monetization and affiliate data, now with Smart Ranking."""
     is_airport_page = bool(airport_code and airport_code in LIVE_AIRPORTS)
     city = LIVE_AIRPORTS[airport_code].get("city", "") if is_airport_page else ""
     best_offer = get_best_offer_id(airport_code)
-    
+    adsense_enabled = ENABLE_ADSENSE and bool(ADSENSE_CLIENT) and page_type in {
+        "home",
+        "airport",
+        "precheck-guide",
+    }
+    affiliates_enabled = enable_affiliate_links and bool(SKIMLINKS_SCRIPT_URL)
+
     return {
-        "enable_adsense": ENABLE_ADSENSE and bool(ADSENSE_CLIENT),
+        "enable_adsense": adsense_enabled,
         "adsense_client": ADSENSE_CLIENT,
-        "adsense_slot_top": ADSENSE_SLOT_TOP,
-        "adsense_slot_bottom": ADSENSE_SLOT_BOTTOM,
-        "adsense_slot_guide": ADSENSE_SLOT_GUIDE,
+        "adsense_slot_display": ADSENSE_SLOT_DISPLAY,
+        "adsense_slot_multiplex": ADSENSE_SLOT_MULTIPLEX,
+        "show_display_ad": adsense_enabled
+        and page_type in {"home", "airport"}
+        and bool(ADSENSE_SLOT_DISPLAY),
+        "show_multiplex_ad": adsense_enabled
+        and page_type == "precheck-guide"
+        and bool(ADSENSE_SLOT_MULTIPLEX),
         "emerald_id": EMERALD_ID,
         "emerald_tag": EMERALD_TAG,
-        "ga_id": GA_MEASUREMENT_ID,
-        "skimlinks_script_url": SKIMLINKS_SCRIPT_URL,
+        "ga_id": GA_MEASUREMENT_ID if ENABLE_ANALYTICS else "",
+        "enable_affiliate_links": affiliates_enabled,
+        "skimlinks_script_url": SKIMLINKS_SCRIPT_URL if affiliates_enabled else "",
         "travelpayouts_id": TRAVELPAYOUTS_ID,
 
         "best_offer_id": best_offer,
@@ -251,6 +273,29 @@ LIVE_AIRPORTS = {
     "SEA": {"name": "Seattle-Tacoma International (SEA)", "mode": "LIVE_PUBLIC", "city": "Seattle"},
     "SFO": {"name": "San Francisco International (SFO)", "mode": "LIVE_PUBLIC", "city": "San Francisco"},
     "DCA": {"name": "Ronald Reagan Washington National (DCA)", "mode": "LIVE_PUBLIC", "city": "Washington"},
+}
+
+# Exact airport anchors for the home-page satellite network map. Keeping this
+# separate from LIVE_AIRPORTS makes the geographic contract explicit and lets
+# tests catch newly tracked airports that have not been placed on the map yet.
+AIRPORT_MAP_COORDINATES = {
+    "ATL": {"lat": 33.6407, "lng": -84.4277},
+    "BOS": {"lat": 42.3656, "lng": -71.0096},
+    "CLT": {"lat": 35.2140, "lng": -80.9431},
+    "DCA": {"lat": 38.8512, "lng": -77.0402},
+    "DFW": {"lat": 32.8998, "lng": -97.0403},
+    "EWR": {"lat": 40.6895, "lng": -74.1745},
+    "JAX": {"lat": 30.4941, "lng": -81.6879},
+    "JFK": {"lat": 40.6413, "lng": -73.7781},
+    "LAS": {"lat": 36.0840, "lng": -115.1537},
+    "LAX": {"lat": 33.9416, "lng": -118.4085},
+    "LGA": {"lat": 40.7769, "lng": -73.8740},
+    "MCO": {"lat": 28.4312, "lng": -81.3081},
+    "MIA": {"lat": 25.7959, "lng": -80.2870},
+    "ORD": {"lat": 41.9742, "lng": -87.9073},
+    "PHL": {"lat": 39.8744, "lng": -75.2424},
+    "SEA": {"lat": 47.4502, "lng": -122.3088},
+    "SFO": {"lat": 37.6213, "lng": -122.3790},
 }
 
 AIRPORT_PROFILE_THEMES = {
@@ -784,6 +829,79 @@ AIRPORT_STATUS_NOTICES = {
 }
 
 
+AIRPORT_DECISION_MAPS = {
+    "LAS": {
+        "source": {
+            "label": "Official LAS security page",
+            "url": "https://www.harryreidairport.com/security-at-las",
+            "verified_on": "2026-07-10",
+        },
+        "terminals": [
+            {
+                "id": "t1",
+                "label": "Terminal 1",
+                "summary": "A, B, C, and some D-gate routing",
+                "checkpoints": [
+                    {
+                        "id": "las-t1-ab",
+                        "label": "A/B Gates",
+                        "aliases": ["T1 - A/B Gates", "Terminal 1 - A/B Gates"],
+                        "primary_for": ["A", "B"],
+                        "alternate_for": [],
+                        "hours": "3:15 a.m.-1 a.m.",
+                        "note": "Primary Terminal 1 checkpoint for A and B gates.",
+                    },
+                    {
+                        "id": "las-t1-c",
+                        "label": "C Gates",
+                        "aliases": ["T1 - C Gates", "Terminal 1 - C Gates"],
+                        "primary_for": ["C"],
+                        "alternate_for": [],
+                        "hours": "3:05 a.m.-10 p.m.",
+                        "note": "Southwest-focused checkpoint for C gates.",
+                    },
+                    {
+                        "id": "las-t1-cd",
+                        "label": "C/D Gates",
+                        "aliases": ["T1 - C/D Gates", "Terminal 1 - C/D Gates"],
+                        "primary_for": ["D"],
+                        "alternate_for": ["C"],
+                        "hours": "Open 24 hours",
+                        "note": "Terminal 1 option for D gates and an alternative for C gates.",
+                    },
+                ],
+            },
+            {
+                "id": "t3",
+                "label": "Terminal 3",
+                "summary": "D and E gates, with a limited-hours Innovation option",
+                "checkpoints": [
+                    {
+                        "id": "las-t3-de",
+                        "label": "Level 2 / D & E Gates",
+                        "aliases": ["T3 - D/E Gates", "Terminal 3 - D/E Gates"],
+                        "primary_for": ["D", "E"],
+                        "alternate_for": [],
+                        "hours": "3:30 a.m.-1:30 a.m.",
+                        "note": "Main Terminal 3 checkpoint for D and E gates.",
+                    },
+                    {
+                        "id": "las-t3-innovation",
+                        "label": "Level Zero Innovation",
+                        "aliases": [],
+                        "primary_for": [],
+                        "alternate_for": ["D", "E"],
+                        "hours": "5 a.m.-1:30 p.m.",
+                        "note": "Published checkpoint; the current LAS feed has no separate live reading.",
+                        "published_only": True,
+                    },
+                ],
+            },
+        ],
+    }
+}
+
+
 AIRPORT_FACTORS = {
     "ATL": 1.25, "BOS": 1.05, "CLT": 1.0, "DEN": 1.15, "DFW": 1.2, "DTW": 0.95,
     "EWR": 1.2, "FLL": 0.9, "HNL": 0.85, "IAH": 1.1, "JFK": 1.35, "LAS": 1.15,
@@ -801,15 +919,6 @@ PIPELINE_AIRPORTS = [
         "public_note": "Live integration coming soon.",
     },
 
-    {
-        "code": "SFO",
-        "name": "San Francisco International",
-        "status": "IN_RESEARCH",
-        "public_note": "Live integration coming soon.",
-        # internal: flysfo.com/passengers/flight-info/security-wait-times exposes the table in server-rendered HTML.
-        # Scrape the public page directly; no hidden API is needed.
-        # See airport_research/live/SFO.md for the live integration notes.
-    },
     {
         "code": "IAH",
         "name": "George Bush Intercontinental (IAH)",
@@ -845,10 +954,6 @@ PIPELINE_AIRPORTS = [
         # internal: flydulles.com and mwaa.com both render wait times dynamically.
         # No public JSON API found. Both are MWAA-operated (same backend).
         # See airport_research/pipeline/IAD.md for full investigation log.
-    },
-    {
-        "code": "DCA",
-        "name": "Ronald Reagan Washington National (DCA)",
     },
 ]
 PIPELINE_AIRPORT_CODES = {airport["code"] for airport in PIPELINE_AIRPORTS}
@@ -940,6 +1045,8 @@ def lane_sort_filter(lanes: List[Dict]) -> List[Dict]:
 def add_crawl_control_headers(response):
     if request.path.startswith("/api/") or request.path == "/healthz":
         response.headers.setdefault("X-Robots-Tag", "noindex")
+    if request.path in {"/link-graph", "/wide-link-graph"}:
+        response.headers.setdefault("X-Robots-Tag", "noindex, nofollow")
     return response
 
 
@@ -971,12 +1078,26 @@ def utc_now() -> datetime:
     return datetime.now(tz=APP_TZ)
 
 
-def current_copy_date_label() -> str:
-    return utc_now().strftime("%B %d, %Y").replace(" 0", " ")
+EDITORIAL_REVIEW_DATES = {
+    "/about": "2026-07-10",
+    "/airport-security-wait-times": "2026-07-10",
+    "/best-time-to-get-to-the-airport": "2026-07-10",
+    "/guide/tsa-wait-times": "2026-07-10",
+    "/guide/tsa-precheck-clear": "2026-07-10",
+    "/methodology": "2026-07-10",
+    "/privacy": "2026-07-10",
+    "/terms": "2026-07-10",
+    "/when-should-i-leave": "2026-07-10",
+}
 
 
-def current_copy_date_iso() -> str:
-    return utc_now().date().isoformat()
+def editorial_review_date_iso(path: str) -> str:
+    return EDITORIAL_REVIEW_DATES[path]
+
+
+def editorial_review_date_label(path: str) -> str:
+    value = datetime.strptime(editorial_review_date_iso(path), "%Y-%m-%d")
+    return value.strftime("%B %d, %Y").replace(" 0", " ")
 
 
 def airport_seo_slug(code: str) -> str:
@@ -1014,7 +1135,7 @@ def home_page_seo() -> Dict:
     return build_page_seo(
         title="Live TSA Wait Times by Airport | TSA Tracker",
         description=(
-            "Check live TSA and airport security wait times by airport, compare current line conditions, and open airport-specific pages with official-source data and timing guidance."
+            "Check TSA wait times by airport, compare checkpoint conditions, and see clearly labeled estimates when an official live feed is unavailable."
         ),
         canonical_path="/",
     )
@@ -1023,10 +1144,10 @@ def home_page_seo() -> Dict:
 def airport_page_seo(code: str, airport_name: str) -> Dict:
     clean_name = airport_name.split("(")[0].strip()
     return build_page_seo(
-        title=f"{code} TSA Wait Times Today | {clean_name} Security Lines",
+        title=f"{code} TSA Wait Times | {clean_name}",
         description=(
-            f"Live airport security wait times at {clean_name} ({code}). "
-            f"Check current {code} security lines, terminal-specific notes, best arrival timing, and official airport resources before you leave."
+            f"Check current {code} TSA wait times, checkpoint conditions, 30-day patterns, "
+            "terminal notes, and airport resources before you leave."
         ),
         canonical_path=airport_seo_slug(code),
         breadcrumbs=build_breadcrumbs(
@@ -1041,7 +1162,7 @@ def airports_directory_seo() -> Dict:
     return build_page_seo(
         title="TSA Wait Times by Airport | Live Security Line Tracker",
         description=(
-            "Compare live TSA wait times by airport, sorted by current average wait, then open airport pages for checkpoint detail, trends, and arrival timing notes."
+            "Compare TSA wait times by airport, see each reading's live or estimated source status, and open airport pages for checkpoint detail."
         ),
         canonical_path="/airports",
     )
@@ -1051,8 +1172,8 @@ def airport_security_wait_times_seo() -> Dict:
     return build_page_seo(
         title="Airport Security Wait Times | Live TSA Lines by Airport",
         description=(
-            "Airport security wait times for major US airports, with live readings, airport-specific guidance, "
-            "best arrival windows, and links to the airport pages travelers actually need."
+            "Compare airport security wait times, source status, checkpoint details, and "
+            "airport-specific guidance for major US airports."
         ),
         canonical_path="/airport-security-wait-times",
     )
@@ -1062,7 +1183,7 @@ def best_time_to_get_to_airport_seo() -> Dict:
     return build_page_seo(
         title="Best Time to Get to the Airport | Live TSA Timing Guide",
         description=(
-            "Learn the best time to get to the airport for morning, afternoon, and international flights using live TSA wait times, peak-hour patterns, and airport-specific timing."
+            "Plan when to get to the airport using current TSA source status, normal peak-hour patterns, and airport-specific timing guidance."
         ),
         canonical_path="/best-time-to-get-to-the-airport",
     )
@@ -1152,17 +1273,28 @@ def arrival_guidance_for_airport(payload: Dict) -> Dict:
     current = payload.get("currentWait", {}) if payload else {}
     current_minutes = float(current.get("standard", 0) or 0)
     current_desc = current.get("standardDescription", "current conditions")
-    if current_minutes >= 20:
-        recommendation = f"Current security timing is elevated at {current_desc}, so plan extra buffer and avoid {risk_label} if you can."
-    elif current_minutes > 0:
-        recommendation = f"Current security timing is manageable at {current_desc}, but {risk_label} is still the most likely stress window."
+    source_type = payload.get("sourceType", "estimated_fallback") if payload else "estimated_fallback"
+    if source_type != "live_direct":
+        recommendation = (
+            "The live airport source is unavailable, so the current number is planning context rather "
+            "than a measured line. Use a wider buffer and recheck before leaving."
+        )
+    elif current_minutes >= 20:
+        recommendation = (
+            f"The current official reading is elevated at {current_desc}. Add buffer; the modeled "
+            f"daily baseline is also highest around {risk_label}."
+        )
     else:
-        recommendation = f"Aim for {best_label} if your departure timing is flexible, and avoid {risk_label} when possible."
+        recommendation = (
+            f"The current official reading is {current_desc}. The modeled daily baseline is highest "
+            f"around {risk_label}, so recheck if your trip overlaps that window."
+        )
 
     return {
         "best_window": best_label,
         "risk_window": risk_label,
         "recommendation": recommendation,
+        "is_live": source_type == "live_direct",
     }
 
 
@@ -1192,7 +1324,7 @@ def airport_page_editorial_context(code: str, payload: Optional[Dict], checkpoin
             bullets.append(item)
 
     body = (
-        f"This page adds {code}-specific terminal context, airline routing notes, and {link_count} official airport resource"
+        f"This page adds {code}-specific terminal context, airline routing notes, and {link_count} source or reference link"
         f"{'s' if link_count != 1 else ''} so the wait-time reading is actually usable for a same-day trip."
     )
 
@@ -1200,6 +1332,74 @@ def airport_page_editorial_context(code: str, payload: Optional[Dict], checkpoin
         "summary": source_summary,
         "body": body,
         "bullets": bullets,
+    }
+
+
+def normalize_checkpoint_alias(value: object) -> str:
+    text = str(value or "").lower().strip()
+    text = re.sub(r"[\u2010-\u2015]", "-", text)
+    text = re.sub(r"\bterminal\s*([0-9]+)\b", r"t\1", text)
+    text = text.replace("&", "/")
+    return re.sub(r"\s+", "", text)
+
+
+def build_airport_decision_map(code: str, rows: List[Dict]) -> Optional[Dict]:
+    config = AIRPORT_DECISION_MAPS.get(code)
+    if not config:
+        return None
+
+    alias_to_node = {}
+    for terminal in config["terminals"]:
+        for checkpoint in terminal["checkpoints"]:
+            for alias in checkpoint.get("aliases", []):
+                normalized = normalize_checkpoint_alias(alias)
+                existing = alias_to_node.get(normalized)
+                if existing and existing != checkpoint["id"]:
+                    raise ValueError(f"Duplicate checkpoint alias {alias!r}")
+                alias_to_node[normalized] = checkpoint["id"]
+
+    rows_by_node = {}
+    unmatched_rows = []
+    for row in rows or []:
+        node_id = alias_to_node.get(normalize_checkpoint_alias(row.get("checkpoint")))
+        if not node_id:
+            unmatched_rows.append(row)
+            continue
+        rows_by_node.setdefault(node_id, []).append(row)
+
+    terminals = []
+    for terminal in config["terminals"]:
+        checkpoints = []
+        for checkpoint in terminal["checkpoints"]:
+            live_rows = sorted(rows_by_node.get(checkpoint["id"], []), key=_lane_display_sort_key)
+            lane_waits = {
+                _lane_type_key(row.get("lane_type")): float(row.get("wait_minutes", 0) or 0)
+                for row in live_rows
+            }
+            captured_values = [row.get("captured_at") for row in live_rows if row.get("captured_at")]
+            captured_at = max(captured_values) if captured_values else ""
+            checkpoints.append(
+                {
+                    **checkpoint,
+                    "terminal_id": terminal["id"],
+                    "terminal_label": terminal["label"],
+                    "live_alias": live_rows[0].get("checkpoint", "") if live_rows else "",
+                    "lanes": live_rows,
+                    "lane_waits": lane_waits,
+                    "standard_wait": lane_waits.get("STANDARD"),
+                    "precheck_wait": lane_waits.get("PRECHECK"),
+                    "status": "reporting" if live_rows else "not_reporting",
+                    "captured_at": captured_at,
+                    "captured_label": format_airport_timestamp(code, captured_at) if captured_at else "",
+                }
+            )
+        terminals.append({**terminal, "checkpoints": checkpoints})
+
+    return {
+        "code": code,
+        "source": config["source"],
+        "terminals": terminals,
+        "unmatched_rows": sorted(unmatched_rows, key=_lane_display_sort_key),
     }
 
 
@@ -1321,10 +1521,16 @@ def index_template_context(initial_airport_code: str, seo: Dict) -> Dict:
                 "hourlyForecast": normalize_hourly_forecast(initial_airport_code, estimated),
             }
     try:
-        monetization = get_monetization_context(initial_airport_code)
+        monetization = get_monetization_context(
+            initial_airport_code,
+            page_type="airport" if is_airport_page else "home",
+        )
     except Exception as e:
         logger.error("Error building monetization context for %s: %s", initial_airport_code or "HOME", e)
-        monetization = get_monetization_context("")
+        monetization = get_monetization_context(
+            "",
+            page_type="airport" if is_airport_page else "home",
+        )
     airport_overview = build_airport_overview_context()
     airport_summary = next(
         (a for a in airport_overview["airport_summaries"] if a["code"] == initial_airport_code), None
@@ -1353,6 +1559,9 @@ def index_template_context(initial_airport_code: str, seo: Dict) -> Dict:
         "seo": seo,
         "initial_data": initial_data,
         "initial_checkpoints": initial_checkpoints,
+        "airport_decision_map": build_airport_decision_map(initial_airport_code, initial_checkpoints)
+        if is_airport_page
+        else None,
         "monetization": monetization,
         "LOCAL_OFFERS_JSON": json.dumps(LOCAL_OFFERS),
         "KIWI_AIRPORT_URLS_JSON": json.dumps(KIWI_AIRPORT_PAGE_URLS),
@@ -1393,8 +1602,8 @@ def intent_page_context(page_key: str) -> Dict:
         "overall_average": overview["overall_average"],
         "live_count": overview["live_count"],
         "estimated_count": overview["estimated_count"],
-        "copy_updated_label": current_copy_date_label(),
-        "copy_updated_iso": current_copy_date_iso(),
+        "copy_updated_label": editorial_review_date_label(f"/{page_key}"),
+        "copy_updated_iso": editorial_review_date_iso(f"/{page_key}"),
     }
 
 
@@ -1449,12 +1658,14 @@ def build_airport_overview_context() -> Dict:
     estimated_count = 0
 
     for code, meta in sorted(LIVE_AIRPORTS.items()):
+        map_point = AIRPORT_MAP_COORDINATES.get(code, {})
         rows = snapshot.get(code, [])
         if rows:
             current_wait = average_wait_from_rows(rows)
             updated_at = max(rows, key=lambda r: r.get("captured_at", ""))["captured_at"]
             source_type = "live_direct"
-            source_label = f"{len(rows)} checkpoint{'s' if len(rows) != 1 else ''}"
+            checkpoint_count = len({row.get("checkpoint") for row in rows if row.get("checkpoint")})
+            source_label = f"{checkpoint_count} checkpoint{'s' if checkpoint_count != 1 else ''}"
             live_count += 1
         else:
             payload = normalized_current_wait_for_code(code)
@@ -1475,14 +1686,17 @@ def build_airport_overview_context() -> Dict:
                 "current_wait": current_wait,
                 "wait_description": wait_description(current_wait),
                 "tier": wait_tier_class_for_minutes(current_wait),
-                "updated_at": format_utc_timestamp(updated_at),
+                "updated_at": format_airport_timestamp(code, updated_at),
                 "source_type": source_type,
                 "source_label": source_label,
                 "is_live": source_type == "live_direct",
-                "is_closed": current_wait <= 0,
+                "is_closed": False,
+                "is_zero": current_wait <= 0,
                 "trend": trends.get(code, {}).get("direction", "steady"),
                 "trend_delta": trends.get(code, {}).get("delta", 0.0),
                 "trend_arrow": TREND_ARROWS.get(trends.get(code, {}).get("direction", "steady"), "→"),
+                "map_lat": map_point.get("lat"),
+                "map_lng": map_point.get("lng"),
             }
         )
 
@@ -1576,6 +1790,7 @@ def link_graph_context(canonical_path: str = "/link-graph") -> Dict:
         {"id": "/guide/tsa-wait-times", "label": "TSA Guide", "group": "guide", "url": "/guide/tsa-wait-times", "kind": "guide"},
         {"id": "/guide/tsa-precheck-clear", "label": "PreCheck vs CLEAR", "group": "guide", "url": "/guide/tsa-precheck-clear", "kind": "guide"},
         {"id": "/best-time-to-get-to-the-airport", "label": "Best Timing", "group": "guide", "url": "/best-time-to-get-to-the-airport", "kind": "guide"},
+        {"id": "/when-should-i-leave", "label": "Leave-Time Calculator", "group": "guide", "url": "/when-should-i-leave", "kind": "guide"},
         {"id": "/about", "label": "About", "group": "info", "url": "/about", "kind": "info"},
         {"id": "/contact", "label": "Contact", "group": "info", "url": "/contact", "kind": "info"},
         {"id": "/privacy", "label": "Privacy", "group": "info", "url": "/privacy", "kind": "info"},
@@ -1608,16 +1823,18 @@ def link_graph_context(canonical_path: str = "/link-graph") -> Dict:
         "/guide/tsa-wait-times",
         "/guide/tsa-precheck-clear",
         "/best-time-to-get-to-the-airport",
+        "/when-should-i-leave",
     ]
-    hub_targets = ["/", "/airports", "/airport-security-wait-times", "/methodology"]
+    hub_targets = ["/", "/airports", "/airport-security-wait-times", "/methodology", "/when-should-i-leave"]
 
-    add_edges("/", ["/airports", "/airport-security-wait-times", "/best-time-to-get-to-the-airport", "/methodology", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear"] + airport_targets)
-    add_edges("/airports", ["/airport-security-wait-times", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear", "/methodology", "/about", "/contact"] + airport_targets)
-    add_edges("/airport-security-wait-times", ["/", "/airports", "/methodology", "/guide/tsa-wait-times", "/best-time-to-get-to-the-airport", "/guide/tsa-precheck-clear"] + airport_targets)
+    add_edges("/", ["/airports", "/airport-security-wait-times", "/best-time-to-get-to-the-airport", "/when-should-i-leave", "/methodology", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear"] + airport_targets)
+    add_edges("/airports", ["/airport-security-wait-times", "/when-should-i-leave", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear", "/methodology", "/about", "/contact"] + airport_targets)
+    add_edges("/airport-security-wait-times", ["/", "/airports", "/methodology", "/guide/tsa-wait-times", "/best-time-to-get-to-the-airport", "/when-should-i-leave", "/guide/tsa-precheck-clear"] + airport_targets)
     add_edges("/methodology", ["/", "/airports", "/airport-security-wait-times", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear", "/best-time-to-get-to-the-airport", "/about", "/contact"])
     add_edges("/guide/tsa-wait-times", ["/", "/airports", "/airport-security-wait-times", "/methodology", "/guide/tsa-precheck-clear"] + airport_targets)
     add_edges("/guide/tsa-precheck-clear", ["/", "/airports", "/airport-security-wait-times", "/guide/tsa-wait-times"] + [airport_seo_slug(code) for code in ["JFK", "LGA", "ORD", "LAX"] if code in LIVE_AIRPORTS])
     add_edges("/best-time-to-get-to-the-airport", hub_targets + airport_targets)
+    add_edges("/when-should-i-leave", ["/", "/airports", "/airport-security-wait-times", "/best-time-to-get-to-the-airport", "/methodology"] + airport_targets)
     add_edges("/about", ["/", "/airports", "/airport-security-wait-times", "/methodology", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear"] + airport_targets)
     add_edges("/contact", ["/", "/airports", "/airport-security-wait-times", "/about", "/methodology", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear"])
     add_edges("/privacy", ["/", "/airports", "/airport-security-wait-times", "/about", "/methodology", "/guide/tsa-wait-times", "/guide/tsa-precheck-clear", "/contact"])
@@ -1696,7 +1913,7 @@ def clamp_wait_minutes(v: float) -> float:
 def wait_description(minutes: float) -> str:
     m = int(round(minutes))
     if m <= 0:
-        return "Closed"
+        return "under 1 minute"
     return f"{m} minutes"
 
 
@@ -1719,6 +1936,22 @@ def format_utc_timestamp(iso_value: str) -> str:
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=APP_TZ)
     return dt.astimezone(APP_TZ).strftime("%b %d, %I:%M %p UTC").replace(" 0", " ")
+
+
+def format_airport_timestamp(code: str, iso_value: str) -> str:
+    if not iso_value:
+        return ""
+    try:
+        dt = datetime.fromisoformat(iso_value)
+    except Exception:
+        return iso_value
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=APP_TZ)
+    try:
+        local_dt = dt.astimezone(ZoneInfo(AIRPORT_TIME_ZONES.get(code, "UTC")))
+    except Exception:
+        local_dt = dt.astimezone(APP_TZ)
+    return local_dt.strftime("%b %d, %I:%M %p %Z").replace(" 0", " ")
 
 
 def estimated_wait_for_hour(hour: int, factor: float) -> float:
@@ -3831,8 +4064,8 @@ def legacy_top_level_airport_page(legacy_airport_slug: str):
 @app.route("/about")
 def about_page():
     seo = build_page_seo(
-        title="About TSA Tracker | Real-Time Airport Security Wait Times",
-        description="TSA Tracker pulls live TSA checkpoint wait times directly from official airport systems — not estimates, not crowd-sourced guesses. Learn how it works, which airports are covered, and why it's the most accurate source for airport security wait times.",
+        title="About TSA Tracker | Airport Wait-Time Sources",
+        description="Learn how TSA Tracker labels official live airport readings, fallback estimates, source freshness, and airport-specific planning guidance.",
         canonical_path="/about",
     )
     return render_template(
@@ -3840,18 +4073,22 @@ def about_page():
         seo=seo,
         monetization=get_monetization_context(),
         live_airports=LIVE_AIRPORTS,
-        copy_updated_label=current_copy_date_label(),
-        copy_updated_iso=current_copy_date_iso(),
+        copy_updated_label=editorial_review_date_label("/about"),
+        copy_updated_iso=editorial_review_date_iso("/about"),
     )
 
 
 @app.route("/link-graph")
 def link_graph_page():
+    if not ENABLE_INTERNAL_GRAPH:
+        abort(404)
     return render_template("link_graph.html", **link_graph_context())
 
 
 @app.route("/wide-link-graph")
 def wide_link_graph_page():
+    if not ENABLE_INTERNAL_GRAPH:
+        abort(404)
     return render_template("wide_link_graph.html", **link_graph_context("/wide-link-graph"))
 
 
@@ -3876,8 +4113,8 @@ def when_should_i_leave_page():
         for a in overview["airport_summaries"]
     }
     seo = build_page_seo(
-        "When Should I Leave for the Airport? Live TSA Calculator | TSA Tracker",
-        "Enter your airport and flight time. We combine the live TSA wait, the current trend, and 30 days of hourly history into one recommended departure time.",
+        "Airport Leave-Time Calculator | TSA Tracker",
+        "Enter your airport and flight time to combine the current live-or-estimated TSA wait, recent trend, 30-day pattern, drive time, and trip buffer.",
         "/when-should-i-leave",
     )
     return render_template(
@@ -3886,6 +4123,8 @@ def when_should_i_leave_page():
         monetization=get_monetization_context(),
         calc_airports_json=json.dumps(calc_airports),
         airport_summaries=overview["airport_summaries"],
+        copy_updated_label=editorial_review_date_label("/when-should-i-leave"),
+        copy_updated_iso=editorial_review_date_iso("/when-should-i-leave"),
     )
 
 
@@ -3904,8 +4143,8 @@ def airport_security_wait_times_page():
         overall_average=overview["overall_average"],
         live_count=overview["live_count"],
         estimated_count=overview["estimated_count"],
-        copy_updated_label=current_copy_date_label(),
-        copy_updated_iso=current_copy_date_iso(),
+        copy_updated_label=editorial_review_date_label("/airport-security-wait-times"),
+        copy_updated_iso=editorial_review_date_iso("/airport-security-wait-times"),
     )
 
 
@@ -3935,7 +4174,7 @@ def privacy():
         "privacy.html",
         seo=seo,
         monetization=get_monetization_context(),
-        copy_updated_label=current_copy_date_label(),
+        copy_updated_label=editorial_review_date_label("/privacy"),
     )
 
 
@@ -3950,7 +4189,7 @@ def terms():
         "terms.html",
         seo=seo,
         monetization=get_monetization_context(),
-        copy_updated_label=current_copy_date_label(),
+        copy_updated_label=editorial_review_date_label("/terms"),
     )
 
 
@@ -3968,7 +4207,7 @@ def contact():
 def guide_tsa_wait_times():
     seo = build_page_seo(
         title="TSA Wait Times Explained | Airport Security Guide 2026",
-        description="A complete guide to airport security wait times — how data is measured, peak hours to avoid, TSA PreCheck vs. CLEAR vs. standard lanes, airport-specific tips, and how to use live wait time data effectively.",
+        description="Learn how airport security waits are measured, how source freshness works, when lines peak, and how to use checkpoint and lane data.",
         canonical_path="/guide/tsa-wait-times",
     )
     airport_pages = [{"code": c, "href": airport_seo_slug(c), "name": v["name"]} for c, v in LIVE_AIRPORTS.items()]
@@ -3978,8 +4217,8 @@ def guide_tsa_wait_times():
         monetization=get_monetization_context(),
         live_airports=LIVE_AIRPORTS,
         airport_pages=airport_pages,
-        copy_updated_label=current_copy_date_label(),
-        copy_updated_iso=current_copy_date_iso(),
+        copy_updated_label=editorial_review_date_label("/guide/tsa-wait-times"),
+        copy_updated_iso=editorial_review_date_iso("/guide/tsa-wait-times"),
     )
 
 
@@ -3987,15 +4226,18 @@ def guide_tsa_wait_times():
 def guide_tsa_precheck_clear():
     seo = build_page_seo(
         title="TSA PreCheck vs CLEAR | Costs, Enrollment, Which Is Faster",
-        description="Compare TSA PreCheck, CLEAR, and Global Entry. Learn how the programs work, where to enroll with official providers, and which travel cards can help offset the cost.",
+        description="Compare TSA PreCheck, CLEAR, and Global Entry, including how they work, official enrollment options, and relevant travel-card benefits.",
         canonical_path="/guide/tsa-precheck-clear",
     )
     return render_template(
         "precheck_clear.html",
         seo=seo,
-        monetization=get_monetization_context(),
-        copy_updated_label=current_copy_date_label(),
-        copy_updated_iso=current_copy_date_iso(),
+        monetization=get_monetization_context(
+            page_type="precheck-guide",
+            enable_affiliate_links=True,
+        ),
+        copy_updated_label=editorial_review_date_label("/guide/tsa-precheck-clear"),
+        copy_updated_iso=editorial_review_date_iso("/guide/tsa-precheck-clear"),
     )
 
 
@@ -4011,8 +4253,8 @@ def methodology_page():
         seo=seo,
         live_airports=LIVE_AIRPORTS,
         monetization=get_monetization_context(),
-        copy_updated_label=current_copy_date_label(),
-        copy_updated_iso=current_copy_date_iso(),
+        copy_updated_label=editorial_review_date_label("/methodology"),
+        copy_updated_iso=editorial_review_date_iso("/methodology"),
     )
 
 
@@ -4245,23 +4487,33 @@ def google_verify():
 
 @app.route("/sitemap.xml")
 def sitemap_xml():
-    now = utc_now().date().isoformat()
-    pages = (
-        [("/", "1.0", "hourly")]
-        + [("/airports", "0.8", "daily")]
-        + [("/airport-security-wait-times", "0.85", "daily")]
-        + [("/best-time-to-get-to-the-airport", "0.75", "weekly")]
-        + [(airport_seo_slug(c), "0.9", "always") for c in LIVE_AIRPORTS.keys()]
-        + [("/about", "0.6", "monthly"), ("/methodology", "0.8", "weekly"), ("/privacy", "0.3", "monthly"), ("/terms", "0.3", "monthly"), ("/contact", "0.4", "monthly"), ("/guide/tsa-wait-times", "0.7", "monthly"), ("/guide/tsa-precheck-clear", "0.7", "monthly")]
-    )
+    dynamic_lastmod = utc_now().date().isoformat()
+    dynamic_paths = [
+        "/",
+        "/airports",
+        "/airport-security-wait-times",
+        "/when-should-i-leave",
+        *[airport_seo_slug(code) for code in LIVE_AIRPORTS],
+    ]
+    static_paths = [
+        "/best-time-to-get-to-the-airport",
+        "/about",
+        "/methodology",
+        "/privacy",
+        "/terms",
+        "/guide/tsa-wait-times",
+        "/guide/tsa-precheck-clear",
+    ]
+    pages = [(path, dynamic_lastmod) for path in dynamic_paths]
+    pages.extend((path, EDITORIAL_REVIEW_DATES[path]) for path in static_paths)
+    pages.append(("/contact", ""))
     entries = []
-    for path, priority, changefreq in pages:
+    for path, lastmod in pages:
+        lastmod_tag = f"<lastmod>{lastmod}</lastmod>" if lastmod else ""
         entries.append(
             "<url>"
             f"<loc>{SITE_URL}{path}</loc>"
-            f"<lastmod>{now}</lastmod>"
-            f"<changefreq>{changefreq}</changefreq>"
-            f"<priority>{priority}</priority>"
+            f"{lastmod_tag}"
             "</url>"
         )
     body = (

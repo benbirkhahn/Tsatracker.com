@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  {% if monetization.adsense_client %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
+  {% if monetization.enable_adsense %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
   {% include "_adsense_head.html" %}
   <title>{{ seo.title }}</title>
   <meta name="description" content="{{ seo.description }}">
@@ -65,7 +65,7 @@
   <main class="main">
     <section class="card content-card" style="max-width:860px;margin:0 auto;">
       <h1 style="font-size:2rem;font-weight:700;margin-bottom:6px;">TSA Tracker Data Methodology</h1>
-      <p class="muted" style="margin-bottom:28px;"><em>Last updated: May 2026</em></p>
+      <p class="muted" style="margin-bottom:28px;"><em>Last reviewed: {{ copy_updated_label }}</em></p>
       <p>This page documents the data pipeline behind TSA Tracker: how live readings are collected, when fallback values appear, and what the freshness rules mean in practice.</p>
       <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">1. Data Source Policy</h2>
       <p>We only list an airport as “live” when we can pull data from an official airport-controlled system. We do not fabricate coverage, and we do not mark an airport live based solely on history or a generic estimate.</p>
@@ -78,13 +78,13 @@
       <ul class="content-list" style="margin-top:6px;">
         <li>Normal polling interval: ~120 seconds.</li>
         <li>Data staleness window for “latest snapshot”: 15 minutes.</li>
-        <li>History window shown on the site: last 12 hours.</li>
+        <li>Context chart: 30-day hourly averages, plus a separate recent trend direction.</li>
       </ul>
       <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">3. How “Current Wait” Is Calculated</h2>
-      <p>When an airport exposes multiple checkpoints and lanes, TSA Tracker aggregates active rows into a single “current wait” summary while still preserving lane and checkpoint breakdown in the live cards. Closed lanes are excluded from the average if open-lane rows exist.</p>
+      <p>When an airport exposes multiple checkpoints and lanes, TSA Tracker aggregates reporting rows into a single current-wait summary while preserving the checkpoint and lane breakdown. A missing row is not treated as proof that a checkpoint is closed.</p>
       <ul class="content-list" style="margin-top:6px;">
         <li>If open-lane data is available, average uses open lanes only.</li>
-        <li>If all rows are zero or closed, we still return a valid response with closed/low values.</li>
+        <li>A reported zero remains a zero-minute reading; an absent row is labeled as unavailable rather than closed.</li>
         <li>Lane categories are normalized to Standard, PreCheck, Clear, and Clear+PreCheck where available.</li>
       </ul>
       <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">4. Forecasting and Fallback Behavior</h2>
@@ -138,7 +138,7 @@
     </section>
   </main>
   <footer class="footer">
-    <div>TSA Tracker — live security wait times. Data refreshes every ~2 minutes.</div>
+    <div>TSA Tracker — active airport feeds are checked about every 2 minutes; fallback estimates are labeled.</div>
     <div class="footer-links">
       <a href="/">Home</a>
       <span>·</span>
@@ -160,8 +160,8 @@
       <span>·</span>
       <a href="/contact">Contact</a>
     </div>
+    <div class="publisher-disclosure">Independent publisher; not affiliated with TSA or any airport authority.</div>
   </footer>
   {% include "_structured_breadcrumbs.html" %}
-  {% include "_affiliate_scripts.html" %}
 </body>
 </html>

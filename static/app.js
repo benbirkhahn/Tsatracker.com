@@ -1277,7 +1277,7 @@ async function selectAirport(code, shouldPush = true) {
 
   const heroSub = document.getElementById("hero-sub");
   if (heroSub && meta) {
-    heroSub.textContent = `How long is the security line at ${meta.name}? Real-time TSA checkpoint data pulled directly from official airport systems — not estimates. Updated every ~2 minutes.`;
+    heroSub.textContent = `Check ${meta.name} checkpoint conditions with clearly labeled live or estimated source status, capture time, and airport-specific planning context.`;
   }
   const toolkitSub = document.getElementById("toolkit-sub-title");
   if (toolkitSub) toolkitSub.textContent = `Save time at ${code}`;

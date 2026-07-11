@@ -1,6 +1,6 @@
 # TSA Tracker (tsatracker.com)
 
-Real-time TSA security checkpoint wait times for major US airports. This platform pulls data directly from official airport systems every 2 minutes, provides historical trend analysis, and is optimized for both speed and search engines.
+TSA security checkpoint planning for major US airports. Where an official airport feed is available, the platform publishes current readings; otherwise it clearly labels modeled planning estimates. It also provides 30-day pattern analysis and airport-specific guidance.
 
 ---
 
@@ -26,7 +26,7 @@ The following airports have verified, official data feeds currently integrated:
 
 ## 🛠 Features
 - **Real-time Polling**: Background poller refreshes data every 120 seconds.
-- **Historical Trends**: Stores samples in SQLite to generate 12-hour wait history charts.
+- **Historical Trends**: Stores samples in SQLite and Supabase (when configured) to generate 30-day hourly pattern charts.
 - **X/Twitter Alerts**: Optional abnormal-wait posting built into the poller with cooldown-based dedupe.
 - **Smart SEO**: Automatic landing pages for every airport (`/airports/phl-tsa-wait-times`) with structured JSON-LD data for search engines.
 - **Monetization Ready**: Integrated slots for Google AdSense and affiliate CTAs (Uber, Lyft, Parking, Klook).
@@ -90,6 +90,13 @@ This repository includes a `render.yaml` Blueprint.
 | `SUPABASE_URL` | Supabase project URL for durable historical samples | Optional |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-only Supabase service role key for durable historical samples. Never expose this in browser code. | Optional |
 | `SITE_URL` | Used for Canonical URLs/SEO | `https://tsatracker.com` |
+| `ENABLE_ANALYTICS` | Explicitly enable Google Analytics after consent behavior is verified | `false` |
+| `GA_MEASUREMENT_ID` | Google Analytics measurement ID used when analytics is enabled | Optional |
+| `ENABLE_ADSENSE` | Explicitly enable ads after consent and account settings are verified | `false` |
+| `ADSENSE_CLIENT` | AdSense publisher client ID | Optional |
+| `ADSENSE_SLOT_DISPLAY` | Responsive display unit used on home and airport pages | Optional |
+| `ADSENSE_SLOT_MULTIPLEX` | Multiplex unit used only on the PreCheck/CLEAR guide | Optional |
+| `SKIMLINKS_SCRIPT_URL` | Optional Skimlinks script, loaded only on the disclosed commercial guide | Optional |
 | `ENABLE_X_ALERTS` | Enable abnormal wait posting to X | `false` |
 | `X_API_KEY` | X app API key | Required for X alerts |
 | `X_API_SECRET` | X app API secret | Required for X alerts |

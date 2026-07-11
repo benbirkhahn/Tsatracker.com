@@ -2,9 +2,11 @@
 <html lang="en">
 <head>
   <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  {% if monetization.adsense_client %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
+  {% if monetization.enable_adsense %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
   {% include "_adsense_head.html" %}
   {% include "_ga_head.html" %}
   <title>{{ seo.title }}</title>
@@ -15,60 +17,25 @@
   <meta property="og:title" content="{{ seo.title }}">
   <meta property="og:description" content="{{ seo.description }}">
   <meta property="og:url" content="{{ seo.canonical_url }}">
-  <style>
-    :root{
-      --bg:#15181d; --surface:#1f242b; --surface-2:#262c35;
-      --border:#363d47; --text:#f1efe8; --muted:#9aa0a8; --dim:#6b7178;
-      --green:#5dcaa5; --green-bright:#9fe1cb; --green-deep:#085041;
-      --amber:#fac775; --red:#f09595;
-      --mono:'SF Mono',ui-monospace,'Cascadia Code',Menlo,Consolas,monospace;
-      --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-    }
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased}
-    a{color:inherit;text-decoration:none}
-    .wrap{max-width:920px;margin:0 auto;padding:0 20px}
-    header{border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(21,24,29,.92);backdrop-filter:blur(8px);z-index:10}
-    .nav{display:flex;align-items:center;justify-content:space-between;height:60px}
-    .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:16px}
-    .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
-    @keyframes pulse{50%{opacity:.4}}
-    .nav-links{display:flex;gap:22px;font-size:14px;color:var(--muted)}
-    .nav-links a:hover{color:var(--text)}
-    .hero{padding:36px 0 8px}
-    h1{font-size:26px;font-weight:600;margin-bottom:6px}
-    .sub{color:var(--muted);font-size:15px;margin-bottom:20px}
-    .search-row{display:flex;margin-bottom:24px}
-    .search{flex:1;display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0 14px;height:48px}
-    .search input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:15px;height:100%}
-    .search input::placeholder{color:var(--dim)}
-    h2{font-size:13px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin:26px 0 12px}
-    .board{font-family:var(--mono);font-size:14px}
-    .row{display:grid;grid-template-columns:60px 1fr 120px 86px;gap:12px;align-items:center;padding:12px 14px;border-radius:9px;background:var(--surface);margin-bottom:5px;transition:background .12s}
-    .row:hover{background:var(--surface-2)}
-    .row .code{font-weight:600}
-    .row .city{color:var(--muted);font-family:var(--sans);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .src{font-size:11px;font-family:var(--sans)}
-    .src.live{color:var(--green)} .src.est{color:var(--amber)}
-    .wait{text-align:right;font-weight:600}
-    .w-low{color:var(--green-bright)} .w-med{color:var(--amber)} .w-high,.w-crit{color:var(--red)}
-    .row.closed{opacity:.45}
-    .row.closed .wait{color:var(--dim);font-weight:400}
-    .soon{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
-    .soon-card{background:var(--surface);border:1px dashed var(--border);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
-    .soon-card b{color:var(--muted);font-family:var(--mono);margin-right:8px}
-    footer{border-top:1px solid var(--border);margin-top:36px;padding:24px 0 40px;font-size:13px;color:var(--dim)}
-    footer a{color:var(--muted);margin-right:14px}
-    @media(max-width:600px){.row{grid-template-columns:52px 1fr 72px}.src{display:none}.nav-links{gap:14px;font-size:13px}}
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=Oswald:wght@600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/tracker.css">
 </head>
 <body>
 
-<header>
-  <div class="wrap nav">
-    <a class="brand" href="/"><span class="dot" aria-hidden="true"></span>TSA Tracker</a>
-    <nav class="nav-links">
-      <a href="/airports">Airports</a>
+<header class="site-header">
+  <div class="site-shell site-nav">
+    <a class="site-brand" href="/" aria-label="TSA Tracker home">
+      <span class="brand-mark" aria-hidden="true"><span></span></span>
+      <span class="brand-copy">
+        <span class="brand-name">TSA Tracker</span>
+        <span class="brand-tag">Live airport security intelligence</span>
+      </span>
+    </a>
+    <nav class="site-links" aria-label="Primary navigation">
+      <a href="/airports" aria-current="page">Airports</a>
+      <a href="/when-should-i-leave">Leave-time</a>
       <a href="/best-time-to-get-to-the-airport">Timing</a>
       <a href="/guide/tsa-wait-times">Guides</a>
       <a href="/methodology">Methodology</a>
@@ -76,52 +43,114 @@
   </div>
 </header>
 
-<main class="wrap">
-  <section class="hero">
-    <h1>All airports</h1>
-    <p class="sub">{{ live_count }} airports on official live feeds · network average {{ overall_average }} min right now.</p>
-    <div class="search-row">
-      <div class="search">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--dim)" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        <input id="q" type="text" placeholder="Search airport or city…" autocomplete="off" aria-label="Search airports">
+<main class="site-shell page-main">
+  <section class="directory-hero" aria-labelledby="directory-title">
+    <div>
+      <p class="eyebrow">Airport directory / live and fallback status</p>
+      <h1 class="directory-title" id="directory-title">TSA wait times by airport.</h1>
+    </div>
+    <div>
+      <p class="directory-copy">Browse {{ airport_summaries|length }} supported airports. {{ live_count }} currently have a fresh official reading and {{ estimated_count }} use labeled planning estimates. Terminal and checkpoint conditions can vary sharply.</p>
+      <label class="search-control" for="q">
+        <span class="search-prefix" aria-hidden="true">APT</span>
+        <input id="q" type="search" placeholder="Search airport, code, or city" autocomplete="off" aria-label="Search airports" aria-controls="board" aria-describedby="directory-search-status">
+      </label>
+      <p class="search-status" id="directory-search-status" role="status">{{ airport_summaries|length }} airports shown</p>
+    </div>
+  </section>
+
+  <section class="content-section" aria-labelledby="directory-board-title">
+    <div class="section-heading">
+      <div>
+        <p class="section-kicker">Current network</p>
+        <h2 class="section-title" id="directory-board-title">All reporting airports</h2>
+      </div>
+    </div>
+
+    <div class="airport-board">
+      <div class="board-columns" aria-hidden="true">
+        <span>Airport</span>
+        <span>Location</span>
+        <span>Source</span>
+        <span>Wait / trend</span>
+      </div>
+      <div class="board" id="board" aria-live="polite">
+        {% for a in airport_summaries %}
+        <a class="row airport-row{% if a.is_closed %} closed{% endif %}" href="{{ a.href }}"
+           data-code="{{ a.code }}" data-city="{{ a.city|lower }} {{ a.name|lower }}">
+          <span class="airport-code">{{ a.code }}</span>
+          <span class="airport-place">
+            <strong>{{ a.city or a.name }}</strong>
+            <small>{{ a.name }}</small>
+          </span>
+          {% if a.is_live %}<span class="source source-live">{{ a.source_label }}</span>
+          {% else %}<span class="source est">Estimated fallback</span>{% endif %}
+          <span class="airport-wait w-{{ a.tier }}">
+            {% if a.is_closed %}<strong>closed</strong>
+            {% else %}<strong>{{ a.current_wait|round|int }}</strong><small>min</small>{% if a.is_live %}<span aria-label="{{ a.trend }}">{{ a.trend_arrow }}</span>{% endif %}{% endif %}
+          </span>
+        </a>
+        {% endfor %}
       </div>
     </div>
   </section>
 
-  <section>
-    <div class="board" id="board">
-      {% for a in airport_summaries %}
-      <a class="row{% if a.is_closed %} closed{% endif %}" href="{{ a.href }}"
-         data-code="{{ a.code }}" data-city="{{ a.city|lower }} {{ a.name|lower }}">
-        <span class="code">{{ a.code }}</span>
-        <span class="city">{{ a.name }}</span>
-        {% if a.is_live %}<span class="src live">● live · {{ a.source_label }}</span>
-        {% else %}<span class="src est">estimated</span>{% endif %}
-        <span class="wait w-{{ a.tier }}">{% if a.is_closed %}closed{% else %}{{ a.current_wait|round|int }} {{ a.trend_arrow }}{% endif %}</span>
-      </a>
-      {% endfor %}
+  <section class="content-section directory-explainer" aria-labelledby="directory-explainer-title">
+    <div class="section-heading">
+      <div>
+        <p class="section-kicker">Use the directory correctly</p>
+        <h2 class="section-title" id="directory-explainer-title">Source first, then checkpoint.</h2>
+      </div>
+    </div>
+    <div class="method-grid">
+      <article class="method-item">
+        <span class="method-number">01 / STATUS</span>
+        <h3>Check live versus estimated</h3>
+        <p>A live label means a recent airport-controlled reading is available. An estimated label means the source is unavailable or stale, so the number is planning context rather than a measured line.</p>
+      </article>
+      <article class="method-item">
+        <span class="method-number">02 / ROUTE</span>
+        <h3>Open the airport page</h3>
+        <p>Airport averages are only a starting point. Use the airport page to match your terminal, gate group, checkpoint, and screening lane before deciding which reading applies to your trip.</p>
+      </article>
+      <article class="method-item">
+        <span class="method-number">03 / TIME</span>
+        <h3>Turn the wait into a plan</h3>
+        <p>After checking the source and checkpoint, use the <a class="text-link" href="/when-should-i-leave">leave-time calculator</a> to add travel, bag-drop, walking, and boarding buffers.</p>
+      </article>
     </div>
   </section>
 
   {% if pipeline_airports %}
-  <section>
-    <h2>Coming soon</h2>
-    <div class="soon">
+  <section class="content-section" aria-labelledby="pipeline-title">
+    <div class="section-heading">
+      <div>
+        <p class="section-kicker">Source validation in progress</p>
+        <h2 class="section-title" id="pipeline-title">Coming online</h2>
+      </div>
+    </div>
+    <div class="pipeline-grid">
       {% for p in pipeline_airports %}
-      <div class="soon-card"><b>{{ p.code }}</b>{{ p.name.split('(')[0].strip() }}</div>
+      <div class="pipeline-card"><b>{{ p.code }}</b><span>{{ p.name.split('(')[0].strip() }}</span></div>
       {% endfor %}
     </div>
   </section>
   {% endif %}
 
-  <footer>
-    <a href="/">Live board</a>
-    <a href="/methodology">Methodology</a>
-    <a href="/about">About</a>
-    <a href="/contact">Contact</a>
-    <a href="/privacy">Privacy</a>
-    <a href="/terms">Terms</a>
-    <div style="margin-top:10px">TSA Tracker · live security wait times from official airport systems.</div>
+  <footer class="site-footer">
+    <div class="footer-row">
+      <span class="footer-brand">TSA Tracker</span>
+      <nav class="footer-links" aria-label="Footer navigation">
+        <a href="/">Live board</a>
+        <a href="/when-should-i-leave">Leave-time tool</a>
+        <a href="/methodology">Methodology</a>
+        <a href="/about">About</a>
+        <a href="/contact">Contact</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+      </nav>
+    </div>
+    <div class="footer-note">Active airport feeds are checked about every 2 minutes; fallback estimates are labeled. Independent publisher; not affiliated with TSA or any airport authority.</div>
   </footer>
 </main>
 
@@ -129,14 +158,40 @@
 (function(){
   var q=document.getElementById("q");
   var rows=document.querySelectorAll("#board .row");
+  var status=document.getElementById("directory-search-status");
   q.addEventListener("input",function(){
-    var t=q.value.trim().toLowerCase();
+    var term=q.value.trim().toLowerCase();
+    var count=0;
+    var exactCode=Array.prototype.some.call(rows,function(r){return r.dataset.code.toLowerCase()===term;});
     rows.forEach(function(r){
-      r.style.display=(!t||r.dataset.code.toLowerCase().indexOf(t)>-1||r.dataset.city.indexOf(t)>-1)?"":"none";
+      var code=r.dataset.code.toLowerCase();
+      var hit=!term||(exactCode?code===term:code.indexOf(term)>-1||r.dataset.city.indexOf(term)>-1);
+      r.style.display=hit?"":"none";
+      if(hit)count+=1;
     });
+    status.textContent=count+" airport"+(count===1?"":"s")+" shown";
   });
-  setTimeout(function(){location.reload()},150000);
 })();
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": {{ seo.title|tojson }},
+  "description": {{ seo.description|tojson }},
+  "url": {{ seo.canonical_url|tojson }},
+  "mainEntity": {
+    "@type": "ItemList",
+    "itemListElement": [
+      {% for airport in airport_pages %}{
+        "@type": "ListItem",
+        "position": {{ loop.index }},
+        "name": {{ (airport.code ~ ' TSA wait times')|tojson }},
+        "url": {{ (seo.site_url ~ airport.href)|tojson }}
+      }{% if not loop.last %},{% endif %}{% endfor %}
+    ]
+  }
+}
 </script>
 </body>
 </html>

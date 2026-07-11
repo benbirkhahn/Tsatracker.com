@@ -1,0 +1,115 @@
+<section class="terminal-decision-map" data-decision-map aria-labelledby="terminal-map-title">
+  <div class="decision-map-heading">
+    <div>
+      <p class="section-kicker">Terminal routing / live checkpoint layer</p>
+      <h2 class="detail-title" id="terminal-map-title">{{ airport_decision_map.code }} TSA checkpoint map</h2>
+      <p class="decision-map-intro">Choose the gate and check-in terminal on your boarding pass. The map highlights compatible checkpoints before comparing live lane readings.</p>
+    </div>
+    <p class="decision-map-source">
+      Schematic, not to scale. Hours verified {{ airport_decision_map.source.verified_on }} from
+      <a href="{{ airport_decision_map.source.url }}" target="_blank" rel="noopener">{{ airport_decision_map.source.label }}</a>.
+    </p>
+  </div>
+
+  <div class="decision-map-layout">
+    <form class="decision-controls" data-decision-controls>
+      <fieldset>
+        <legend>Gate on your boarding pass</legend>
+        <div class="choice-grid gate-choice-grid">
+          <label><input type="radio" name="decision-gate" value="" checked><span>Not sure</span></label>
+          {% for gate in ["A", "B", "C", "D", "E"] %}
+          <label><input type="radio" name="decision-gate" value="{{ gate }}"><span>Gate {{ gate }}</span></label>
+          {% endfor %}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Screening lane</legend>
+        <div class="choice-grid choice-grid-two">
+          <label><input type="radio" name="decision-lane" value="standard" checked><span>Standard</span></label>
+          <label><input type="radio" name="decision-lane" value="precheck"><span>PreCheck</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Check-in terminal</legend>
+        <div class="choice-grid">
+          <label><input type="radio" name="decision-terminal" value="" checked><span>Not sure</span></label>
+          <label><input type="radio" name="decision-terminal" value="t1"><span>Terminal 1</span></label>
+          <label><input type="radio" name="decision-terminal" value="t3"><span>Terminal 3</span></label>
+        </div>
+      </fieldset>
+
+      <p class="decision-result" data-decision-result role="status" aria-live="polite">Choose a gate to highlight compatible checkpoints.</p>
+      <p class="decision-caveat">D gates can be reached through either terminal. Choose the terminal where you check in before relying on a checkpoint recommendation.</p>
+    </form>
+
+    <div class="terminal-schematic" aria-label="LAS terminal checkpoint schematic">
+      {% for terminal in airport_decision_map.terminals %}
+      <section class="terminal-rail" aria-labelledby="{{ terminal.id }}-title" data-terminal-rail="{{ terminal.id }}">
+        <header class="terminal-rail-heading">
+          <span class="terminal-rail-code">{{ terminal.id|upper }}</span>
+          <div>
+            <h3 id="{{ terminal.id }}-title">{{ terminal.label }}</h3>
+            <p>{{ terminal.summary }}</p>
+          </div>
+        </header>
+        <ol class="checkpoint-nodes">
+          {% for checkpoint in terminal.checkpoints %}
+          <li>
+            <article class="checkpoint-node"
+                     data-checkpoint-node
+                     data-node-id="{{ checkpoint.id }}"
+                     data-terminal="{{ checkpoint.terminal_id }}"
+                     data-primary-gates="{{ checkpoint.primary_for|join(' ') }}"
+                     data-compatible-gates="{{ (checkpoint.primary_for + checkpoint.alternate_for)|join(' ') }}"
+                     data-standard-wait="{% if checkpoint.standard_wait is not none %}{{ checkpoint.standard_wait }}{% endif %}"
+                     data-precheck-wait="{% if checkpoint.precheck_wait is not none %}{{ checkpoint.precheck_wait }}{% endif %}">
+              <div class="checkpoint-node-topline">
+                <span class="checkpoint-node-status {{ checkpoint.status }}">
+                  {% if checkpoint.status == "reporting" %}Live reading{% else %}No live reading{% endif %}
+                </span>
+                <span class="checkpoint-hours">{{ checkpoint.hours }}</span>
+              </div>
+              <h4>{{ checkpoint.label }}</h4>
+              <span class="sr-only" data-node-state></span>
+              <p class="checkpoint-note">{{ checkpoint.note }}</p>
+
+              <div class="checkpoint-lane-grid" aria-label="Current lane readings">
+                <div>
+                  <span>Standard</span>
+                  <strong>{% if checkpoint.standard_wait is not none %}{{ checkpoint.standard_wait|round|int }} min{% else %}No reading{% endif %}</strong>
+                </div>
+                <div>
+                  <span>PreCheck</span>
+                  <strong>{% if checkpoint.precheck_wait is not none %}{{ checkpoint.precheck_wait|round|int }} min{% else %}No reading{% endif %}</strong>
+                </div>
+              </div>
+
+              {% if checkpoint.captured_at %}
+              <p class="checkpoint-freshness">Captured <time datetime="{{ checkpoint.captured_at }}">{{ checkpoint.captured_label }}</time></p>
+              {% elif checkpoint.published_only %}
+              <p class="checkpoint-freshness">Published checkpoint; no separate reading in the current LAS feed.</p>
+              {% else %}
+              <p class="checkpoint-freshness">The checkpoint is published, but no fresh row is available.</p>
+              {% endif %}
+            </article>
+          </li>
+          {% endfor %}
+        </ol>
+      </section>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% if airport_decision_map.unmatched_rows %}
+  <details class="unmatched-readings">
+    <summary>Other live readings not yet mapped</summary>
+    <div class="unmatched-reading-list">
+      {% for row in airport_decision_map.unmatched_rows %}
+      <p><strong>{{ row.checkpoint }}</strong> / {{ row.lane_type|lane_label }} / {{ row.wait_minutes|round|int }} min</p>
+      {% endfor %}
+    </div>
+  </details>
+  {% endif %}
+</section>

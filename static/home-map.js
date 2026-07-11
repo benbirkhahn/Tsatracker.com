@@ -1,0 +1,504 @@
+(function () {
+  "use strict";
+
+  var mapElement = document.getElementById("airport-map");
+  var dataElement = document.getElementById("airport-map-data");
+  var stage = document.querySelector("[data-network-map-stage]");
+  var markerLayer = document.querySelector("[data-map-marker-layer]");
+  var loading = document.querySelector("[data-map-loading]");
+  var errorMessage = document.querySelector("[data-map-error]");
+  var status = document.getElementById("airport-map-status");
+  var preview = document.querySelector("#airport-map-preview");
+  var previewLink = preview && preview.querySelector("[data-map-preview-link]");
+  var previewClose = preview && preview.querySelector("[data-map-preview-close]");
+  var cluster = document.querySelector("[data-map-cluster='nyc']");
+  var resetButton = document.querySelector("[data-map-reset]");
+  var searchInput = document.getElementById("q");
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  var coarsePointer = window.matchMedia("(pointer: coarse)");
+  var NYC_CODES = ["EWR", "JFK", "LGA"];
+  var LABEL_LAYOUT = {
+    BOS: { side: "left", y: -10 },
+    DCA: { side: "left", y: 14 },
+    EWR: { side: "left", y: 2 },
+    JFK: { side: "right", y: 17 },
+    LGA: { side: "right", y: -18 },
+    LAS: { side: "right", y: -15 },
+    LAX: { side: "right", y: 16 },
+    MCO: { side: "left", y: -2 },
+    MIA: { side: "left", y: 2 },
+    PHL: { side: "left", y: -13 },
+    SFO: { side: "left", y: -8 }
+  };
+
+  if (!mapElement || !dataElement || !stage || !markerLayer) return;
+
+  var rawAirports;
+  try {
+    rawAirports = JSON.parse(dataElement.textContent || "[]");
+  } catch (_error) {
+    showFatalError("The airport map data could not be read.");
+    return;
+  }
+
+  var airports = rawAirports
+    .filter(function (airport) {
+      return Number.isFinite(Number(airport.map_lat)) && Number.isFinite(Number(airport.map_lng));
+    })
+    .map(function (airport) {
+      return {
+        code: String(airport.code || "").toUpperCase(),
+        name: String(airport.name || airport.code || "Airport"),
+        city: String(airport.city || ""),
+        href: String(airport.href || "/airports"),
+        lat: Number(airport.map_lat),
+        lng: Number(airport.map_lng),
+        wait: Number(airport.current_wait || 0),
+        tier: String(airport.tier || "low"),
+        isLive: Boolean(airport.is_live),
+        source: String(airport.source_label || "Estimated fallback"),
+        trend: String(airport.trend || "steady"),
+        trendArrow: String(airport.trend_arrow || "→"),
+        updatedAt: String(airport.updated_at || "")
+      };
+    });
+
+  var airportByCode = new Map(airports.map(function (airport) {
+    return [airport.code, airport];
+  }));
+  var markerByCode = new Map();
+  var map = null;
+  var overviewBounds = null;
+  var activeCode = null;
+  var pinnedCode = null;
+  var navigationTimer = null;
+  var searchTimer = null;
+  var tileErrors = 0;
+  var initialTilesResolved = false;
+  var initialTileTimer = null;
+  var frameRequested = false;
+  var leaving = false;
+
+  function usesTapPreview() {
+    return coarsePointer.matches || window.innerWidth <= 700;
+  }
+
+  function showFatalError(message) {
+    if (loading) loading.hidden = true;
+    if (errorMessage) {
+      errorMessage.textContent = message;
+      errorMessage.hidden = false;
+    }
+    if (status) status.textContent = message;
+    stage.setAttribute("aria-busy", "false");
+  }
+
+  function settleInitialTiles() {
+    if (initialTilesResolved) return;
+    initialTilesResolved = true;
+    window.clearTimeout(initialTileTimer);
+    if (loading) loading.hidden = true;
+    stage.setAttribute("aria-busy", "false");
+  }
+
+  if (!window.L || airports.length === 0) {
+    showFatalError("Satellite imagery is unavailable. Use the airport board below.");
+    return;
+  }
+
+  markerLayer.querySelectorAll(".airport-map-marker[data-map-airport-link]").forEach(function (marker) {
+    var code = String(marker.dataset.mapCode || "").toUpperCase();
+    if (!airportByCode.has(code)) return;
+    var layout = LABEL_LAYOUT[code] || { side: "right", y: 0 };
+    marker.classList.toggle("is-label-left", layout.side === "left");
+    marker.style.setProperty("--marker-label-y", layout.y + "px");
+    markerByCode.set(code, marker);
+  });
+
+  map = window.L.map(mapElement, {
+    attributionControl: true,
+    boxZoom: false,
+    doubleClickZoom: false,
+    dragging: false,
+    keyboard: false,
+    scrollWheelZoom: false,
+    tap: false,
+    touchZoom: false,
+    zoomControl: false,
+    zoomSnap: 0.25,
+    preferCanvas: true
+  });
+
+  var imagery = window.L.tileLayer(
+    "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}",
+    {
+      minZoom: 3,
+      maxNativeZoom: 16,
+      maxZoom: 16,
+      noWrap: true,
+      updateWhenIdle: true,
+      keepBuffer: 2,
+      attribution: 'Imagery: <a href="https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer" target="_blank" rel="noopener">USDA / USGS The National Map</a>'
+    }
+  );
+
+  imagery.on("loading", function () {
+    tileErrors = 0;
+  });
+  imagery.on("tileerror", function () {
+    tileErrors += 1;
+    if (tileErrors >= 4 && errorMessage) {
+      errorMessage.hidden = false;
+      if (status) status.textContent = "Satellite imagery is unavailable. Use the airport board below.";
+      settleInitialTiles();
+    }
+  });
+  imagery.on("load", function () {
+    if (errorMessage) errorMessage.hidden = tileErrors < 4;
+    if (tileErrors < 4 && status && status.textContent.indexOf("Satellite imagery") === 0) {
+      status.textContent = "Satellite imagery restored.";
+    }
+    settleInitialTiles();
+  });
+  imagery.addTo(map);
+
+  overviewBounds = window.L.latLngBounds(airports.map(function (airport) {
+    return [airport.lat, airport.lng];
+  }));
+  map.fitBounds(overviewBounds, { padding: [34, 34], maxZoom: 4.75, animate: false });
+
+  map.on("move zoom resize", requestMarkerPosition);
+  map.on("zoomend moveend", function () {
+    positionMarkers();
+    updateClusterState();
+  });
+
+  map.whenReady(function () {
+    markerLayer.hidden = false;
+    requestMarkerPosition();
+    updateClusterState();
+  });
+  initialTileTimer = window.setTimeout(function () {
+    if (initialTilesResolved) return;
+    if (errorMessage) errorMessage.hidden = false;
+    if (status) status.textContent = "Satellite imagery is taking longer than expected. Airport links remain available.";
+    settleInitialTiles();
+  }, 5000);
+
+  function requestMarkerPosition() {
+    if (frameRequested) return;
+    frameRequested = true;
+    window.requestAnimationFrame(function () {
+      frameRequested = false;
+      positionMarkers();
+    });
+  }
+
+  function setPosition(element, lat, lng) {
+    if (!element || !map) return;
+    var point = map.latLngToContainerPoint([lat, lng]);
+    element.style.left = Math.round(point.x) + "px";
+    element.style.top = Math.round(point.y) + "px";
+  }
+
+  function positionMarkers() {
+    airports.forEach(function (airport) {
+      setPosition(markerByCode.get(airport.code), airport.lat, airport.lng);
+    });
+    if (cluster && map) {
+      var clusterPoint = map.latLngToContainerPoint([40.72, -74.02]);
+      cluster.style.left = Math.round(clusterPoint.x + 32) + "px";
+      cluster.style.top = Math.round(clusterPoint.y - 8) + "px";
+    }
+  }
+
+  function isNycExpanded() {
+    return map && map.getZoom() >= 7;
+  }
+
+  function updateClusterState() {
+    var expanded = isNycExpanded();
+    NYC_CODES.forEach(function (code) {
+      var marker = markerByCode.get(code);
+      if (marker) marker.classList.toggle("is-clustered", !expanded);
+    });
+    if (cluster) cluster.hidden = expanded;
+    if (resetButton) resetButton.hidden = map.getZoom() < 5.5;
+  }
+
+  function readableName(airport) {
+    return airport.name.replace(new RegExp("\\s*\\(" + airport.code + "\\)\\s*$", "i"), "");
+  }
+
+  function formattedWait(wait) {
+    var minutes = Math.max(0, Math.round(Number(wait) || 0));
+    return minutes === 0 ? "<1 min" : minutes + " min";
+  }
+
+  function setPreviewText(selector, value) {
+    var element = preview && preview.querySelector(selector);
+    if (element) element.textContent = value;
+  }
+
+  function clearActiveMarker() {
+    markerByCode.forEach(function (marker) {
+      marker.classList.remove("is-active");
+    });
+    if (cluster) cluster.classList.remove("is-active");
+  }
+
+  function showPreview(code, options) {
+    options = options || {};
+    var airport = airportByCode.get(code);
+    if (!airport || !preview || leaving) return;
+    activeCode = code;
+    if (options.pinned) pinnedCode = code;
+
+    clearActiveMarker();
+    var marker = markerByCode.get(code);
+    if (marker && !marker.classList.contains("is-clustered")) marker.classList.add("is-active");
+    if (NYC_CODES.indexOf(code) > -1 && !isNycExpanded() && cluster) cluster.classList.add("is-active");
+
+    setPreviewText("[data-map-preview-code]", airport.code);
+    setPreviewText("[data-map-preview-city]", airport.city || "Airport");
+    setPreviewText("[data-map-preview-name]", readableName(airport));
+    setPreviewText("[data-map-preview-wait]", formattedWait(airport.wait));
+    setPreviewText(
+      "[data-map-preview-trend]",
+      airport.isLive ? airport.trendArrow + " " + airport.trend : "estimate"
+    );
+    setPreviewText(
+      "[data-map-preview-source]",
+      airport.isLive ? "LIVE / " + airport.source : "ESTIMATED FALLBACK"
+    );
+    setPreviewText("[data-map-preview-updated]", airport.updatedAt ? "Updated " + airport.updatedAt : "");
+    setPreviewText("[data-map-preview-link-code]", airport.code);
+
+    if (previewLink) {
+      previewLink.href = airport.href;
+      previewLink.dataset.mapCode = airport.code;
+      previewLink.setAttribute("aria-label", "Open " + airport.code + " airport details");
+    }
+    preview.hidden = false;
+    preview.setAttribute("aria-live", options.announce ? "polite" : "off");
+    stage.classList.toggle("has-pinned-airport", Boolean(pinnedCode));
+    if (options.announce && status) {
+      status.textContent = airport.code + " selected. " + formattedWait(airport.wait) + ". " +
+        (airport.isLive ? airport.trend + ", live source." : "Estimated fallback.");
+    }
+  }
+
+  function clearPreview(options) {
+    options = options || {};
+    if (!options.keepPinned) pinnedCode = null;
+    if (pinnedCode) {
+      showPreview(pinnedCode, { pinned: true, announce: false });
+      return;
+    }
+    activeCode = null;
+    clearActiveMarker();
+    stage.classList.remove("has-pinned-airport");
+    if (preview) preview.hidden = true;
+  }
+
+  function isModifiedClick(event) {
+    return event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+  }
+
+  function navigateToAirport(airport) {
+    if (leaving && stage.dataset.navigationStarted === "true") return;
+    stage.dataset.navigationStarted = "true";
+    window.location.assign(airport.href);
+  }
+
+  function beginHandoff(event, airport) {
+    if (!airport || leaving || isModifiedClick(event) || event.detail === 0) return;
+    event.preventDefault();
+    pinnedCode = airport.code;
+    showPreview(airport.code, { pinned: true, announce: true });
+    leaving = true;
+    stage.classList.add("is-departing");
+    stage.setAttribute("aria-busy", "true");
+    markerByCode.forEach(function (marker, code) {
+      marker.classList.toggle("is-departure-target", code === airport.code);
+    });
+
+    if (reduceMotion.matches) {
+      navigateToAirport(airport);
+      return;
+    }
+
+    map.flyTo([airport.lat, airport.lng], 8, { duration: 0.46, easeLinearity: 0.35 });
+    map.once("moveend", function () {
+      window.clearTimeout(navigationTimer);
+      navigationTimer = window.setTimeout(function () {
+        navigateToAirport(airport);
+      }, 90);
+    });
+    navigationTimer = window.setTimeout(function () {
+      navigateToAirport(airport);
+    }, 720);
+  }
+
+  markerByCode.forEach(function (marker, code) {
+    marker.addEventListener("pointerenter", function () {
+      if (!usesTapPreview()) showPreview(code, { announce: false });
+    });
+    marker.addEventListener("focus", function () {
+      showPreview(code, { announce: false });
+    });
+    marker.addEventListener("click", function (event) {
+      var airport = airportByCode.get(code);
+      if (isModifiedClick(event) || event.detail === 0) return;
+      if (usesTapPreview()) {
+        event.preventDefault();
+        showPreview(code, { pinned: true, announce: true });
+        return;
+      }
+      beginHandoff(event, airport);
+    });
+  });
+
+  stage.addEventListener("pointerleave", function () {
+    if (!usesTapPreview() && !pinnedCode && !leaving) clearPreview();
+  });
+  stage.addEventListener("focusout", function () {
+    window.setTimeout(function () {
+      if (!stage.contains(document.activeElement) && !pinnedCode && !leaving) clearPreview();
+    }, 0);
+  });
+  stage.addEventListener("keydown", function (event) {
+    if (event.key !== "Escape") return;
+    if (pinnedCode || activeCode) {
+      event.preventDefault();
+      clearPreview();
+    } else if (map.getZoom() >= 5.5) {
+      event.preventDefault();
+      resetOverview(true);
+    }
+  });
+
+  if (previewClose) {
+    previewClose.addEventListener("click", function () {
+      clearPreview();
+    });
+  }
+  if (previewLink) {
+    previewLink.addEventListener("click", function (event) {
+      var airport = airportByCode.get(String(previewLink.dataset.mapCode || activeCode || ""));
+      beginHandoff(event, airport);
+    });
+  }
+
+  if (cluster) {
+    cluster.addEventListener("click", function (event) {
+      var moveFocusToJfk = function () {
+        if (event.detail !== 0) return;
+        var jfkMarker = markerByCode.get("JFK");
+        if (jfkMarker) jfkMarker.focus({ preventScroll: true });
+      };
+      clearPreview();
+      if (reduceMotion.matches) {
+        map.setView([40.72, -74.02], 8, { animate: false });
+        window.requestAnimationFrame(moveFocusToJfk);
+      } else {
+        map.once("moveend", moveFocusToJfk);
+        map.flyTo([40.72, -74.02], 8, { duration: 0.46, easeLinearity: 0.35 });
+      }
+      if (status) status.textContent = "New York area expanded. Choose JFK, LaGuardia, or Newark.";
+    });
+  }
+
+  function resetOverview(animate) {
+    clearPreview();
+    if (reduceMotion.matches || !animate) {
+      map.fitBounds(overviewBounds, { padding: [34, 34], maxZoom: 4.75, animate: false });
+    } else {
+      map.flyToBounds(overviewBounds, { padding: [34, 34], maxZoom: 4.75, duration: 0.46 });
+    }
+    if (status) status.textContent = "National airport map restored.";
+  }
+
+  if (resetButton) {
+    resetButton.addEventListener("click", function () {
+      resetOverview(true);
+    });
+  }
+
+  function syncSearch() {
+    if (!searchInput) return;
+    var term = String(searchInput.value || "").trim().toLowerCase();
+    var exact = airportByCode.get(term.toUpperCase());
+    markerByCode.forEach(function (marker) {
+      var match = !term || String(marker.dataset.search || "").indexOf(term) > -1;
+      marker.classList.toggle("is-search-dimmed", !match);
+    });
+    if (cluster) {
+      var nycMatch = !term || NYC_CODES.some(function (code) {
+        var marker = markerByCode.get(code);
+        return marker && String(marker.dataset.search || "").indexOf(term) > -1;
+      });
+      cluster.classList.toggle("is-search-dimmed", !nycMatch);
+    }
+
+    window.clearTimeout(searchTimer);
+    if (exact) {
+      searchTimer = window.setTimeout(function () {
+        showPreview(exact.code, { pinned: false, announce: false });
+        var targetZoom = NYC_CODES.indexOf(exact.code) > -1 ? 8 : 5.75;
+        if (reduceMotion.matches) map.setView([exact.lat, exact.lng], targetZoom, { animate: false });
+        else map.flyTo([exact.lat, exact.lng], targetZoom, { duration: 0.36 });
+      }, 180);
+    } else if (!term && map.getZoom() >= 5.5) {
+      resetOverview(false);
+    }
+  }
+
+  if (searchInput) searchInput.addEventListener("input", syncSearch);
+
+  document.querySelectorAll("[data-hero-search]").forEach(function (result) {
+    var code = String(result.dataset.code || "").toUpperCase();
+    result.addEventListener("pointerenter", function () {
+      if (!usesTapPreview()) showPreview(code, { announce: false });
+    });
+    result.addEventListener("focus", function () {
+      showPreview(code, { announce: false });
+    });
+  });
+
+  var resizeObserver = typeof ResizeObserver !== "undefined"
+    ? new ResizeObserver(function () {
+        map.invalidateSize({ animate: false });
+        if (
+          overviewBounds &&
+          !leaving &&
+          !pinnedCode &&
+          map.getZoom() < 5.5 &&
+          (!searchInput || !String(searchInput.value || "").trim())
+        ) {
+          map.fitBounds(overviewBounds, { padding: [34, 34], maxZoom: 4.75, animate: false });
+        }
+        requestMarkerPosition();
+      })
+    : null;
+  if (resizeObserver) resizeObserver.observe(mapElement);
+
+  window.addEventListener("pagehide", function () {
+    window.clearTimeout(navigationTimer);
+    window.clearTimeout(searchTimer);
+    window.clearTimeout(initialTileTimer);
+  });
+  window.addEventListener("pageshow", function (event) {
+    if (!event.persisted) return;
+    leaving = false;
+    stage.dataset.navigationStarted = "false";
+    stage.classList.remove("is-departing");
+    stage.setAttribute("aria-busy", "false");
+    markerByCode.forEach(function (marker) {
+      marker.classList.remove("is-departure-target");
+    });
+    map.invalidateSize({ animate: false });
+    resetOverview(false);
+    syncSearch();
+  });
+})();

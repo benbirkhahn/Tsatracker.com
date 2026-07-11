@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  {% if monetization.adsense_client %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
+  {% if monetization.enable_adsense %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
   {% include "_adsense_head.html" %}
   {% include "_ga_head.html" %}
   <title>{{ seo.title }}</title>
@@ -63,6 +63,7 @@
     }
     .inline-ad-card { background: var(--surface2); border: 1px solid #2a2a40; border-radius: 12px; padding: 14px 16px; margin: 18px 0 28px; }
     .inline-ad-label { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 10px; }
+    .affiliate-disclosure { margin: 14px 0 18px !important; border-left: 3px solid var(--amber); padding-left: 12px; color: var(--muted) !important; font-size: 0.82rem !important; }
     article.content-card h1 { color: var(--text); line-height: 1.2; }
     article.content-card h2 { font-size: 1.35rem !important; font-family: inherit !important; text-transform: none !important; letter-spacing: 0 !important; color: var(--text) !important; }
     article.content-card h3 { font-size: 1.05rem !important; font-family: inherit !important; text-transform: none !important; letter-spacing: 0 !important; color: var(--text) !important; }
@@ -119,14 +120,14 @@
         <strong>Before you pay for anything:</strong> check your actual airport’s live wait times first. The best starting point is the <a href="/airport-security-wait-times">airport security wait times hub</a>, followed by the exact airport page for the airports you fly most often.
       </div>
 
-      {% if monetization.adsense_client and monetization.adsense_slot_guide %}
+      {% if monetization.show_multiplex_ad %}
       <div class="inline-ad-card">
-        <div class="inline-ad-label">Sponsored</div>
+        <div class="inline-ad-label">Advertisements</div>
         <ins class="adsbygoogle"
              style="display:block"
              data-ad-format="autorelaxed"
              data-ad-client="{{ monetization.adsense_client }}"
-             data-ad-slot="{{ monetization.adsense_slot_guide }}"></ins>
+             data-ad-slot="{{ monetization.adsense_slot_multiplex }}"></ins>
         <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
       </div>
       {% endif %}
@@ -160,6 +161,7 @@
 
       <h2 id="enroll" style="margin:40px 0 10px;">3. Use official enrollment links</h2>
       <p>TSA does not run a simple public affiliate program for publishers. The safest structure is to use official provider links for enrollment and monetize around that intent with cards and related travel offers.</p>
+      <p class="affiliate-disclosure"><strong>Disclosure:</strong> Some provider and card links below may be affiliate links. TSA Tracker may earn compensation if you use an eligible commercial link, at no additional cost to you. Compensation does not affect the comparison or live wait-time data.</p>
       <div class="cta-grid">
         <div class="cta-card">
           <h3>TSA PreCheck</h3>
@@ -169,10 +171,10 @@
         <div class="cta-card">
           <h3>CLEAR+</h3>
           <p>Use CLEAR’s official enrollment page if you want the private fast-lane product or bundle options.</p>
-          <a class="cta-button" href="{{ monetization.clear_url }}" target="_blank" rel="noopener">CLEAR Enrollment</a>
+          <a class="cta-button" href="{{ monetization.clear_url }}" target="_blank" rel="sponsored noopener noreferrer">CLEAR Enrollment</a>
         </div>
       </div>
-      <p style="margin-top:14px;">TSA’s official PreCheck page currently lists the enrollment providers and notes that pricing varies by provider. CLEAR also publishes its own TSA PreCheck enrollment flow and bundle offers on its official site. In practice, TSA PreCheck costs $85 for 5 years through TSA's current public fee page, while CLEAR's TSA PreCheck-through-CLEAR flow lists $79.95 for 5 years and CLEAR+ itself currently retails at $209 per year.</p>
+      <p style="margin-top:14px;">TSA’s official PreCheck page lists approved enrollment providers, and pricing can vary by provider, enrollment method, renewal status, or promotion. CLEAR publishes its own current membership and bundle terms. Verify the current amount on the provider page before purchasing.</p>
 
       <h2 id="cards" style="margin:40px 0 10px;">4. Travel cards that can help cover the fee</h2>
       <p>If you were already thinking about a travel card, this is where the math can get better. Some travel cards can help offset airport-security costs while also adding benefits like lounge access, travel protections, or statement credits that make frequent flying less painful.</p>
@@ -180,17 +182,17 @@
         <div class="cta-card">
           <h3>Chase travel cards</h3>
           <p>Useful for users comparing premium travel cards with airport-security perks.</p>
-          <a class="cta-button" href="{{ monetization.card_chase_url }}" target="_blank" rel="noopener">View Chase Cards</a>
+          <a class="cta-button" href="{{ monetization.card_chase_url }}" target="_blank" rel="sponsored noopener noreferrer">View Chase Cards</a>
         </div>
         <div class="cta-card">
           <h3>Capital One travel cards</h3>
           <p>Strong fit for users looking at lounge access, credits, and premium-travel benefits.</p>
-          <a class="cta-button" href="{{ monetization.card_capitalone_url }}" target="_blank" rel="noopener">View Capital One Cards</a>
+          <a class="cta-button" href="{{ monetization.card_capitalone_url }}" target="_blank" rel="sponsored noopener noreferrer">View Capital One Cards</a>
         </div>
         <div class="cta-card">
           <h3>Amex travel cards</h3>
           <p>Good for higher-intent travelers who are already shopping premium airport and loyalty perks.</p>
-          <a class="cta-button" href="{{ monetization.card_amex_url }}" target="_blank" rel="noopener">View Amex Cards</a>
+          <a class="cta-button" href="{{ monetization.card_amex_url }}" target="_blank" rel="sponsored noopener noreferrer">View Amex Cards</a>
         </div>
       </div>
       <p style="margin-top:14px;">The right fit depends on how often you fly, whether you value lounge access, and whether you want one premium card or a simpler low-fee option. If your main goal is getting through security faster, compare the annual fee against how often you would actually use PreCheck, CLEAR, or airport lounge benefits.</p>
@@ -211,11 +213,11 @@
         </div>
         <div class="faq-item">
           <h3>How much does TSA PreCheck cost?</h3>
-          <p>TSA PreCheck currently costs $85 for 5 years through TSA's public fee page. Some enrollment providers may offer different checkout flows or promotional pricing, but $85 is the current TSA-listed application fee.</p>
+          <p>Pricing varies by approved enrollment provider and can change. Use the official TSA provider flow above to compare the current application and renewal terms.</p>
         </div>
         <div class="faq-item">
           <h3>How much does CLEAR cost?</h3>
-          <p>Standard CLEAR+ currently retails at $209 per year. CLEAR also offers TSA PreCheck-through-CLEAR enrollment at $79.95 for 5 years, with renewal pricing that varies by enrollment method.</p>
+          <p>CLEAR publishes current membership, family, bundle, and promotional pricing on its enrollment site. Verify the current annual and renewal terms directly before joining.</p>
         </div>
         <div class="faq-item">
           <h3>Should I get CLEAR or TSA PreCheck first?</h3>
@@ -247,7 +249,7 @@
   </main>
 
   <footer class="footer">
-    <div>TSA Tracker — live security wait times. Data refreshes every ~2 minutes.</div>
+    <div>TSA Tracker — active airport feeds are checked about every 2 minutes; fallback estimates are labeled.</div>
     <div class="footer-links">
       <a href="/">Home</a>
       <span>·</span>
@@ -263,6 +265,7 @@
       <span>·</span>
       <a href="/methodology">Methodology</a>
     </div>
+    <div class="publisher-disclosure">Independent publisher; not affiliated with TSA or any airport authority.</div>
   </footer>
   <script type="application/ld+json">
   {
@@ -295,7 +298,7 @@
           "name": "How much does TSA PreCheck cost?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "TSA PreCheck currently costs $85 for 5 years through TSA's current public fee page."
+            "text": "Pricing varies by approved enrollment provider. Use TSA's official provider flow to compare current application and renewal terms."
           }
         },
         {
@@ -303,7 +306,7 @@
           "name": "How much does CLEAR cost?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Standard CLEAR+ currently retails at $209 per year. CLEAR also offers TSA PreCheck-through-CLEAR enrollment at $79.95 for 5 years."
+            "text": "CLEAR publishes current membership, bundle, and renewal pricing on its official enrollment site."
           }
         },
         {

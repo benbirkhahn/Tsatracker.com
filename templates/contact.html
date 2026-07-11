@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  {% if monetization.adsense_client %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
+  {% if monetization.enable_adsense %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
   <title>Contact | TSA Tracker</title>
   <meta name="description" content="Get in touch with the TSA Tracker team — questions, feedback, bug reports, airport data requests, and partnership inquiries.">
   <link rel="canonical" href="{{ seo.canonical_url }}">
@@ -93,7 +93,7 @@
   </main>
 
   <footer class="footer">
-    <div>TSA Tracker — live security wait times. Data refreshes every ~2 minutes.</div>
+    <div>TSA Tracker — active airport feeds are checked about every 2 minutes; fallback estimates are labeled.</div>
     <div class="footer-links">
       <a href="/airports">Airports</a>
       <span>·</span>
@@ -113,8 +113,8 @@
       <span>·</span>
       <a href="/guide/tsa-precheck-clear">PreCheck vs CLEAR</a>
     </div>
+    <div class="publisher-disclosure">Independent publisher; not affiliated with TSA or any airport authority.</div>
   </footer>
   {% include "_structured_breadcrumbs.html" %}
-  {% include "_affiliate_scripts.html" %}
 </body>
 </html>
