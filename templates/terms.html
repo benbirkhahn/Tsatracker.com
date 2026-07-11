@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  {% if monetization.adsense_client %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
+  {% if monetization.enable_adsense %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
   <title>Terms of Service | TSA Tracker</title>
   <meta name="description" content="TSA Tracker terms of service — the rules and conditions for using our live airport TSA wait time service.">
   <link rel="canonical" href="{{ seo.canonical_url }}">
@@ -66,7 +66,7 @@
       <p>Please read these Terms of Service ("Terms") carefully before using the TSA Tracker website at tsatracker.com (the "Service"), operated by TSA Tracker ("we," "us," or "our"). By accessing or using the Service, you agree to be bound by these Terms. If you do not agree with any part of these Terms, do not use the Service.</p>
 
       <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">1. Use of the Service</h2>
-      <p>TSA Tracker provides real-time and historical TSA airport security checkpoint wait time data for informational purposes. The Service is free to use and does not require registration.</p>
+      <p>TSA Tracker provides current airport checkpoint readings where supported, labeled fallback estimates, and historical TSA wait-time patterns for informational purposes. The Service is free to use and does not require registration.</p>
       <p style="margin-top:8px;">You may use TSA Tracker for personal, non-commercial purposes — for example, to check wait times before heading to the airport. You may not:</p>
       <ul class="content-list" style="margin-top:6px;">
         <li>Scrape, crawl, or programmatically extract data from TSA Tracker at high volume without our written permission.</li>
@@ -77,11 +77,11 @@
       </ul>
 
       <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">2. Informational Purpose — Not Travel Guarantees</h2>
-      <p>TSA Tracker provides wait time data as general informational guidance only. Wait times are sourced from official airport systems but are not guaranteed to be accurate, complete, or current at any given moment. Airport conditions can change rapidly — a short wait time can become a long wait in minutes during peak travel periods.</p>
+      <p>TSA Tracker provides wait-time data as general informational guidance only. Fresh readings come from airport-controlled sources when available; labeled fallback estimates appear when a source is stale or unavailable. Neither state is guaranteed to be accurate, complete, or current at any given moment.</p>
       <p style="margin-top:8px;"><strong>TSA Tracker is not liable for missed flights, travel disruptions, or any other consequences resulting from reliance on wait time data displayed on this Service.</strong> We strongly recommend that you always build adequate time buffer into your airport arrival plans, particularly for international flights, and to follow guidance from the Transportation Security Administration (TSA) and your airline regarding recommended arrival times.</p>
 
       <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">3. Data Accuracy and Availability</h2>
-      <p>Wait-time data on TSA Tracker is sourced from official airport authority systems and updated approximately every 2 minutes. However, we make no warranties — express or implied — about the accuracy, timeliness, completeness, or fitness for a particular purpose of the data displayed. Specifically:</p>
+      <p>TSA Tracker checks active airport integrations approximately every 2 minutes and displays source status and freshness where available. However, we make no warranties — express or implied — about the accuracy, timeliness, completeness, or fitness for a particular purpose of live readings, estimates, or guidance.</p>
       <ul class="content-list" style="margin-top:6px;">
         <li>Airport data feeds may be delayed, unavailable, or incorrect due to technical issues on the airport's end. When we detect stale or unavailable data, we attempt to flag it, but we cannot guarantee we catch every instance.</li>
         <li>Some airports may publish estimated or algorithmically generated wait times rather than real-time sensor data. We note this where we are aware of it, but airport data documentation is not always complete.</li>
@@ -117,7 +117,7 @@
   </main>
 
   <footer class="footer">
-    <div>TSA Tracker — live security wait times. Data refreshes every ~2 minutes.</div>
+    <div>TSA Tracker — active airport feeds are checked about every 2 minutes; fallback estimates are labeled.</div>
     <div class="footer-links">
       <a href="/airports">Airports</a>
       <span>·</span>
@@ -135,8 +135,8 @@
       <span>·</span>
       <a href="/guide/tsa-precheck-clear">PreCheck vs CLEAR</a>
     </div>
+    <div class="publisher-disclosure">Independent publisher; not affiliated with TSA or any airport authority.</div>
   </footer>
   {% include "_structured_breadcrumbs.html" %}
-  {% include "_affiliate_scripts.html" %}
 </body>
 </html>

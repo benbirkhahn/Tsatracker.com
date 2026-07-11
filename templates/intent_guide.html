@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  {% if monetization.adsense_client %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
+  {% if monetization.enable_adsense %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
   {% include "_adsense_head.html" %}
   {% include "_ga_head.html" %}
   <title>{{ seo.title }}</title>
@@ -162,6 +162,12 @@
           <div class="copy">See how TSA Tracker labels live vs fallback airport data and what the update cadence actually means.</div>
           <div style="margin-top:10px;"><a href="/methodology">Open methodology</a></div>
         </div>
+        <div class="link-card">
+          <div class="label">Planning Tool</div>
+          <div class="title">When should I leave?</div>
+          <div class="copy">Turn the current source state and hourly pattern into a transparent leave-time recommendation.</div>
+          <div style="margin-top:10px;"><a href="/when-should-i-leave">Open calculator</a></div>
+        </div>
       </div>
 
       <h2 style="margin:34px 0 10px;">Frequently asked questions</h2>
@@ -175,11 +181,13 @@
   </main>
 
   <footer class="footer">
-    <div>TSA Tracker — live security wait times. Data refreshes every ~2 minutes.</div>
+    <div>TSA Tracker — active airport feeds are checked about every 2 minutes; fallback estimates are labeled.</div>
     <div class="footer-links">
       <a href="/">Home</a>
       <span>·</span>
       <a href="/airports">Airports</a>
+      <span>·</span>
+      <a href="/when-should-i-leave">Leave-Time Calculator</a>
       <span>·</span>
       <a href="/airport-security-wait-times">Airport Wait Times</a>
       <span>·</span>
@@ -189,6 +197,7 @@
       <span>·</span>
       <a href="/methodology">Methodology</a>
     </div>
+    <div class="publisher-disclosure">Independent publisher; not affiliated with TSA or any airport authority.</div>
   </footer>
 
   <script type="application/ld+json">
@@ -236,6 +245,5 @@
   }
   </script>
   {% include "_structured_breadcrumbs.html" %}
-  {% include "_affiliate_scripts.html" %}
 </body>
 </html>

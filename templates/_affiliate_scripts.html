@@ -1,3 +1,3 @@
-{% if monetization and monetization.skimlinks_script_url %}
+{% if monetization and monetization.enable_affiliate_links and monetization.skimlinks_script_url %}
 <script async type="text/javascript" src="{{ monetization.skimlinks_script_url }}"></script>
 {% endif %}

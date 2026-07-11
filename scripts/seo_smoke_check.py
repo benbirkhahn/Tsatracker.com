@@ -134,13 +134,15 @@ with site.app.test_client() as client:
         robots = robots_contents(rendered[path])
         if robots != ["noindex"]:
             record_failure(f"{path}: expected robots noindex, got {robots}")
+        response = client.get(path)
+        if response.headers.get("X-Robots-Tag") != "noindex, nofollow":
+            record_failure(f"{path}: expected X-Robots-Tag noindex, nofollow")
+        if "pagead2.googlesyndication.com" in rendered[path] or "adsbygoogle" in rendered[path]:
+            record_failure(f"{path}: internal graph contains monetization code")
 
     site.ENABLE_INTERNAL_GRAPH = False
     for path in ("/link-graph", "/wide-link-graph"):
-        response = assert_status(client, path, 200)
-        robots = robots_contents(response.get_data(as_text=True))
-        if robots != ["noindex"]:
-            record_failure(f"{path}: expected noindex even with graph flag disabled, got {robots}")
+        assert_status(client, path, 404)
     site.ENABLE_INTERNAL_GRAPH = True
 
     ad_loader = "pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"
@@ -168,10 +170,37 @@ with site.app.test_client() as client:
         if count < 300:
             record_failure(f"{path}: expected at least 300 visible words, got {count}")
 
+    calculator_count = visible_word_count(rendered["/when-should-i-leave"])
+    if calculator_count < 300:
+        record_failure(f"/when-should-i-leave: expected at least 300 visible words, got {calculator_count}")
+
+    sitemap_response = assert_status(client, "/sitemap.xml", 200)
+    sitemap_xml = sitemap_response.get_data(as_text=True)
+    expected_sitemap_paths = [
+        "/",
+        "/airports",
+        "/airport-security-wait-times",
+        "/best-time-to-get-to-the-airport",
+        "/when-should-i-leave",
+        "/about",
+        "/methodology",
+        "/privacy",
+        "/terms",
+        "/contact",
+        "/guide/tsa-wait-times",
+        "/guide/tsa-precheck-clear",
+        *[site.airport_seo_slug(code) for code in site.LIVE_AIRPORTS],
+    ]
+    for path in expected_sitemap_paths:
+        if f"<loc>{site.SITE_URL}{path}</loc>" not in sitemap_xml:
+            record_failure(f"sitemap: missing {path}")
+
     graph_nodes = {node["id"] for node in json.loads(site.link_graph_context()["nodes_json"])}
     for old_path in ("/how-early-should-i-arrive-for-tsa", "/tsa-wait-times-by-airport"):
         if old_path in graph_nodes:
             record_failure(f"link graph still contains redirected node {old_path}")
+    if "/when-should-i-leave" not in graph_nodes:
+        record_failure("link graph missing /when-should-i-leave")
 
 if failures:
     print("SEO smoke check failed:")

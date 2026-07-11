@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  {% if monetization.adsense_client %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
+  {% if monetization.enable_adsense %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
   <title>Privacy Policy | TSA Tracker</title>
   <meta name="description" content="TSA Tracker's privacy policy — how we collect, use, and protect your information when you use our live airport security wait time service.">
   <link rel="canonical" href="{{ seo.canonical_url }}">
@@ -83,8 +83,9 @@
       <h3 style="font-size:1rem;font-weight:700;margin:16px 0 6px;">1c. Cookies and Similar Technologies</h3>
       <p>TSA Tracker and its advertising partners use cookies and similar tracking technologies. Cookies are small text files stored in your browser that help websites remember preferences and track usage. Specifically:</p>
       <ul class="content-list" style="margin-top:6px;">
-        <li><strong>Analytics cookies</strong> — we use Google Analytics (via Google Tag Manager) to understand aggregate traffic patterns. Google Analytics sets cookies to distinguish unique users and sessions. The data is processed in aggregate and not used to identify you personally. You can opt out of Google Analytics tracking using Google's <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">opt-out browser add-on</a>.</li>
+        <li><strong>Analytics cookies</strong> — we load Google Analytics through Google's gtag.js library to understand aggregate traffic patterns. Google Analytics sets cookies to distinguish unique users and sessions. The data is processed in aggregate and not used to identify you personally. You can opt out of Google Analytics tracking using Google's <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">opt-out browser add-on</a>.</li>
         <li><strong>Advertising cookies</strong> — we serve ads through Google AdSense. Google and its partners may use cookies to serve ads based on your prior visits to this site and other websites. You can opt out of personalized advertising by visiting <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener">Google's Ad Settings</a> or <a href="https://www.aboutads.info" target="_blank" rel="noopener">aboutads.info</a>.</li>
+        <li><strong>Affiliate-link measurement</strong> — on pages with clearly disclosed commercial links, we may use Skimlinks to identify eligible merchant links and measure resulting referrals. Skimlinks may set cookies or process basic device, referral, and interaction data under its own privacy terms.</li>
       </ul>
       <p style="margin-top:8px;">Most browsers allow you to control cookies through their settings. Disabling cookies may affect some functionality of the Service, though core wait-time features do not depend on cookies.</p>
 
@@ -103,7 +104,7 @@
       <h2 style="font-size:1.2rem;font-weight:700;margin:28px 0 8px;">3. How We Share Your Information</h2>
       <p>We share information only in the following limited circumstances:</p>
       <ul class="content-list" style="margin-top:6px;">
-        <li><strong>Service providers</strong> — we use third-party providers such as Google Analytics (analytics), Google AdSense (advertising), and our web hosting provider (Render.com) to operate the Service. These providers may process your data on our behalf in accordance with their own privacy policies.</li>
+        <li><strong>Service providers</strong> — we use third-party providers such as Google Analytics (analytics), Google AdSense (advertising), Skimlinks (affiliate-link measurement on disclosed commercial pages), and our web hosting provider (Render.com) to operate the Service. These providers may process data in accordance with their own privacy policies.</li>
         <li><strong>Legal requirements</strong> — we may disclose information if required to do so by law, court order, or in response to a valid request by public authorities.</li>
         <li><strong>Business transfers</strong> — if TSA Tracker is acquired, merged, or its assets transferred, your information may be part of that transfer. We would notify users of any such change.</li>
       </ul>
@@ -114,6 +115,7 @@
       <ul class="content-list" style="margin-top:6px;">
         <li><strong>Google Analytics</strong> — <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a></li>
         <li><strong>Google AdSense</strong> — <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a> and <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener">Advertising Policy</a></li>
+        <li><strong>Skimlinks</strong> — <a href="https://skimlinks.com/privacy-policy" target="_blank" rel="noopener">Skimlinks Privacy Policy</a> and its described privacy choices.</li>
         <li><strong>Google Fonts</strong> — fonts are loaded from Google's servers, which may log basic request data. See <a href="https://developers.google.com/fonts/faq/privacy" target="_blank" rel="noopener">Google Fonts Privacy FAQ</a>.</li>
       </ul>
       <p style="margin-top:8px;">We encourage you to review those policies if you have questions about how those companies handle your data.</p>
@@ -147,7 +149,7 @@
   </main>
 
   <footer class="footer">
-    <div>TSA Tracker — live security wait times. Data refreshes every ~2 minutes.</div>
+    <div>TSA Tracker — active airport feeds are checked about every 2 minutes; fallback estimates are labeled.</div>
     <div class="footer-links">
       <a href="/airports">Airports</a>
       <span>·</span>
@@ -165,8 +167,8 @@
       <span>·</span>
       <a href="/guide/tsa-precheck-clear">PreCheck vs CLEAR</a>
     </div>
+    <div class="publisher-disclosure">Independent publisher; not affiliated with TSA or any airport authority.</div>
   </footer>
   {% include "_structured_breadcrumbs.html" %}
-  {% include "_affiliate_scripts.html" %}
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  {% if monetization.adsense_client %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
+  {% if monetization.enable_adsense %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
   {% include "_adsense_head.html" %}
   {% include "_ga_head.html" %}
   <title>{{ seo.title }}</title>
@@ -155,7 +155,7 @@
 
       <h3 style="font-size:1.05rem;font-weight:700;margin:20px 0 6px;">Queue Sensors and Camera Systems</h3>
       <p>The most accurate airport wait time systems use overhead cameras or infrared sensors positioned at queue entry and exit points. These systems continuously measure the density of people in the queue zone and the rate at which passengers are processed through the checkpoint. From these measurements, they calculate an estimated wait time for a new person joining the queue.</p>
-      <p style="margin-top:8px;">Airports like Philadelphia (PHL), Los Angeles (LAX), and Seattle (SEA) use these direct measurement systems. The data is refreshed frequently — often every few minutes — and reflects actual conditions, not estimates.</p>
+      <p style="margin-top:8px;">Airports such as Philadelphia (PHL), Los Angeles (LAX), and Seattle (SEA) publish frequently refreshed operational readings. Those readings reflect recent conditions, but they are still measurements or airport-generated estimates rather than guarantees of the time a new traveler will experience.</p>
 
       <h3 style="font-size:1.05rem;font-weight:700;margin:20px 0 6px;">Staff Observations and Manual Reporting</h3>
       <p>Some airports rely on TSA officers or airport operations staff to manually report estimated wait times at intervals. This is inherently less precise — it depends on observer judgment and may only update every 15–30 minutes. During fast-changing conditions, manually reported times can lag significantly behind reality.</p>
@@ -164,8 +164,8 @@
       <p>A smaller number of systems generate wait time estimates algorithmically, using historical patterns, current flight load data, staffing levels, and other inputs. These are predictions, not measurements. They tend to be more accurate during typical conditions but can be significantly wrong during unusual events (unexpected flight delays, sudden volume spikes, or staffing disruptions).</p>
 
       <h3 style="font-size:1.05rem;font-weight:700;margin:20px 0 6px;">How TSA Tracker Sources Data</h3>
-      <p>TSA Tracker connects directly to each supported airport's official data feed — the same source the airport uses to display wait times on its own website or app. We poll these feeds approximately every 2 minutes and store the results with timestamps, so you can see both the current reading and the trend over the past 12 hours.</p>
-      <p style="margin-top:8px;">We only display data from airports where we've confirmed a reliable, official source. We don't fabricate or extrapolate wait times for airports not on our live list — a gap in coverage is better than a number you can't trust.</p>
+      <p>TSA Tracker maintains integrations with supported airport-controlled sources and checks active feeds approximately every 2 minutes. Each page labels whether the current number is a fresh live reading or a fallback estimate, shows the capture time for live data, and adds a 30-day hourly pattern for context.</p>
+      <p style="margin-top:8px;">Where a supported official source is fresh, we show its reading and capture time. When that source is unavailable, the page switches to a clearly labeled historical planning estimate rather than presenting the model as a current airport report.</p>
 
       <!-- ── SECTION 3 ── -->
       <h2 id="peak-hours" style="font-size:1.35rem;font-weight:700;margin:40px 0 10px;">3. Peak Hours and the Worst Times to Fly</h2>
@@ -229,14 +229,14 @@
         <li>Liquids stay in your bag.</li>
         <li>The combination of these factors dramatically speeds up per-passenger processing time.</li>
       </ul>
-      <p style="margin-top:8px;"><strong>Cost:</strong> $85 for a 5-year membership (about $17/year). Renewals are $70. Many credit cards (Chase Sapphire, Amex Platinum, Capital One Venture X, and others) reimburse the application fee.</p>
+      <p style="margin-top:8px;"><strong>Cost:</strong> Application and renewal pricing varies by approved provider and can change. Check the official TSA provider page and your card's current benefit terms before applying.</p>
       <p style="margin-top:8px;"><strong>Wait time impact:</strong> During peak morning hours at major hubs, PreCheck lines routinely run 5–8 minutes while standard lines run 30–45+ minutes. The wait time difference is frequently the single most impactful variable at the checkpoint.</p>
       <p style="margin-top:8px;"><strong>Limitation:</strong> Not all flights and airlines display PreCheck — some international airlines, certain budget carriers, and some specific routes don't participate. Always verify at booking.</p>
 
       <h3 style="font-size:1.05rem;font-weight:700;margin:20px 0 6px;">CLEAR</h3>
       <p>CLEAR is a private service (not a government program) that uses biometrics (fingerprints, iris scan) to verify your identity at the airport — skipping the ID document check step at the front of the security line. CLEAR members walk to the front of the ID verification queue, verify via biometrics in seconds, and are then escorted to the standard or PreCheck screening lane.</p>
       <p style="margin-top:8px;"><strong>Key distinction:</strong> CLEAR only speeds up identity verification — not the actual security screening. You still go through the X-ray or scanner. At airports where the ID check line is long, CLEAR helps. Where the screening line is the bottleneck (which is most of the time during peak hours), CLEAR's benefit is limited.</p>
-      <p style="margin-top:8px;"><strong>Cost:</strong> Standard CLEAR+ currently retails at $209/year. CLEAR also sells TSA PreCheck through CLEAR for $79.95 for 5 years, with renewal pricing that varies by enrollment method. Many CLEAR subscribers combine it with TSA PreCheck — CLEAR for the ID step, PreCheck for screening — for the fastest possible throughput.</p>
+      <p style="margin-top:8px;"><strong>Cost:</strong> CLEAR publishes current membership, family, bundle, and promotional terms on its enrollment site. Many subscribers combine CLEAR with TSA PreCheck — CLEAR for the identity step and PreCheck for screening.</p>
       <p style="margin-top:8px;"><strong>Best for:</strong> Frequent business travelers at hub airports where CLEAR is available. CLEAR+ is available at 61 airports with 150+ CLEAR+ lanes, while TSA PreCheck is available at 200+ airports.</p>
 
       <h3 style="font-size:1.05rem;font-weight:700;margin:20px 0 6px;">Global Entry</h3>
@@ -312,7 +312,7 @@
       <p>The value of real-time wait time data is in planning, not in reacting. Check TSA Tracker before you get in the car. A 40-minute wait time when you're 25 minutes from the airport — with a 90-minute departure window — is actionable. The same information discovered at the airport is mostly just stressful.</p>
 
       <h3 style="font-size:1.05rem;font-weight:700;margin:20px 0 6px;">Use the 12-Hour Chart for Context</h3>
-      <p>A single data point — the current wait time — tells you what's happening right now. The 12-hour chart tells you whether that wait is going up, going down, or is part of a sustained peak. A 25-minute wait that's declining (morning rush tapering off) is very different from a 25-minute wait that's been climbing for two hours (building to a peak). The trend line is often more useful than the current reading.</p>
+      <p>A single data point tells you what the source reports right now. The 30-minute trend shows whether recent conditions are rising or falling, while the 30-day hourly pattern shows whether your travel window is normally calm or busy. Those are different signals, and neither is a guarantee of what the line will be later.</p>
 
       <h3 style="font-size:1.05rem;font-weight:700;margin:20px 0 6px;">Account for the Journey to the Checkpoint</h3>
       <p>Remember that TSA Tracker shows the wait time at the checkpoint — not the total time from when you arrive at the airport. You still need to account for parking (or rideshare drop-off delays during peak periods), the walk to your terminal, and any bag drop lines. The TSA recommends 2 hours for domestic (3 for international) as total arrival-before-departure buffer, and that's before accounting for any above-average wait times.</p>
@@ -326,7 +326,7 @@
       <div class="faq-section">
         <div class="faq-item">
           <h3>How far in advance should I check TSA wait times?</h3>
-          <p>Check the live wait time 30–60 minutes before you plan to leave for the airport, not right before your flight. This gives you time to adjust your departure if lines are unusually long. For flights during peak periods, also check the 12-hour history chart the night before to gauge what to expect.</p>
+          <p>Check the source status and current reading 30–60 minutes before leaving, then compare your travel hour with the 30-day pattern. Recheck before departure if the source is estimated or the recent trend is rising.</p>
         </div>
         <div class="faq-item">
           <h3>Can TSA wait times change quickly?</h3>
@@ -364,7 +364,7 @@
   </main>
 
   <footer class="footer">
-    <div>TSA Tracker — live security wait times. Data refreshes every ~2 minutes.</div>
+    <div>TSA Tracker — active airport feeds are checked about every 2 minutes; fallback estimates are labeled.</div>
     <div class="footer-links">
       <a href="/">Home</a>
       <span>·</span>
@@ -384,6 +384,7 @@
       <span>·</span>
       <a href="/contact">Contact</a>
     </div>
+    <div class="publisher-disclosure">Independent publisher; not affiliated with TSA or any airport authority.</div>
   </footer>
 
   <script type="application/ld+json">
@@ -409,7 +410,7 @@
           "name": "How far in advance should I check TSA wait times?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Check the live wait time 30 to 60 minutes before leaving for the airport. For peak flights, review the 12-hour history chart the night before."
+            "text": "Check the source status and current reading 30 to 60 minutes before leaving, compare the 30-day hourly pattern, and recheck if the source is estimated or the trend is rising."
           }
         },
         {
@@ -454,6 +455,5 @@
   }
   </script>
   {% include "_structured_breadcrumbs.html" %}
-  {% include "_affiliate_scripts.html" %}
 </body>
 </html>

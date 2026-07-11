@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  {% if monetization.adsense_client %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
+  {% if monetization.enable_adsense %}<meta name="google-adsense-account" content="{{ monetization.adsense_client }}">{% endif %}
   {% include "_adsense_head.html" %}
   {% include "_ga_head.html" %}
   <title>{{ seo.title }}</title>
@@ -140,7 +140,7 @@
         <div class="stat-card">
           <div class="stat-label">Network average</div>
           <div class="stat-value">{{ "%.1f"|format(overall_average) }}</div>
-          <div class="stat-sub">minutes across live airport feeds</div>
+          <div class="stat-sub">minutes across reporting live and fallback values</div>
         </div>
       </div>
 
@@ -179,10 +179,10 @@
           <div style="margin-top:10px;"><a href="/best-time-to-get-to-the-airport">Open timing guide</a></div>
         </div>
         <div class="link-card">
-          <div class="label">Arrival Buffer</div>
-          <div class="title">Best time to get to the airport</div>
-          <div class="copy">A timing guide for domestic vs international flights, live security conditions, and peak-hour security windows.</div>
-          <div style="margin-top:10px;"><a href="/best-time-to-get-to-the-airport">Open timing guide</a></div>
+          <div class="label">Planning Tool</div>
+          <div class="title">Airport leave-time calculator</div>
+          <div class="copy">Combine the source status, current wait, normal pattern, drive, bag drop, and gate buffer.</div>
+          <div style="margin-top:10px;"><a href="/when-should-i-leave">Calculate leave time</a></div>
         </div>
         <div class="link-card">
           <div class="label">Programs</div>
@@ -213,11 +213,13 @@
   </main>
 
   <footer class="footer">
-    <div>TSA Tracker — live security wait times. Data refreshes every ~2 minutes.</div>
+    <div>TSA Tracker — active airport feeds are checked about every 2 minutes; fallback estimates are labeled.</div>
     <div class="footer-links">
       <a href="/">Home</a>
       <span>·</span>
       <a href="/airports">Airports</a>
+      <span>·</span>
+      <a href="/when-should-i-leave">Leave-Time Calculator</a>
       <span>·</span>
       <a href="/airport-security-wait-times">Airport Wait Times</a>
       <span>·</span>
@@ -231,6 +233,7 @@
       <span>·</span>
       <a href="/contact">Contact</a>
     </div>
+    <div class="publisher-disclosure">Independent publisher; not affiliated with TSA or any airport authority.</div>
   </footer>
 
   <script type="application/ld+json">
@@ -304,6 +307,5 @@
   }
   </script>
   {% include "_structured_breadcrumbs.html" %}
-  {% include "_affiliate_scripts.html" %}
 </body>
 </html>

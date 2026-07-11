@@ -506,6 +506,11 @@ select {
 
 /* ── AD SLOTS ── */
 .ad-slot { margin: 8px 0 18px; }
+ins.adsbygoogle[data-ad-status="unfilled"],
+.ad-slot:has(ins.adsbygoogle[data-ad-status="unfilled"]),
+.inline-ad-card:has(ins.adsbygoogle[data-ad-status="unfilled"]) {
+  display: none !important;
+}
 .ad-label {
   color: var(--muted); font-size: 10px; font-family: var(--mono);
   margin: 0 0 8px; letter-spacing: .12em; text-transform: uppercase;
@@ -811,6 +816,7 @@ select {
 .footer-links { margin-top: 8px; display: flex; justify-content: center; gap: 8px; align-items: center; }
 .footer-links a { color: var(--muted); text-decoration: none; }
 .footer-links a:hover { color: var(--amber); }
+.publisher-disclosure { margin-top: 10px; color: var(--muted); font-size: 12px; line-height: 1.5; }
 
 /* ── LEGAL PAGES ── */
 .header-link { color: var(--amber); text-decoration: none; }
@@ -1159,36 +1165,129 @@ body.ad-blocker-active .featured-offer {
   background: var(--surface) !important;
 }
 
-/* ── V2 THEME OVERRIDE — harmonize legacy pages with the redesigned core pages ── */
+/* Wayfinding Atlas theme for supporting and editorial routes. */
 :root {
-  --bg:       #15181d;
-  --surface:  #1f242b;
-  --surface2: #262c35;
-  --border:   #363d47;
-  --border2:  #424a56;
-  --text:     #f1efe8;
-  --muted:    #9aa0a8;
-  --amber:    #fac775;
-  --amber-dim:#fac77522;
-  --green:    #5dcaa5;
-  --yellow:   #fac775;
-  --orange:   #f0997b;
-  --red:      #f09595;
-  --blue:     #9fe1cb;
-  --mono:     'SF Mono', ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
-  --sans:     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --display:  -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --tier-low-border:  #5dcaa5;
-  --tier-low-bg:      #0f2a22;
-  --tier-med-border:  #fac775;
-  --tier-med-bg:      #2a2210;
-  --tier-high-border: #f0997b;
-  --tier-high-bg:     #2a1810;
-  --tier-crit-border: #f09595;
-  --tier-crit-bg:     #2a1212;
-  --tier-none-border: #363d47;
-  --tier-none-bg:     #1f242b;
+  --bg:       #f4f1e9;
+  --surface:  #fffdf8;
+  --surface2: #e9e4d8;
+  --border:   #cfc9bc;
+  --border2:  #a8a294;
+  --text:     #132238;
+  --muted:    #5f6a7b;
+  --amber:    #b7361b;
+  --amber-dim:#ef5b3520;
+  --green:    #007a61;
+  --yellow:   #945500;
+  --orange:   #c8502d;
+  --red:      #b32727;
+  --blue:     #215ea8;
+  --mono:     'IBM Plex Mono', monospace;
+  --sans:     'Space Grotesk', sans-serif;
+  --display:  'Oswald', 'Arial Narrow', sans-serif;
+  --tier-low-border:  #007a61;
+  --tier-low-bg:      #d9eee7;
+  --tier-med-border:  #a46008;
+  --tier-med-bg:      #f7e6c3;
+  --tier-high-border: #c8502d;
+  --tier-high-bg:     #f7ddd2;
+  --tier-crit-border: #b32727;
+  --tier-crit-bg:     #f6dddd;
+  --tier-none-border: #cfc9bc;
+  --tier-none-bg:     #fffdf8;
 }
-.home-mode { background: var(--bg) !important; }
-.header { background: rgba(21,24,29,.92) !important; border-bottom: 1px solid var(--border); }
-h1, h2, h3, .header-home-link { letter-spacing: 0 !important; text-transform: none !important; }
+.home-mode,
+body {
+  background:
+    linear-gradient(90deg, rgba(19,34,56,.035) 1px, transparent 1px) 0 0 / 72px 72px,
+    linear-gradient(rgba(19,34,56,.035) 1px, transparent 1px) 0 0 / 72px 72px,
+    radial-gradient(circle at 82% 8%, rgba(239,91,53,.1), transparent 28rem),
+    var(--bg) !important;
+  color: var(--text);
+}
+.header {
+  background: rgba(16,34,56,.96) !important;
+  border-bottom: 1px solid rgba(255,255,255,.14);
+}
+.header .logo-name,
+.header .header-home-link { color: #fff; }
+.header .logo-tag { color: #aab7c7; }
+.header .header-nav-link { color: #cdd6e0; }
+.header .header-nav-link:hover,
+.header .header-nav-link.active { color: #fff; background: rgba(255,255,255,.1); }
+.header-external-links { border-left-color: rgba(255,255,255,.18); }
+.header-external-label { color: #aab7c7; }
+.header-external-link { color: #d8e0e9; background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.18); }
+.header-external-link.primary { color: #ff9b7d; border-color: rgba(255,155,125,.4); background: rgba(239,91,53,.12); }
+.main { max-width: 900px; }
+.hero-headline,
+.airport-name,
+.airport-fullname,
+.selection-summary-value,
+.card-head h2,
+.network-chart-head h2,
+.content-card h2,
+.content-card h3,
+.faq-section h2,
+.faq-item h3,
+.utility-title,
+.legal-card h1,
+.legal-card h2,
+.search-text h4 { color: var(--text) !important; }
+.hero-headline,
+.selection-summary-value { font-family: var(--display); text-transform: uppercase; }
+.hero-sub,
+.muted,
+.network-chart-copy,
+.content-list,
+.faq-item p,
+.utility-copy,
+.legal-card p,
+.legal-list { color: var(--muted) !important; }
+.card,
+.network-chart-card,
+.selection-summary,
+.utility-panel,
+.legal-card,
+.custom-flight-search,
+.security-toolkit {
+  background: rgba(255,253,248,.94) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 14px 34px rgba(19,34,56,.07);
+}
+.input-wrap input {
+  background: var(--bg);
+  border-color: var(--border2);
+  color: var(--text);
+  color-scheme: light;
+}
+.search-btn-premium { background: #ef5b35; color: #190e0a; }
+.security-toolkit .toolkit-main-title,
+.security-toolkit .toolkit-item-title { color: var(--text); }
+.security-toolkit .toolkit-sub-title,
+.security-toolkit .toolkit-item-desc { color: var(--muted); }
+.security-toolkit .toolkit-item {
+  background: var(--bg);
+  border-color: var(--border);
+}
+.security-toolkit .toolkit-item:hover {
+  background: var(--surface2);
+  border-color: var(--border2);
+}
+.security-toolkit .toolkit-badge.gold { color: #8b5307; }
+.security-toolkit .toolkit-badge.blue { color: #215ea8; }
+.live-badge {
+  background: #d9eee7;
+  border-color: rgba(0,122,97,.28);
+  color: #007a61;
+}
+.footer { border-top-color: var(--border); color: var(--muted); }
+h1, h2, h3, .header-home-link { letter-spacing: 0 !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}
