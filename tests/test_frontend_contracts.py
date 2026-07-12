@@ -314,11 +314,45 @@ class FrontendContractTests(unittest.TestCase):
         map_tag, map_attrs = by_id["airport-network-map"]
         self.assertEqual(map_tag, "section")
         self.assertEqual(map_attrs.get("aria-labelledby"), "home-title")
-        self.assertIn("airport-map", by_id)
+        interactive_map_tag, interactive_map_attrs = by_id["airport-map"]
+        self.assertEqual(interactive_map_tag, "div")
+        self.assertEqual(interactive_map_attrs.get("role"), "region")
+        self.assertEqual(interactive_map_attrs.get("tabindex"), "0")
+        self.assertEqual(
+            interactive_map_attrs.get("aria-describedby"), "airport-map-help"
+        )
+        self.assertIn(
+            "Interactive satellite map", interactive_map_attrs.get("aria-label", "")
+        )
+        self.assertIn("airport-map-help", by_id)
         self.assertIn("airport-map-preview", by_id)
         _, status_attrs = by_id["airport-map-status"]
         self.assertEqual(status_attrs.get("role"), "status")
         self.assertEqual(status_attrs.get("aria-live"), "polite")
+
+        zoom_control_groups = [
+            attrs
+            for tag, attrs in document.elements
+            if tag == "div" and "data-map-zoom-controls" in attrs
+        ]
+        self.assertEqual(len(zoom_control_groups), 1)
+        self.assertEqual(zoom_control_groups[0].get("role"), "group")
+        self.assertEqual(
+            zoom_control_groups[0].get("aria-label"), "Map zoom controls"
+        )
+        zoom_buttons = [
+            attrs
+            for tag, attrs in document.elements
+            if tag == "button"
+            and ("data-map-zoom-in" in attrs or "data-map-zoom-out" in attrs)
+        ]
+        self.assertEqual(len(zoom_buttons), 2)
+        self.assertEqual(
+            {attrs.get("aria-label") for attrs in zoom_buttons},
+            {"Zoom map in", "Zoom map out"},
+        )
+        for attrs in zoom_buttons:
+            self.assertEqual(attrs.get("aria-controls"), "airport-map")
 
         board_rows = [
             attrs
@@ -357,6 +391,16 @@ class FrontendContractTests(unittest.TestCase):
             'USGSImageryOnly/MapServer/tile/{z}/{y}/{x}',
             'window.location.assign',
             'map.flyTo(',
+            'boxZoom: true',
+            'doubleClickZoom: true',
+            'dragging: true',
+            'keyboard: true',
+            'maxBoundsViscosity: 0.82',
+            'scrollWheelZoom: true',
+            'touchZoom: true',
+            'map.zoomIn(',
+            'map.zoomOut(',
+            'captureOverviewView',
         ):
             self.assertIn(token, source)
         self.assertRegex(source, r'addEventListener\(\s*["\']pointerenter["\']')
