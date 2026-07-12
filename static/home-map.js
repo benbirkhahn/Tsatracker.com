@@ -13,6 +13,11 @@
   var previewClose = preview && preview.querySelector("[data-map-preview-close]");
   var cluster = document.querySelector("[data-map-cluster='nyc']");
   var resetButton = document.querySelector("[data-map-reset]");
+  var zoomControls = document.querySelector("[data-map-zoom-controls]");
+  var zoomInButton = document.querySelector("[data-map-zoom-in]");
+  var zoomOutButton = document.querySelector("[data-map-zoom-out]");
+  var zoomLevel = document.querySelector("[data-map-zoom-level]");
+  var gestureHint = document.querySelector("[data-map-gesture-hint]");
   var searchInput = document.getElementById("q");
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   var coarsePointer = window.matchMedia("(pointer: coarse)");
@@ -69,6 +74,8 @@
   var markerByCode = new Map();
   var map = null;
   var overviewBounds = null;
+  var overviewCenter = null;
+  var overviewZoom = null;
   var activeCode = null;
   var pinnedCode = null;
   var navigationTimer = null;
@@ -117,14 +124,20 @@
 
   map = window.L.map(mapElement, {
     attributionControl: true,
-    boxZoom: false,
-    doubleClickZoom: false,
-    dragging: false,
-    keyboard: false,
-    scrollWheelZoom: false,
-    tap: false,
-    touchZoom: false,
+    boxZoom: true,
+    doubleClickZoom: true,
+    dragging: true,
+    keyboard: true,
+    keyboardPanDelta: 72,
+    maxBounds: [[5, -170], [72, -25]],
+    maxBoundsViscosity: 0.82,
+    scrollWheelZoom: true,
+    tap: true,
+    touchZoom: true,
+    wheelDebounceTime: 32,
+    wheelPxPerZoomLevel: 90,
     zoomControl: false,
+    zoomDelta: 1,
     zoomSnap: 0.25,
     preferCanvas: true
   });
@@ -166,17 +179,23 @@
     return [airport.lat, airport.lng];
   }));
   map.fitBounds(overviewBounds, { padding: [34, 34], maxZoom: 4.75, animate: false });
+  captureOverviewView();
 
   map.on("move zoom resize", requestMarkerPosition);
   map.on("zoomend moveend", function () {
     positionMarkers();
     updateClusterState();
+    updateMapControls();
   });
+  map.on("dragstart zoomstart", markMapEngaged);
 
   map.whenReady(function () {
     markerLayer.hidden = false;
+    if (zoomControls) zoomControls.hidden = false;
+    if (gestureHint) gestureHint.hidden = false;
     requestMarkerPosition();
     updateClusterState();
+    updateMapControls();
   });
   initialTileTimer = window.setTimeout(function () {
     if (initialTilesResolved) return;
@@ -216,6 +235,40 @@
     return map && map.getZoom() >= 7;
   }
 
+  function captureOverviewView() {
+    if (!map) return;
+    overviewCenter = map.getCenter();
+    overviewZoom = map.getZoom();
+  }
+
+  function isOverviewView() {
+    if (!map || !overviewCenter || overviewZoom === null) return true;
+    return Math.abs(map.getZoom() - overviewZoom) < 0.1 &&
+      map.getCenter().distanceTo(overviewCenter) < 75000;
+  }
+
+  function markMapEngaged() {
+    stage.classList.add("is-map-engaged");
+  }
+
+  function zoomLabel(value) {
+    var rounded = Math.round(value * 4) / 4;
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2).replace(/0$/, "");
+  }
+
+  function updateMapControls() {
+    if (!map) return;
+    var currentZoom = map.getZoom();
+    if (zoomOutButton) zoomOutButton.disabled = currentZoom <= map.getMinZoom() + 0.01;
+    if (zoomInButton) zoomInButton.disabled = currentZoom >= map.getMaxZoom() - 0.01;
+    if (zoomLevel) zoomLevel.textContent = "Z " + zoomLabel(currentZoom);
+    if (resetButton) resetButton.hidden = isOverviewView();
+  }
+
+  function announceZoom() {
+    if (status) status.textContent = "Map zoom level " + zoomLabel(map.getZoom()) + ".";
+  }
+
   function updateClusterState() {
     var expanded = isNycExpanded();
     NYC_CODES.forEach(function (code) {
@@ -223,7 +276,6 @@
       if (marker) marker.classList.toggle("is-clustered", !expanded);
     });
     if (cluster) cluster.hidden = expanded;
-    if (resetButton) resetButton.hidden = map.getZoom() < 5.5;
   }
 
   function readableName(airport) {
@@ -413,10 +465,27 @@
     clearPreview();
     if (reduceMotion.matches || !animate) {
       map.fitBounds(overviewBounds, { padding: [34, 34], maxZoom: 4.75, animate: false });
+      updateMapControls();
     } else {
       map.flyToBounds(overviewBounds, { padding: [34, 34], maxZoom: 4.75, duration: 0.46 });
     }
     if (status) status.textContent = "National airport map restored.";
+  }
+
+  if (zoomInButton) {
+    zoomInButton.addEventListener("click", function () {
+      markMapEngaged();
+      map.once("zoomend", announceZoom);
+      map.zoomIn(1, { animate: !reduceMotion.matches });
+    });
+  }
+
+  if (zoomOutButton) {
+    zoomOutButton.addEventListener("click", function () {
+      markMapEngaged();
+      map.once("zoomend", announceZoom);
+      map.zoomOut(1, { animate: !reduceMotion.matches });
+    });
   }
 
   if (resetButton) {
@@ -477,6 +546,8 @@
           (!searchInput || !String(searchInput.value || "").trim())
         ) {
           map.fitBounds(overviewBounds, { padding: [34, 34], maxZoom: 4.75, animate: false });
+          captureOverviewView();
+          updateMapControls();
         }
         requestMarkerPosition();
       })

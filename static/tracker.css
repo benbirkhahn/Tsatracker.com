@@ -667,7 +667,17 @@ summary:focus-visible {
   z-index: 1;
   inset: 0;
   background: #0b2135;
+  cursor: grab;
   font-family: var(--sans);
+}
+
+#airport-map:active {
+  cursor: grabbing;
+}
+
+#airport-map:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: -3px;
 }
 
 #airport-map .leaflet-tile-pane {
@@ -676,6 +686,8 @@ summary:focus-visible {
 
 .airport-map-marker-layer[hidden],
 .airport-map-cluster[hidden],
+.airport-map-controls[hidden],
+.airport-map-gesture[hidden],
 .airport-map-reset[hidden],
 .airport-map-preview[hidden],
 .airport-map-loading[hidden],
@@ -697,6 +709,97 @@ summary:focus-visible {
 
 #airport-map .leaflet-control-attribution a {
   color: #bcd4eb;
+}
+
+.airport-map-controls {
+  position: absolute;
+  z-index: 14;
+  top: 16px;
+  left: 16px;
+  display: grid;
+  grid-template-columns: 42px 52px 42px;
+  min-height: 42px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: 3px;
+  background: rgba(8, 26, 43, 0.92);
+  box-shadow: 0 6px 18px rgba(2, 9, 16, 0.28);
+}
+
+.airport-map-controls button,
+.airport-map-controls output {
+  display: grid;
+  min-width: 0;
+  min-height: 42px;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #fff;
+}
+
+.airport-map-controls button {
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 25px;
+  line-height: 1;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.airport-map-controls button:first-child {
+  border-right: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.airport-map-controls button:last-child {
+  border-left: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.airport-map-controls button:hover,
+.airport-map-controls button:focus-visible {
+  background: var(--signal);
+  outline: 0;
+}
+
+.airport-map-controls button:focus-visible {
+  box-shadow: inset 0 0 0 2px #fff;
+}
+
+.airport-map-controls button:disabled {
+  cursor: not-allowed;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.airport-map-controls output {
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.airport-map-gesture {
+  position: absolute;
+  z-index: 10;
+  bottom: 18px;
+  left: 16px;
+  max-width: calc(100% - 32px);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 3px;
+  background: rgba(8, 26, 43, 0.82);
+  color: rgba(255, 255, 255, 0.88);
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  padding: 8px 10px;
+  text-transform: uppercase;
+  transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
+}
+
+.network-map-stage.is-map-engaged .airport-map-gesture,
+.network-map-stage.has-pinned-airport .airport-map-gesture,
+.network-map-stage.is-departing .airport-map-gesture {
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(5px);
 }
 
 .airport-map-marker-layer {
@@ -855,7 +958,7 @@ summary:focus-visible {
 .airport-map-reset {
   position: absolute;
   z-index: 14;
-  top: 16px;
+  top: 68px;
   left: 16px;
   display: inline-flex;
   min-height: 42px;
@@ -3104,8 +3207,26 @@ ins.adsbygoogle[data-ad-status="unfilled"],
   }
 
   .airport-map-reset {
+    top: 62px;
+    left: 10px;
+  }
+
+  .airport-map-controls {
     top: 10px;
     left: 10px;
+  }
+
+  .airport-map-gesture {
+    bottom: 10px;
+    left: 10px;
+  }
+
+  .airport-map-gesture .pointer-fine-copy {
+    display: none;
+  }
+
+  .airport-map-gesture .pointer-coarse-copy {
+    display: block;
   }
 
   #airport-map .leaflet-control-attribution {
