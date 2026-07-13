@@ -154,7 +154,7 @@ def _select_historical_samples(airport_code: str, cutoff: str, columns: str, lim
 def _select_historical_hourly_aggregates(airport_code: str, cutoff: str, limit: int = 100000) -> List[Dict]:
     response = (
         supabase_client.table("historical_samples_hourly")
-        .select("hour_bucket,airport_code,checkpoint,wait_sum,sample_count")
+        .select("hour_bucket,airport_code,checkpoint,lane_type,wait_sum,sample_count")
         .eq("airport_code", airport_code)
         .gte("hour_bucket", cutoff)
         .order("hour_bucket")
@@ -180,7 +180,7 @@ def supabase_history_rows(airport_code: str, hours: int = 12, limit: int = 50000
         return _select_historical_samples(
             airport_code=airport_code,
             cutoff=cutoff,
-            columns="airport_code,checkpoint,wait_minutes,captured_at",
+            columns="airport_code,checkpoint,wait_minutes,lane_type,captured_at",
             limit=limit,
         )
     except Exception as e:
@@ -377,18 +377,19 @@ def supabase_checkpoint_24h_average(
         raw_rows = _select_historical_samples(
             airport_code=airport_code,
             cutoff=cutoff,
-            columns="checkpoint,wait_minutes,captured_at",
+            columns="checkpoint,wait_minutes,lane_type,captured_at",
             limit=limit,
         )
         aggregate_rows = _select_historical_hourly_aggregates(airport_code, cutoff, limit=limit)
         tz = ZoneInfo(time_zone_name)
-        groups: Dict[str, Dict] = {}
+        groups: Dict[tuple, Dict] = {}
 
-        def group_for(checkpoint: str) -> Dict:
+        def group_for(checkpoint: str, lane_type: str) -> Dict:
             return groups.setdefault(
-                checkpoint,
+                (checkpoint, lane_type),
                 {
                     "checkpoint": checkpoint,
+                    "lane_type": lane_type,
                     "buckets": {hour: {"sum": 0.0, "count": 0} for hour in range(24)},
                 },
             )
@@ -397,12 +398,13 @@ def supabase_checkpoint_24h_average(
             checkpoint = str(row.get("checkpoint") or "").strip()
             if not checkpoint:
                 continue
+            lane_type = str(row.get("lane_type") or "STANDARD").strip().upper()
             try:
                 wait = max(0.0, min(float(row.get("wait_minutes", 0)), 180.0))
                 local_hour = _captured_datetime(row.get("captured_at", "")).astimezone(tz).hour
             except Exception:
                 continue
-            bucket = group_for(checkpoint)["buckets"][local_hour]
+            bucket = group_for(checkpoint, lane_type)["buckets"][local_hour]
             bucket["sum"] += wait
             bucket["count"] += 1
 
@@ -410,19 +412,21 @@ def supabase_checkpoint_24h_average(
             checkpoint = str(row.get("checkpoint") or "").strip()
             if not checkpoint:
                 continue
+            lane_type = str(row.get("lane_type") or "STANDARD").strip().upper()
             try:
                 local_hour = _captured_datetime(row.get("hour_bucket", "")).astimezone(tz).hour
                 wait_sum = float(row.get("wait_sum") or 0)
                 sample_count = int(row.get("sample_count") or 0)
             except Exception:
                 continue
-            bucket = group_for(checkpoint)["buckets"][local_hour]
+            bucket = group_for(checkpoint, lane_type)["buckets"][local_hour]
             bucket["sum"] += wait_sum
             bucket["count"] += sample_count
 
         return [
             {
-                "checkpoint": checkpoint,
+                "checkpoint": group["checkpoint"],
+                "lane_type": group["lane_type"],
                 "rows": [
                     {
                         "hour": hour,
@@ -433,7 +437,7 @@ def supabase_checkpoint_24h_average(
                     for hour, bucket in group["buckets"].items()
                 ],
             }
-            for checkpoint, group in groups.items()
+            for group in groups.values()
         ]
     except Exception as e:
         logger.error("Failed to query Supabase checkpoint averages: %s", e)

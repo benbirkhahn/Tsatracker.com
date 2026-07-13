@@ -36,22 +36,29 @@ Incomplete animation-example stubs were excluded from design decisions.
 3. `/airports/<code>-tsa-wait-times` puts current status, checkpoint comparison, the 30-day pattern, and timing guidance before editorial content.
 4. `/when-should-i-leave` uses the same shell and turns live data into a departure recommendation.
 
-## Terminal Decision Map Pilot
+## LAS Airport Arrival Mode Pilot
 
-- LAS uses a server-rendered terminal schematic that maps gates to the five checkpoints published by the airport.
-- Four nodes consume the existing live checkpoint rows; the Innovation checkpoint remains informational because the live feed does not publish it separately.
-- Gate, lane, and check-in-terminal controls identify the fastest compatible live reading without changing URLs or data APIs.
-- Missing checkpoint rows are labeled `No live reading`; a reported zero remains `0 min` and is never inferred to mean closed.
-- The raw checkpoint feed stays available below the schematic for auditing and graceful fallback.
+- LAS uses a progressively enhanced satellite arrival canvas with trustworthy Terminal 1 and Terminal 3 anchors. Its attached panel maps gates to the five exact checkpoints published by the airport without implying indoor-level pin precision.
+- Four checkpoints consume current lane readings; the Innovation checkpoint remains published-only because the live feed does not report it separately.
+- Gate, lane, terminal, and checkpoint controls identify the fastest compatible fresh reading. Missing and stale readings fall back explicitly, while a provider-supplied zero remains `0 min` and is never inferred to mean closed.
+- The homepage writes a short-lived `tsaAirportHandoffV1` session handoff before its cinematic fly-in. A matching LAS page consumes it to preserve the satellite framing; direct visits start with the embedded arrival canvas.
+- Arrival Mode links to a checkpoint-aware calculator URL. The calculator uses a selected `live` or `aging` lane reading and falls back to a labeled airport planning estimate for `stale`, `no_current_reading`, or `published_only` states.
+- The raw checkpoint feed stays below Arrival Mode for auditing, no-JavaScript access, and graceful fallback.
 
 ```mermaid
 flowchart LR
-  Home["Live board /"] --> Airport["Airport detail /airports/<code>-tsa-wait-times"]
+  Home["Live board /"] -->|"tsaAirportHandoffV1"| LAS["LAS Arrival Mode /airports/las-tsa-wait-times"]
+  Home --> Airport["Other airport details /airports/<code>-tsa-wait-times"]
   Home --> Directory["Airport directory /airports"]
   Home --> Calculator["Leave-time tool /when-should-i-leave"]
   Directory --> Airport
+  Directory --> LAS
+  LAS --> ArrivalAPI["Arrival Mode API /api/airport-arrival-mode?airport=LAS"]
+  LAS -->|"airport + checkpoint + lane"| CheckpointCalculator["Checkpoint-aware calculator /when-should-i-leave"]
+  CheckpointCalculator --> History["Airport and checkpoint history APIs"]
   Airport --> History["Airport and checkpoint history APIs"]
   Calculator --> History
+  LAS --> Guides["Official sources and related airports"]
   Airport --> Guides["Official sources and related airports"]
 ```
 

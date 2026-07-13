@@ -31,6 +31,7 @@
   var AIRPORT_REVEAL_HOLD_MS = 1500;
   var AIRPORT_REVEAL_TILE_WAIT_MS = 1200;
   var AIRPORT_REVEAL_FALLBACK_MS = 5000;
+  var AIRPORT_HANDOFF_KEY = "tsaAirportHandoffV1";
   var LABEL_LAYOUT = {
     BOS: { side: "left", y: -10 },
     DCA: { side: "left", y: 14 },
@@ -402,6 +403,21 @@
     window.location.assign(airport.href);
   }
 
+  function storeAirportHandoff(airport, zoom) {
+    try {
+      window.sessionStorage.setItem(AIRPORT_HANDOFF_KEY, JSON.stringify({
+        version: 1,
+        code: airport.code,
+        center: [airport.lat, airport.lng],
+        zoom: zoom,
+        startedAt: Date.now(),
+        source: "home-map"
+      }));
+    } catch (_error) {
+      // Storage can be unavailable in private or locked-down browsing contexts.
+    }
+  }
+
   function clearHandoffTimers() {
     window.clearTimeout(navigationTimer);
     window.clearTimeout(revealTimer);
@@ -446,6 +462,7 @@
       marker.classList.toggle("is-departure-target", code === airport.code);
     });
     var targetZoom = Math.min(AIRPORT_REVEAL_ZOOM, map.getMaxZoom());
+    storeAirportHandoff(airport, targetZoom);
     stage.dataset.revealCode = airport.code;
     stage.dataset.revealZoom = String(targetZoom);
     if (status) {

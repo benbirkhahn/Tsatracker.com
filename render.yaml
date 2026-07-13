@@ -17,6 +17,8 @@ services:
         value: "true"
       - key: POLL_SECONDS
         value: "120"
+      - key: AIRPORT_ARRIVAL_MODE_CODES
+        value: "LAS"
       - key: SUPABASE_SAMPLE_MINUTES
         value: "10"
       - key: DB_PATH

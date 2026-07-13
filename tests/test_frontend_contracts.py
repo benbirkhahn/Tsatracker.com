@@ -6,9 +6,10 @@ import sys
 import tempfile
 import unittest
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from html.parser import HTMLParser
 from pathlib import Path
+from unittest.mock import patch
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -53,6 +54,7 @@ class ParsedDocument(HTMLParser):
         self.description = None
         self.elements = []
         self.hrefs = []
+        self.h1_count = 0
         self.h1_parts = []
         self.json_ld = []
         self.script_blocks = {}
@@ -86,6 +88,7 @@ class ParsedDocument(HTMLParser):
         elif tag == "title":
             self._in_title = True
         elif tag == "h1":
+            self.h1_count += 1
             self._in_h1 = True
         elif tag == "script" and attributes.get("type", "").lower() == "application/ld+json":
             self._in_json_ld = True
@@ -142,6 +145,7 @@ class FrontendContractTests(unittest.TestCase):
                 "ADSENSE_SLOT_MULTIPLEX",
                 "SKIMLINKS_SCRIPT_URL",
                 "ENABLE_INTERNAL_GRAPH",
+                "AIRPORT_ARRIVAL_MODE_CODES",
             )
         }
         os.environ.update(
@@ -159,6 +163,7 @@ class FrontendContractTests(unittest.TestCase):
                 "ADSENSE_SLOT_MULTIPLEX": "",
                 "SKIMLINKS_SCRIPT_URL": "",
                 "ENABLE_INTERNAL_GRAPH": "false",
+                "AIRPORT_ARRIVAL_MODE_CODES": "LAS",
             }
         )
 
@@ -449,6 +454,41 @@ class FrontendContractTests(unittest.TestCase):
         self.assertRegex(source, r'addEventListener\(\s*["\']focus["\']')
         self.assertRegex(source, r'addEventListener\(\s*["\']click["\']')
 
+    def test_homepage_airport_handoff_contract_is_versioned_and_storage_safe(self):
+        html, document = self.get_html("/")
+        map_script = next(
+            attrs["src"]
+            for tag, attrs in document.elements
+            if tag == "script"
+            and attrs.get("src", "").split("?", 1)[0] == "/static/home-map.js"
+        )
+        response = self.client.get(map_script)
+        self.assertEqual(response.status_code, 200)
+        source = response.get_data(as_text=True)
+        response.close()
+
+        self.assertNotIn("tsaAirportHandoffV1", html)
+        for token in (
+            'AIRPORT_HANDOFF_KEY = "tsaAirportHandoffV1"',
+            "window.sessionStorage.setItem(AIRPORT_HANDOFF_KEY",
+            "version: 1",
+            "code: airport.code",
+            "center: [airport.lat, airport.lng]",
+            "zoom: zoom",
+            "startedAt: Date.now()",
+            'source: "home-map"',
+            "storeAirportHandoff(airport, targetZoom)",
+        ):
+            self.assertIn(token, source)
+        self.assertRegex(
+            source,
+            r"function storeAirportHandoff\([^)]*\)\s*\{[\s\S]*?try\s*\{[\s\S]*?sessionStorage\.setItem[\s\S]*?catch\s*\(",
+        )
+        self.assertLess(
+            source.index("storeAirportHandoff(airport, targetZoom)"),
+            source.index("map.flyTo([airport.lat, airport.lng], targetZoom"),
+        )
+
     def test_airport_pages_reference_matching_history_apis(self):
         for code, route in self.airport_routes.items():
             with self.subTest(code=code, route=route):
@@ -539,6 +579,113 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("/when-should-i-leave", nodes)
         self.assertGreaterEqual(len(inbound), 4)
 
+    def test_calculator_deep_link_validates_checkpoint_and_lane_context(self):
+        def selection_for(query):
+            html, _ = self.get_html(f"/when-should-i-leave?{query}")
+            match = re.search(
+                r"var CALCULATOR_SELECTION = (\{.*?\});", html, re.DOTALL
+            )
+            self.assertIsNotNone(match)
+            return json.loads(match.group(1)), html
+
+        valid, valid_html = selection_for(
+            "airport=las&checkpoint=las-t1-ab&lane=standard"
+        )
+        self.assertEqual(
+            valid,
+            {
+                "airport": "LAS",
+                "checkpoint": "las-t1-ab",
+                "lane": "STANDARD",
+            },
+        )
+        checkpoint_payload = re.search(
+            r"var CALCULATOR_CHECKPOINTS = (\{.*?\});\s*var hourlyCache",
+            valid_html,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(checkpoint_payload)
+        calculator_model = json.loads(checkpoint_payload.group(1))
+        self.assertEqual(calculator_model["schema_version"], 1)
+        self.assertEqual(calculator_model["code"], "LAS")
+        self.assertEqual(
+            {
+                checkpoint["id"]
+                for terminal in calculator_model["terminals"]
+                for checkpoint in terminal["checkpoints"]
+            },
+            {
+                "las-t1-ab",
+                "las-t1-c",
+                "las-t1-cd",
+                "las-t3-de",
+                "las-t3-innovation",
+            },
+        )
+
+        invalid_checkpoint, _ = selection_for(
+            "airport=LAS&checkpoint=not-configured&lane=PRECHECK"
+        )
+        self.assertEqual(
+            invalid_checkpoint,
+            {"airport": "LAS", "checkpoint": "", "lane": ""},
+        )
+        mismatched_airport, _ = selection_for(
+            "airport=PHL&checkpoint=las-t1-ab&lane=STANDARD"
+        )
+        self.assertEqual(
+            mismatched_airport,
+            {"airport": "PHL", "checkpoint": "", "lane": ""},
+        )
+        invalid_airport, _ = selection_for(
+            "airport=XYZ&checkpoint=las-t1-ab&lane=STANDARD"
+        )
+        self.assertEqual(
+            invalid_airport,
+            {"airport": "", "checkpoint": "", "lane": ""},
+        )
+        invalid_airport_lane, _ = selection_for("airport=XYZ&lane=PRECHECK")
+        self.assertEqual(
+            invalid_airport_lane,
+            {"airport": "", "checkpoint": "", "lane": ""},
+        )
+        invalid_lane, invalid_lane_html = selection_for(
+            "airport=LAS&checkpoint=las-t1-ab&lane=CLEAR"
+        )
+        self.assertEqual(
+            invalid_lane,
+            {"airport": "LAS", "checkpoint": "", "lane": ""},
+        )
+
+        for token in (
+            "activeCheckpointSelection",
+            'reading.freshness==="live" || reading.freshness==="aging"',
+            "fallback.fallbackReason=reading.freshness",
+            "checkpointLabel(source.checkpoint)",
+            "reconcileCheckpointSelection()",
+            "if(code!==activeCheckpointSelection.airport)",
+            "if(lane!==activeCheckpointSelection.lane)",
+        ):
+            self.assertIn(token, valid_html)
+        self.assertNotIn('"lane": "CLEAR"', invalid_lane_html)
+
+    def test_calculator_checkpoint_model_uses_html_safe_json(self):
+        malicious = "</script><script>window.__arrival_xss__=true</script>"
+        model = {
+            "schema_version": 1,
+            "code": "LAS",
+            "terminals": [],
+            "unmatched_readings": [{"checkpoint": malicious}],
+        }
+        with patch.object(
+            self.app_module, "build_airport_arrival_mode", return_value=model
+        ), patch.object(self.app_module, "history_for_airport", return_value=[]):
+            html, _ = self.get_html("/when-should-i-leave?airport=LAS")
+
+        self.assertNotIn(malicious, html)
+        self.assertNotIn("window.__arrival_xss__=true</script>", html)
+        self.assertIn(r"\u003c/script\u003e", html)
+
     def test_sitemap_keeps_editorial_dates_stable(self):
         namespace = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 
@@ -617,16 +764,606 @@ class FrontendContractTests(unittest.TestCase):
         self.assertEqual(nodes["las-t3-innovation"]["status"], "not_reporting")
         self.assertEqual([row["checkpoint"] for row in decision_map["unmatched_rows"]], ["Unmapped checkpoint"])
 
-    def test_decision_map_renders_only_for_las(self):
-        las_html, _ = self.get_html(self.airport_routes["LAS"])
-        self.assertIn("data-decision-map", las_html)
-        self.assertIn("LAS TSA checkpoint map", las_html)
-        self.assertIn("Published checkpoint; no separate reading", las_html)
-        self.assertIn("airport-decision-map.js", las_html)
+    def test_las_arrival_mode_model_schema_freshness_and_location_contract(self):
+        now = datetime(2026, 7, 10, 20, 0, tzinfo=timezone.utc)
 
-        other_html, _ = self.get_html(self.airport_routes["PHL"])
-        self.assertNotIn("data-decision-map", other_html)
-        self.assertNotIn("airport-decision-map.js", other_html)
+        def captured(minutes=0, seconds=0):
+            return (now - timedelta(minutes=minutes, seconds=seconds)).isoformat()
+
+        rows = [
+            {
+                "checkpoint": "T1 - A/B Gates",
+                "lane_type": "STANDARD",
+                "wait_minutes": 0,
+                "captured_at": captured(minutes=5),
+                "source": "https://source.test/las",
+            },
+            {
+                "checkpoint": "Terminal 1 - C Gates",
+                "lane_type": "STANDARD",
+                "wait_minutes": 9,
+                "captured_at": captured(minutes=6),
+            },
+            {
+                "checkpoint": "T1 - C/D Gates",
+                "lane_type": "STANDARD",
+                "wait_minutes": 15,
+                "captured_at": captured(minutes=15),
+            },
+            {
+                "checkpoint": "T3 - D/E Gates",
+                "lane_type": "STANDARD",
+                "wait_minutes": 42,
+                "captured_at": captured(minutes=15, seconds=1),
+            },
+            {
+                "checkpoint": "Unmapped checkpoint",
+                "lane_type": "STANDARD",
+                "wait_minutes": 7,
+                "captured_at": captured(),
+            },
+        ]
+        model = self.app_module.build_airport_arrival_mode(
+            "las", rows=rows, history_rows=[], now=now
+        )
+
+        self.assertEqual(model["schema_version"], 1)
+        self.assertEqual(model["refresh_seconds"], 120)
+        self.assertEqual(model["airport"]["code"], "LAS")
+        self.assertEqual(model["code"], "LAS")
+        self.assertEqual(model["generated_at"], now.isoformat())
+        self.assertEqual(model["lane_types"], ["STANDARD", "PRECHECK"])
+        self.assertEqual(model["source_status"], "live")
+        self.assertEqual(model["source"]["verified_on"], "2026-07-10")
+
+        map_config = model["map"]
+        self.assertEqual(len(map_config["center"]), 2)
+        self.assertEqual(len(map_config["bounds"]), 2)
+        self.assertTrue(all(len(corner) == 2 for corner in map_config["bounds"]))
+        self.assertGreater(map_config["detail_zoom"], map_config["overview_zoom"])
+        self.assertEqual(map_config["location_accuracy"], "airport_overview")
+        self.assertIn("USGSImageryOnly", map_config["tile_url"])
+
+        self.assertEqual(len(model["terminals"]), 2)
+        self.assertEqual({terminal["id"] for terminal in model["terminals"]}, {"t1", "t3"})
+        for terminal in model["terminals"]:
+            with self.subTest(terminal=terminal["id"]):
+                self.assertEqual(len(terminal["anchor"]), 2)
+                self.assertEqual(
+                    terminal["location_accuracy"], "terminal_curb_anchor"
+                )
+
+        checkpoints = {
+            checkpoint["id"]: checkpoint
+            for terminal in model["terminals"]
+            for checkpoint in terminal["checkpoints"]
+        }
+        self.assertEqual(
+            set(checkpoints),
+            {
+                "las-t1-ab",
+                "las-t1-c",
+                "las-t1-cd",
+                "las-t3-de",
+                "las-t3-innovation",
+            },
+        )
+        for checkpoint in checkpoints.values():
+            self.assertTrue(checkpoint["hours"])
+            self.assertNotIn("anchor", checkpoint)
+            self.assertNotIn("is_open", checkpoint)
+            self.assertNotIn("closed", checkpoint)
+
+        lanes = {
+            (checkpoint_id, lane["lane_type"]): lane
+            for checkpoint_id, checkpoint in checkpoints.items()
+            for lane in checkpoint["lanes"]
+        }
+        self.assertEqual(lanes[("las-t1-ab", "STANDARD")]["freshness_status"], "live")
+        self.assertEqual(lanes[("las-t1-ab", "STANDARD")]["wait_minutes"], 0)
+        self.assertEqual(
+            lanes[("las-t1-ab", "PRECHECK")]["freshness_status"],
+            "no_current_reading",
+        )
+        self.assertIsNone(lanes[("las-t1-ab", "PRECHECK")]["wait_minutes"])
+        self.assertEqual(lanes[("las-t1-c", "STANDARD")]["freshness_status"], "aging")
+        self.assertEqual(lanes[("las-t1-cd", "STANDARD")]["freshness_status"], "aging")
+        self.assertEqual(lanes[("las-t3-de", "STANDARD")]["freshness_status"], "stale")
+        self.assertIsNone(lanes[("las-t3-de", "STANDARD")]["wait_minutes"])
+        for lane_type in ("STANDARD", "PRECHECK"):
+            self.assertEqual(
+                lanes[("las-t3-innovation", lane_type)]["freshness_status"],
+                "published_only",
+            )
+            self.assertIsNone(
+                lanes[("las-t3-innovation", lane_type)]["wait_minutes"]
+            )
+
+        self.assertEqual(model["fastest_fresh_reading"]["checkpoint_id"], "las-t1-ab")
+        self.assertEqual(model["fastest_fresh_reading"]["wait_minutes"], 0)
+        self.assertEqual(
+            [row["checkpoint"] for row in model["unmatched_readings"]],
+            ["Unmapped checkpoint"],
+        )
+        self.assertEqual(model["unmatched_rows"], model["unmatched_readings"])
+
+    def test_las_arrival_mode_trends_remain_checkpoint_and_lane_separated(self):
+        now = datetime(2026, 7, 10, 20, 0, tzinfo=timezone.utc)
+        rows = [
+            {
+                "checkpoint": "T1 - A/B Gates",
+                "lane_type": "STANDARD",
+                "wait_minutes": 12,
+                "captured_at": (now - timedelta(minutes=2)).isoformat(),
+            },
+            {
+                "checkpoint": "T1 - A/B Gates",
+                "lane_type": "PRECHECK",
+                "wait_minutes": 3,
+                "captured_at": (now - timedelta(minutes=2)).isoformat(),
+            },
+        ]
+        history_rows = [
+            {
+                "checkpoint": "Terminal 1 - A/B Gates",
+                "lane_type": "STANDARD",
+                "wait_minutes": 5,
+                "captured_at": (now - timedelta(minutes=30)).isoformat(),
+            },
+            {
+                "checkpoint": "T1 - A/B Gates",
+                "lane_type": "STANDARD",
+                "wait_minutes": 12,
+                "captured_at": (now - timedelta(minutes=20)).isoformat(),
+            },
+            {
+                "checkpoint": "Terminal 1 - A/B Gates",
+                "lane_type": "PRECHECK",
+                "wait_minutes": 10,
+                "captured_at": (now - timedelta(minutes=30)).isoformat(),
+            },
+            {
+                "checkpoint": "T1 - A/B Gates",
+                "lane_type": "PRECHECK",
+                "wait_minutes": 3,
+                "captured_at": (now - timedelta(minutes=20)).isoformat(),
+            },
+        ]
+        model = self.app_module.build_airport_arrival_mode(
+            "LAS", rows=rows, history_rows=history_rows, now=now
+        )
+        checkpoint = next(
+            checkpoint
+            for terminal in model["terminals"]
+            for checkpoint in terminal["checkpoints"]
+            if checkpoint["id"] == "las-t1-ab"
+        )
+        lanes = {lane["lane_type"]: lane for lane in checkpoint["lanes"]}
+        self.assertEqual(lanes["STANDARD"]["wait_minutes"], 12)
+        self.assertEqual(lanes["STANDARD"]["trend"], "rising")
+        self.assertEqual(lanes["STANDARD"]["trend_delta"], 7)
+        self.assertEqual(lanes["PRECHECK"]["wait_minutes"], 3)
+        self.assertEqual(lanes["PRECHECK"]["trend"], "falling")
+        self.assertEqual(lanes["PRECHECK"]["trend_delta"], -7)
+
+    def test_supabase_history_contract_retains_and_groups_lane_type(self):
+        supabase_module = importlib.import_module("supabase_integration")
+        captured_at = "2026-07-10T12:00:00+00:00"
+        raw_rows = [
+            {
+                "checkpoint": "T1 - A/B Gates",
+                "lane_type": "STANDARD",
+                "wait_minutes": 20,
+                "captured_at": captured_at,
+            },
+            {
+                "checkpoint": "T1 - A/B Gates",
+                "lane_type": "PRECHECK",
+                "wait_minutes": 4,
+                "captured_at": captured_at,
+            },
+        ]
+        aggregate_rows = [
+            {
+                "checkpoint": "T1 - A/B Gates",
+                "lane_type": "STANDARD",
+                "wait_sum": 40,
+                "sample_count": 2,
+                "hour_bucket": captured_at,
+            },
+            {
+                "checkpoint": "T1 - A/B Gates",
+                "lane_type": "PRECHECK",
+                "wait_sum": 8,
+                "sample_count": 2,
+                "hour_bucket": captured_at,
+            },
+        ]
+        with patch.object(
+            supabase_module, "init_supabase", return_value=object()
+        ), patch.object(
+            supabase_module, "_select_historical_samples", return_value=raw_rows
+        ) as raw_select, patch.object(
+            supabase_module,
+            "_select_historical_hourly_aggregates",
+            return_value=aggregate_rows,
+        ):
+            history_rows = supabase_module.supabase_history_rows("LAS")
+            self.assertEqual(history_rows, raw_rows)
+            self.assertIn("lane_type", raw_select.call_args.kwargs["columns"])
+
+            groups = supabase_module.supabase_checkpoint_24h_average(
+                "LAS", time_zone_name="UTC"
+            )
+
+        by_lane = {group["lane_type"]: group for group in groups}
+        self.assertEqual(set(by_lane), {"STANDARD", "PRECHECK"})
+        standard_noon = by_lane["STANDARD"]["rows"][12]
+        precheck_noon = by_lane["PRECHECK"]["rows"][12]
+        self.assertEqual(standard_noon["avg_wait"], 20)
+        self.assertEqual(standard_noon["samples"], 3)
+        self.assertEqual(precheck_noon["avg_wait"], 4)
+        self.assertEqual(precheck_noon["samples"], 3)
+        self.assertIn("lane_type", raw_select.call_args.kwargs["columns"])
+
+    def test_las_collector_skips_missing_waits_but_preserves_numeric_zero(self):
+        timestamp_ms = 1783713600000
+        init_payload = [
+            {
+                "result": {
+                    "data": {
+                        "journeys": {
+                            "journey-one": {"name": "T1 - A/B Gates"}
+                        }
+                    }
+                }
+            }
+        ]
+        update_payload = [
+            {
+                "result": {
+                    "data": {
+                        "paths": {
+                            "standard": {
+                                "open": True,
+                                "waitTime": {
+                                    "value": 0,
+                                    "timestamp": timestamp_ms,
+                                },
+                            },
+                            "precheck": {
+                                "open": True,
+                                "waitTime": {
+                                    "value": None,
+                                    "timestamp": timestamp_ms,
+                                },
+                            },
+                            "missing": {"open": True, "waitTime": {}},
+                        }
+                    }
+                }
+            }
+        ]
+
+        class Response:
+            def __init__(self, payload):
+                self.payload = payload
+
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return self.payload
+
+        with patch.object(
+            self.app_module.requests,
+            "get",
+            side_effect=[Response(init_payload), Response(update_payload)],
+        ):
+            rows = self.app_module.fetch_las_rows()
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["checkpoint"], "T1 - A/B Gates")
+        self.assertEqual(rows[0]["lane_type"], "STANDARD")
+        self.assertEqual(rows[0]["wait_minutes"], 0)
+
+    def test_las_arrival_api_validates_airports_and_feature_allowlist(self):
+        now = self.app_module.utc_now()
+        rows = [
+            {
+                "checkpoint": "T1 - A/B Gates",
+                "lane_type": "STANDARD",
+                "wait_minutes": 3,
+                "captured_at": now.isoformat(),
+            }
+        ]
+        module = self.app_module
+        original_codes = module.AIRPORT_ARRIVAL_MODE_CODES
+        try:
+            module.AIRPORT_ARRIVAL_MODE_CODES = {"LAS"}
+            with patch.object(module, "latest_for_code", return_value=rows), patch.object(
+                module, "history_for_airport", return_value=rows
+            ):
+                response = self.client.get("/api/airport-arrival-mode?airport=las")
+                self.assertEqual(response.status_code, 200)
+                payload = response.get_json()
+                self.assertEqual(payload["schema_version"], 1)
+                self.assertEqual(payload["airport"]["code"], "LAS")
+                self.assertEqual(payload["refresh_seconds"], 120)
+
+            self.assertEqual(
+                self.client.get("/api/airport-arrival-mode").status_code, 400
+            )
+            self.assertEqual(
+                self.client.get("/api/airport-arrival-mode?airport=XYZ").status_code,
+                400,
+            )
+            self.assertEqual(
+                self.client.get("/api/airport-arrival-mode?airport=PHL").status_code,
+                404,
+            )
+
+            module.AIRPORT_ARRIVAL_MODE_CODES = set()
+            self.assertEqual(
+                self.client.get("/api/airport-arrival-mode?airport=LAS").status_code,
+                404,
+            )
+        finally:
+            module.AIRPORT_ARRIVAL_MODE_CODES = original_codes
+
+    def test_arrival_mode_survives_history_dependency_failure(self):
+        module = self.app_module
+        original_codes = module.AIRPORT_ARRIVAL_MODE_CODES
+        try:
+            module.AIRPORT_ARRIVAL_MODE_CODES = {"LAS"}
+            with patch.object(
+                module,
+                "history_for_airport",
+                side_effect=RuntimeError("history unavailable"),
+            ):
+                html, _ = self.get_html(self.airport_routes["LAS"])
+                self.assertIn("data-airport-arrival-mode", html)
+                self.assertNotIn("data-decision-map", html)
+
+                api_response = self.client.get(
+                    "/api/airport-arrival-mode?airport=LAS"
+                )
+                self.assertEqual(api_response.status_code, 200)
+                self.assertEqual(api_response.get_json()["schema_version"], 1)
+
+                calculator_html, _ = self.get_html(
+                    "/when-should-i-leave?airport=LAS&checkpoint=las-t1-ab&lane=STANDARD"
+                )
+                self.assertIn("var CALCULATOR_CHECKPOINTS", calculator_html)
+        finally:
+            module.AIRPORT_ARRIVAL_MODE_CODES = original_codes
+
+    def test_arrival_mode_renders_once_for_las_and_preserves_page_contracts(self):
+        now = self.app_module.utc_now()
+        rows = [
+            {
+                "checkpoint": "T1 - A/B Gates",
+                "lane_type": "STANDARD",
+                "wait_minutes": 0,
+                "captured_at": now.isoformat(),
+                "source": "https://source.test/las",
+            }
+        ]
+        module = self.app_module
+        original_codes = module.AIRPORT_ARRIVAL_MODE_CODES
+        try:
+            module.AIRPORT_ARRIVAL_MODE_CODES = {"LAS"}
+            with patch.object(module, "latest_for_code", return_value=rows), patch.object(
+                module, "history_for_airport", return_value=rows
+            ):
+                las_html, las_document = self.get_html(self.airport_routes["LAS"])
+
+            arrivals = [
+                attrs
+                for tag, attrs in las_document.elements
+                if tag == "section" and "data-airport-arrival-mode" in attrs
+            ]
+            self.assertEqual(len(arrivals), 1)
+            self.assertEqual(arrivals[0].get("data-airport-code"), "LAS")
+            self.assertEqual(las_document.h1_count, 1)
+            self.assertIn("LAS TSA wait times", las_document.h1)
+            self.assertEqual(
+                las_document.canonical_hrefs,
+                [f"{module.SITE_URL}{self.airport_routes['LAS']}"],
+            )
+            schema_types = {item.get("@type") for item in las_document.json_ld}
+            self.assertIn("BreadcrumbList", schema_types)
+            self.assertIn("WebPage", schema_types)
+            self.assertIn("Raw checkpoint readings", las_html)
+            self.assertIn("data-arrival-raw-feed", las_html)
+            self.assertIn("T1 - A/B Gates", las_html)
+            self.assertIn(
+                "/api/history-24h-average?airport=LAS&days=30", las_html
+            )
+            self.assertIn(
+                "/api/checkpoint-history-24h-average?airport=LAS&days=30",
+                las_html,
+            )
+            self.assertIn("airport-arrival-mode-data", las_html)
+            self.assertEqual(
+                len(
+                    re.findall(
+                        r'<script[^>]+src="/static/airport-decision-map\.js\?v=[^"]+"',
+                        las_html,
+                    )
+                ),
+                1,
+            )
+            self.assertEqual(
+                len(
+                    re.findall(
+                        r'<link[^>]+href="/static/tracker\.css\?v=[^"]+"',
+                        las_html,
+                    )
+                ),
+                1,
+            )
+            self.assertIn("Satellite terminal view", las_html)
+            self.assertIn("Hours are published reference windows", las_html)
+            self.assertIn("not an “open now” calculation", las_html)
+
+            phl_html, phl_document = self.get_html(self.airport_routes["PHL"])
+            self.assertEqual(phl_document.h1_count, 1)
+            self.assertNotIn("data-airport-arrival-mode", phl_html)
+            self.assertNotIn("airport-arrival-mode-data", phl_html)
+            self.assertNotIn("airport-decision-map.js", phl_html)
+            self.assertNotIn("leaflet.css", phl_html)
+            self.assertNotRegex(phl_html, r"/static/tracker\.css\?v=")
+        finally:
+            module.AIRPORT_ARRIVAL_MODE_CODES = original_codes
+
+    def test_arrival_mode_controls_and_assets_have_accessible_fallback_contracts(self):
+        html, document = self.get_html(self.airport_routes["LAS"])
+
+        marker_buttons = [
+            attrs
+            for tag, attrs in document.elements
+            if tag == "button" and "data-arrival-terminal-marker" in attrs
+        ]
+        checkpoint_buttons = [
+            attrs
+            for tag, attrs in document.elements
+            if tag == "button" and "data-arrival-checkpoint-choice" in attrs
+        ]
+        self.assertEqual(len(marker_buttons), 2)
+        self.assertEqual(len(checkpoint_buttons), 5)
+        for attrs in marker_buttons + checkpoint_buttons:
+            self.assertEqual(attrs.get("type"), "button")
+            self.assertTrue(attrs.get("aria-label"))
+            self.assertEqual(attrs.get("aria-pressed"), "false")
+
+        by_attribute = {
+            key: attrs
+            for tag, attrs in document.elements
+            for key in (
+                "data-arrival-map-expand",
+                "data-arrival-map-done",
+                "data-arrival-sheet-toggle",
+            )
+            if tag == "button" and key in attrs
+        }
+        self.assertEqual(
+            set(by_attribute),
+            {
+                "data-arrival-map-expand",
+                "data-arrival-map-done",
+                "data-arrival-sheet-toggle",
+            },
+        )
+        self.assertEqual(
+            by_attribute["data-arrival-map-expand"].get("aria-expanded"),
+            "false",
+        )
+        self.assertEqual(
+            by_attribute["data-arrival-sheet-toggle"].get("aria-expanded"),
+            "false",
+        )
+        self.assertTrue(
+            by_attribute["data-arrival-map-done"].get("aria-label")
+        )
+
+        status = next(
+            attrs
+            for tag, attrs in document.elements
+            if attrs.get("id") == "arrival-map-status"
+        )
+        self.assertEqual(status.get("role"), "status")
+        self.assertEqual(status.get("aria-live"), "polite")
+        self.assertIn("data-arrival-map-fallback", html)
+        self.assertIn("<noscript>", html)
+        self.assertIn("Satellite view requires JavaScript.", html)
+        self.assertIn("data-arrival-calculator-link", html)
+
+        script_src = next(
+            attrs["src"]
+            for tag, attrs in document.elements
+            if tag == "script"
+            and attrs.get("src", "").split("?", 1)[0]
+            == "/static/airport-decision-map.js"
+        )
+        response = self.client.get(script_src)
+        self.assertEqual(response.status_code, 200)
+        source = response.get_data(as_text=True)
+        response.close()
+        for token in (
+            '[data-airport-arrival-mode]',
+            '[data-decision-map]',
+            'HANDOFF_KEY = "tsaAirportHandoffV1"',
+            "HANDOFF_MAX_AGE_MS = 10000",
+            "window.sessionStorage.getItem(HANDOFF_KEY)",
+            "window.sessionStorage.removeItem(HANDOFF_KEY)",
+            'source !== "home-map"',
+            '(prefers-reduced-motion: reduce)',
+            'event.key !== "Escape"',
+            'document.body.classList.toggle("arrival-map-is-expanded"',
+            'setBackgroundInert(',
+            'focusTarget.focus()',
+            'setSheetDetailed(false)',
+            'showMapFallback(',
+            'mapUnavailable = true',
+            'expandButton.hidden = mapUnavailable',
+            'imagery.on("tileerror"',
+            'map.setView(handoff.center',
+            'map.flyTo(anchor, detailZoom()',
+            'button.setAttribute("aria-pressed"',
+            'waitTier(wait)',
+            'currentWait.className = "arrival-current-wait"',
+            '/api/airport-arrival-mode?airport=',
+            'startRefreshTimer()',
+        ):
+            self.assertIn(token, source)
+
+        stylesheet_src = next(
+            attrs["href"]
+            for tag, attrs in document.elements
+            if tag == "link"
+            and attrs.get("href", "").split("?", 1)[0] == "/static/tracker.css"
+        )
+        response = self.client.get(stylesheet_src)
+        self.assertEqual(response.status_code, 200)
+        css = response.get_data(as_text=True)
+        response.close()
+        for pattern in (
+            r"\.arrival-terminal-marker\s*\{[^}]*min-height:\s*(?:4[4-9]|[5-9]\d)px",
+            r"\.arrival-checkpoint-choice\s*\{[^}]*min-height:\s*(?:4[4-9]|[5-9]\d)px",
+            r"\.arrival-map-zoom button\s*\{[^}]*min-width:\s*44px[^}]*min-height:\s*44px",
+            r"\.arrival-map-expand,\s*\.arrival-map-done\s*\{[^}]*min-height:\s*44px",
+            r"body\.arrival-map-is-expanded\s*\{[^}]*overflow:\s*hidden",
+            r"\.airport-arrival-mode\.is-mobile-embedded \.arrival-map-canvas\s*\{[^}]*touch-action:\s*pan-y",
+        ):
+            self.assertRegex(css, pattern)
+
+    def test_empty_arrival_allowlist_restores_legacy_las_experience(self):
+        module = self.app_module
+        original_codes = module.AIRPORT_ARRIVAL_MODE_CODES
+        try:
+            module.AIRPORT_ARRIVAL_MODE_CODES = set()
+            html, document = self.get_html(self.airport_routes["LAS"])
+            self.assertEqual(document.h1_count, 1)
+            self.assertNotIn("data-airport-arrival-mode", html)
+            self.assertNotIn("airport-arrival-mode-data", html)
+            self.assertIn("data-decision-map", html)
+            self.assertIn("LAS TSA checkpoint map", html)
+            self.assertIn("airport-decision-map.js", html)
+            script_src = next(
+                attrs["src"]
+                for tag, attrs in document.elements
+                if tag == "script"
+                and attrs.get("src", "").split("?", 1)[0]
+                == "/static/airport-decision-map.js"
+            )
+            response = self.client.get(script_src)
+            source = response.get_data(as_text=True)
+            response.close()
+            self.assertIn('document.querySelector("[data-decision-map]")', source)
+            self.assertIn('form.addEventListener("change", update)', source)
+        finally:
+            module.AIRPORT_ARRIVAL_MODE_CODES = original_codes
 
     def test_default_routes_have_no_monetization_code(self):
         routes = list(CORE_ROUTES) + list(self.airport_routes.values())
