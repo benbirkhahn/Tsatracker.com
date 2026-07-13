@@ -354,6 +354,37 @@ class FrontendContractTests(unittest.TestCase):
         for attrs in zoom_buttons:
             self.assertEqual(attrs.get("aria-controls"), "airport-map")
 
+        expand_controls = [
+            attrs
+            for tag, attrs in document.elements
+            if tag == "button" and "data-map-expand" in attrs
+        ]
+        exit_controls = [
+            attrs
+            for tag, attrs in document.elements
+            if tag == "button" and "data-map-exit" in attrs
+        ]
+        self.assertEqual(len(expand_controls), 1)
+        self.assertEqual(len(exit_controls), 1)
+        self.assertEqual(expand_controls[0].get("type"), "button")
+        self.assertEqual(expand_controls[0].get("aria-controls"), "airport-map")
+        self.assertEqual(expand_controls[0].get("aria-expanded"), "false")
+        self.assertIn("hidden", expand_controls[0])
+        self.assertEqual(exit_controls[0].get("type"), "button")
+        self.assertEqual(exit_controls[0].get("aria-controls"), "airport-map")
+        self.assertEqual(exit_controls[0].get("aria-label"), "Exit expanded map")
+        self.assertIn("hidden", exit_controls[0])
+
+        fly_in_links = [
+            attrs
+            for tag, attrs in document.elements
+            if tag == "a" and "data-map-preview-fly-in" in attrs
+        ]
+        self.assertEqual(len(fly_in_links), 1)
+        self.assertIn("data-map-preview-link", fly_in_links[0])
+        self.assertIn("data-map-airport-link", fly_in_links[0])
+        self.assertEqual(fly_in_links[0].get("href"), "/airports/jfk-tsa-wait-times")
+
         board_rows = [
             attrs
             for tag, attrs in document.elements
@@ -407,6 +438,11 @@ class FrontendContractTests(unittest.TestCase):
             'AIRPORT_REVEAL_FALLBACK_MS = 5000',
             'imagery.isLoading()',
             'stage.dataset.revealCode',
+            '[data-map-expand]',
+            '[data-map-exit]',
+            'setMapExpanded',
+            'map.invalidateSize',
+            'is-mobile-embedded',
         ):
             self.assertIn(token, source)
         self.assertRegex(source, r'addEventListener\(\s*["\']pointerenter["\']')

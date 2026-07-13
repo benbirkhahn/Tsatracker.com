@@ -106,6 +106,18 @@
              aria-describedby="airport-map-help"></div>
         <p class="sr-only" id="airport-map-help">Drag to move the map. Scroll, pinch, double-click, or use the zoom buttons to change scale. With the map focused, use arrow keys to pan and plus or minus to zoom.</p>
 
+        <button class="airport-map-expand" type="button" data-map-expand aria-controls="airport-map" aria-expanded="false" hidden>
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"></path>
+          </svg>
+          Explore map
+        </button>
+
+        <button class="airport-map-exit" type="button" data-map-exit aria-controls="airport-map" aria-label="Exit expanded map" hidden>
+          Done
+          <span aria-hidden="true">×</span>
+        </button>
+
         <div class="airport-map-controls" data-map-zoom-controls role="group" aria-label="Map zoom controls" hidden>
           <button type="button" data-map-zoom-out aria-label="Zoom map out" aria-controls="airport-map">
             <span aria-hidden="true">−</span>
@@ -140,6 +152,8 @@
              data-updated="{{ a.updated_at }}"
              data-search="{{ a.code|lower }} {{ a.city|lower }} {{ a.name|lower }}"
              {% if a.code in ['JFK', 'LGA', 'EWR'] %}data-nyc-member="true"{% endif %}
+             aria-controls="airport-map-preview"
+             aria-expanded="false"
              aria-label="{{ a.code }}, {{ a.city or a.name }}, {{ a.wait_description }}, {{ (a.trend ~ ', live official feed') if a.is_live else 'estimated fallback' }}">
             <span class="airport-map-marker-halo" aria-hidden="true"></span>
             <span class="airport-map-marker-dot" aria-hidden="true"></span>
@@ -166,7 +180,7 @@
           <p class="airport-map-preview-wait"><strong data-map-preview-wait>18 min</strong><span data-map-preview-trend>rising</span></p>
           <p class="airport-map-preview-source" data-map-preview-source>Live / official feed</p>
           <p class="airport-map-preview-updated" data-map-preview-updated></p>
-          <a href="/airports/jfk-tsa-wait-times" data-map-preview-link data-map-airport-link><span>Open <strong data-map-preview-link-code>JFK</strong> details</span>
+          <a href="/airports/jfk-tsa-wait-times" data-map-preview-link data-map-preview-fly-in data-map-airport-link><span>Fly into <strong data-map-preview-link-code>JFK</strong></span>
             <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
           </a>
         </aside>
@@ -180,7 +194,7 @@
       </div>
 
       <div class="network-map-mobile-bar">
-        <span>Drag or pinch the map. Tap a marker to preview.</span>
+        <span>Tap an airport, or expand the map to pan and pinch.</span>
         <a href="#live-board-title">View all tracked airports
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
         </a>
@@ -327,7 +341,7 @@
 
 <script id="airport-map-data" type="application/json">{{ airport_summaries|tojson }}</script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
-<script src="/static/home-map.js?v=20260712-4" defer></script>
+<script src="/static/home-map.js?v=20260712-5" defer></script>
 <script>
 (function(){
   var q=document.getElementById("q"),board=document.getElementById("board");

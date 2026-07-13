@@ -688,6 +688,8 @@ summary:focus-visible {
 .airport-map-cluster[hidden],
 .airport-map-controls[hidden],
 .airport-map-gesture[hidden],
+.airport-map-expand[hidden],
+.airport-map-exit[hidden],
 .airport-map-reset[hidden],
 .airport-map-preview[hidden],
 .airport-map-loading[hidden],
@@ -774,6 +776,11 @@ summary:focus-visible {
   font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.08em;
+}
+
+.airport-map-expand,
+.airport-map-exit {
+  display: none;
 }
 
 .airport-map-gesture {
@@ -878,7 +885,8 @@ summary:focus-visible {
   line-height: 1;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
   transform: translateY(calc(-50% + var(--marker-label-y)));
-  transition: color 160ms ease, font-size 160ms ease, transform 160ms ease;
+  transition: color 160ms ease, font-size 160ms ease, opacity 160ms ease,
+    transform 160ms ease, visibility 160ms ease;
 }
 
 .airport-map-marker.is-label-left .airport-map-marker-code {
@@ -1152,6 +1160,8 @@ summary:focus-visible {
 }
 
 .network-map-stage.is-departing .airport-map-controls,
+.network-map-stage.is-departing .airport-map-expand,
+.network-map-stage.is-departing .airport-map-exit,
 .network-map-stage.is-departing .airport-map-reset,
 .network-map-stage.is-departing .airport-map-preview {
   opacity: 0;
@@ -3159,6 +3169,98 @@ ins.adsbygoogle[data-ad-status="unfilled"],
     max-height: 470px;
   }
 
+  body.map-is-expanded {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  body.map-is-expanded .home-hero.home-atlas {
+    overflow: visible;
+  }
+
+  .network-map-stage.is-map-expanded {
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    width: 100vw;
+    height: 100svh;
+    min-height: 100svh;
+    max-height: none;
+    border-radius: 0;
+  }
+
+  @supports (height: 100dvh) {
+    .network-map-stage.is-map-expanded {
+      height: 100dvh;
+      min-height: 100dvh;
+    }
+  }
+
+  .network-map-stage.is-mobile-embedded #airport-map {
+    cursor: pointer;
+    touch-action: pan-y !important;
+  }
+
+  .network-map-stage.is-mobile-embedded .airport-map-gesture {
+    display: none !important;
+  }
+
+  .network-map-stage.is-map-expanded #airport-map {
+    touch-action: none !important;
+  }
+
+  .airport-map-expand,
+  .airport-map-exit {
+    position: absolute;
+    z-index: 16;
+    top: 10px;
+    right: 10px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 1px solid rgba(255, 255, 255, 0.62);
+    border-radius: 3px;
+    background: rgba(8, 26, 43, 0.92);
+    color: #fff;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.055em;
+    padding: 0 12px;
+    text-transform: uppercase;
+  }
+
+  .airport-map-expand:not([hidden]),
+  .airport-map-exit:not([hidden]) {
+    display: inline-flex;
+  }
+
+  .airport-map-exit span {
+    font-family: var(--sans);
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .network-map-stage.is-map-expanded .airport-map-controls,
+  .network-map-stage.is-map-expanded .airport-map-exit {
+    top: max(12px, env(safe-area-inset-top));
+  }
+
+  .network-map-stage.is-map-expanded .airport-map-controls {
+    left: max(12px, env(safe-area-inset-left));
+  }
+
+  .network-map-stage.is-map-expanded .airport-map-exit {
+    right: max(12px, env(safe-area-inset-right));
+  }
+
+  .network-map-stage.is-map-expanded .airport-map-reset {
+    top: calc(max(12px, env(safe-area-inset-top)) + 54px);
+    left: max(12px, env(safe-area-inset-left));
+  }
+
   .network-map-mobile-bar {
     display: flex;
     min-height: 76px;
@@ -3186,29 +3288,73 @@ ins.adsbygoogle[data-ad-status="unfilled"],
 
   .airport-map-preview {
     top: auto;
-    right: 8px;
-    bottom: 8px;
-    left: 8px;
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
     width: auto;
-    border-radius: 12px;
+    border-radius: 14px;
     box-shadow: 0 5px 18px rgba(4, 13, 24, 0.42);
-    padding: 20px 22px 18px;
+    padding: 14px 16px 12px;
+  }
+
+  .network-map-stage.is-map-expanded .airport-map-preview {
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(12px, env(safe-area-inset-bottom));
+    left: max(12px, env(safe-area-inset-left));
   }
 
   .airport-map-preview-close {
     display: block;
+    width: 44px;
+    height: 44px;
+    top: 2px;
+    right: 4px;
   }
 
   .airport-map-preview-kicker b {
-    font-size: 31px;
+    font-size: 28px;
   }
 
-  .airport-map-preview h3 {
-    max-width: calc(100% - 38px);
+  .airport-map-preview-kicker {
+    min-height: 32px;
+    align-items: center;
+    padding-right: 42px;
+  }
+
+  .airport-map-preview h3,
+  .airport-map-preview-source,
+  .airport-map-preview-updated {
+    display: none;
+  }
+
+  .airport-map-preview-wait {
+    margin: 7px 0 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--line-strong);
+  }
+
+  .airport-map-preview > a {
+    min-height: 44px;
+    margin-top: 8px;
+    padding-top: 8px;
   }
 
   .airport-map-marker-code {
     font-size: 14px;
+  }
+
+  .network-map-stage.is-mobile-map .airport-map-marker-code {
+    visibility: hidden;
+    opacity: 0;
+  }
+
+  .network-map-stage.is-mobile-map .airport-map-marker.is-mobile-overview-label .airport-map-marker-code,
+  .network-map-stage.is-mobile-map.is-mobile-detail .airport-map-marker-code,
+  .network-map-stage.is-mobile-map .airport-map-marker.is-active .airport-map-marker-code,
+  .network-map-stage.is-mobile-map .airport-map-marker:focus-visible .airport-map-marker-code,
+  .network-map-stage.is-mobile-map .airport-map-marker.is-departure-target .airport-map-marker-code {
+    visibility: visible;
+    opacity: 1;
   }
 
   .airport-map-marker:hover .airport-map-marker-code,

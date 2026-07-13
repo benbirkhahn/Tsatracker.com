@@ -18,10 +18,14 @@
   var zoomOutButton = document.querySelector("[data-map-zoom-out]");
   var zoomLevel = document.querySelector("[data-map-zoom-level]");
   var gestureHint = document.querySelector("[data-map-gesture-hint]");
+  var expandButton = document.querySelector("[data-map-expand]");
+  var exitButton = document.querySelector("[data-map-exit]");
   var searchInput = document.getElementById("q");
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   var coarsePointer = window.matchMedia("(pointer: coarse)");
+  var mobileLayout = window.matchMedia("(max-width: 700px)");
   var NYC_CODES = ["EWR", "JFK", "LGA"];
+  var MOBILE_OVERVIEW_CODES = ["SEA", "SFO", "LAX", "LAS", "DFW", "ORD", "ATL", "MIA", "BOS"];
   var AIRPORT_REVEAL_ZOOM = 13;
   var AIRPORT_REVEAL_DURATION = 1.25;
   var AIRPORT_REVEAL_HOLD_MS = 1500;
@@ -92,9 +96,14 @@
   var initialTileTimer = null;
   var frameRequested = false;
   var leaving = false;
+  var isMapExpanded = false;
 
   function usesTapPreview() {
     return coarsePointer.matches || window.innerWidth <= 700;
+  }
+
+  function isMobileMap() {
+    return mobileLayout.matches;
   }
 
   function showFatalError(message) {
@@ -125,6 +134,7 @@
     if (!airportByCode.has(code)) return;
     var layout = LABEL_LAYOUT[code] || { side: "right", y: 0 };
     marker.classList.toggle("is-label-left", layout.side === "left");
+    marker.classList.toggle("is-mobile-overview-label", MOBILE_OVERVIEW_CODES.indexOf(code) > -1);
     marker.style.setProperty("--marker-label-y", layout.y + "px");
     markerByCode.set(code, marker);
   });
@@ -200,6 +210,7 @@
     markerLayer.hidden = false;
     if (zoomControls) zoomControls.hidden = false;
     if (gestureHint) gestureHint.hidden = false;
+    syncMobileMapMode();
     requestMarkerPosition();
     updateClusterState();
     updateMapControls();
@@ -270,6 +281,7 @@
     if (zoomInButton) zoomInButton.disabled = currentZoom >= map.getMaxZoom() - 0.01;
     if (zoomLevel) zoomLevel.textContent = "Z " + zoomLabel(currentZoom);
     if (resetButton) resetButton.hidden = isOverviewView();
+    stage.classList.toggle("is-mobile-detail", isMobileMap() && currentZoom >= 5.5);
   }
 
   function announceZoom() {
@@ -302,6 +314,7 @@
   function clearActiveMarker() {
     markerByCode.forEach(function (marker) {
       marker.classList.remove("is-active");
+      marker.setAttribute("aria-expanded", "false");
     });
     if (cluster) cluster.classList.remove("is-active");
   }
@@ -315,7 +328,10 @@
 
     clearActiveMarker();
     var marker = markerByCode.get(code);
-    if (marker && !marker.classList.contains("is-clustered")) marker.classList.add("is-active");
+    if (marker) {
+      marker.setAttribute("aria-expanded", "true");
+      if (!marker.classList.contains("is-clustered")) marker.classList.add("is-active");
+    }
     if (NYC_CODES.indexOf(code) > -1 && !isNycExpanded() && cluster) cluster.classList.add("is-active");
 
     setPreviewText("[data-map-preview-code]", airport.code);
@@ -336,7 +352,10 @@
     if (previewLink) {
       previewLink.href = airport.href;
       previewLink.dataset.mapCode = airport.code;
-      previewLink.setAttribute("aria-label", "Open " + airport.code + " airport details");
+      previewLink.setAttribute(
+        "aria-label",
+        "Fly into " + airport.code + " satellite view and open airport details"
+      );
     }
     preview.hidden = false;
     preview.setAttribute("aria-live", options.announce ? "polite" : "off");
@@ -345,6 +364,18 @@
       status.textContent = airport.code + " selected. " + formattedWait(airport.wait) + ". " +
         (airport.isLive ? airport.trend + ", live source." : "Estimated fallback.");
     }
+    if (options.pinned && !options.handoff && isMobileMap()) panAirportAbovePreview(airport);
+  }
+
+  function panAirportAbovePreview(airport) {
+    window.requestAnimationFrame(function () {
+      if (!map || !preview || preview.hidden || pinnedCode !== airport.code) return;
+      map.panInside([airport.lat, airport.lng], {
+        animate: !reduceMotion.matches,
+        paddingTopLeft: [48, 62],
+        paddingBottomRight: [48, preview.offsetHeight + 26]
+      });
+    });
   }
 
   function clearPreview(options) {
@@ -407,7 +438,7 @@
     if (!airport || leaving || isModifiedClick(event) || event.detail === 0) return;
     event.preventDefault();
     pinnedCode = airport.code;
-    showPreview(airport.code, { pinned: true, announce: true });
+    showPreview(airport.code, { pinned: true, announce: true, handoff: true });
     leaving = true;
     stage.classList.add("is-departing");
     stage.setAttribute("aria-busy", "true");
@@ -451,6 +482,10 @@
       var airport = airportByCode.get(code);
       if (isModifiedClick(event) || event.detail === 0) return;
       if (usesTapPreview()) {
+        if (pinnedCode === code && activeCode === code) {
+          beginHandoff(event, airport);
+          return;
+        }
         event.preventDefault();
         showPreview(code, { pinned: true, announce: true });
         return;
@@ -472,6 +507,9 @@
     if (pinnedCode || activeCode) {
       event.preventDefault();
       clearPreview();
+    } else if (isMapExpanded) {
+      event.preventDefault();
+      setMapExpanded(false, { focus: true, reset: true });
     } else if (map.getZoom() >= 5.5) {
       event.preventDefault();
       resetOverview(true);
@@ -540,6 +578,88 @@
     resetButton.addEventListener("click", function () {
       resetOverview(true);
     });
+  }
+
+  function syncMobileMapMode() {
+    if (!map) return;
+    var mobile = isMobileMap();
+    var gesturesEnabled = !mobile || isMapExpanded;
+
+    stage.classList.toggle("is-mobile-map", mobile);
+    stage.classList.toggle("is-mobile-embedded", mobile && !isMapExpanded);
+    stage.classList.toggle("is-map-expanded", mobile && isMapExpanded);
+    document.body.classList.toggle("map-is-expanded", mobile && isMapExpanded);
+
+    if (expandButton) {
+      expandButton.hidden = !mobile || isMapExpanded;
+      expandButton.setAttribute("aria-expanded", isMapExpanded ? "true" : "false");
+    }
+    if (exitButton) exitButton.hidden = !mobile || !isMapExpanded;
+
+    [map.dragging, map.touchZoom, map.doubleClickZoom].forEach(function (handler) {
+      if (!handler) return;
+      if (gesturesEnabled) handler.enable();
+      else handler.disable();
+    });
+    if (map.scrollWheelZoom) {
+      if (mobile) map.scrollWheelZoom.disable();
+      else map.scrollWheelZoom.enable();
+    }
+    updateMapControls();
+  }
+
+  function setMapExpanded(expanded, options) {
+    options = options || {};
+    if (expanded && !isMobileMap()) return;
+    isMapExpanded = Boolean(expanded);
+    if (!isMapExpanded) clearPreview();
+    syncMobileMapMode();
+
+    window.requestAnimationFrame(function () {
+      map.invalidateSize({ animate: false });
+      if (!isMapExpanded && options.reset !== false) {
+        resetOverview(false);
+      } else if (isMapExpanded && overviewBounds && isOverviewView()) {
+        map.fitBounds(overviewBounds, { padding: [42, 42], maxZoom: 4.75, animate: false });
+        captureOverviewView();
+      }
+      requestMarkerPosition();
+    });
+
+    if (options.focus !== false) {
+      var focusTarget = isMapExpanded ? exitButton : expandButton;
+      if (focusTarget) focusTarget.focus({ preventScroll: true });
+    }
+    if (status) {
+      status.textContent = isMapExpanded
+        ? "Expanded airport map. Drag or pinch to explore."
+        : "Embedded airport map restored.";
+    }
+  }
+
+  if (expandButton) {
+    expandButton.addEventListener("click", function () {
+      setMapExpanded(true, { focus: true, reset: false });
+    });
+  }
+  if (exitButton) {
+    exitButton.addEventListener("click", function () {
+      setMapExpanded(false, { focus: true, reset: true });
+    });
+  }
+
+  var onMobileLayoutChange = function () {
+    if (!isMobileMap() && isMapExpanded) isMapExpanded = false;
+    syncMobileMapMode();
+    window.requestAnimationFrame(function () {
+      map.invalidateSize({ animate: false });
+      requestMarkerPosition();
+    });
+  };
+  if (typeof mobileLayout.addEventListener === "function") {
+    mobileLayout.addEventListener("change", onMobileLayoutChange);
+  } else if (typeof mobileLayout.addListener === "function") {
+    mobileLayout.addListener(onMobileLayoutChange);
   }
 
   function syncSearch() {
@@ -611,6 +731,8 @@
     if (!event.persisted) return;
     leaving = false;
     stage.dataset.navigationStarted = "false";
+    isMapExpanded = false;
+    syncMobileMapMode();
     delete stage.dataset.revealCode;
     delete stage.dataset.revealZoom;
     stage.classList.remove("is-departing");
