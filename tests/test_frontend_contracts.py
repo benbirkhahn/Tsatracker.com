@@ -402,9 +402,9 @@ class FrontendContractTests(unittest.TestCase):
             'map.zoomOut(',
             'captureOverviewView',
             'AIRPORT_REVEAL_ZOOM = 13',
-            'AIRPORT_REVEAL_DURATION = 1.18',
-            'AIRPORT_REVEAL_HOLD_MS = 900',
-            'AIRPORT_REVEAL_FALLBACK_MS = 3200',
+            'AIRPORT_REVEAL_DURATION = 1.25',
+            'AIRPORT_REVEAL_HOLD_MS = 1500',
+            'AIRPORT_REVEAL_FALLBACK_MS = 5000',
             'imagery.isLoading()',
             'stage.dataset.revealCode',
         ):
