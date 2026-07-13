@@ -149,7 +149,244 @@
 
 <script>
 var AIRPORTS = {{ calc_airports_json|safe }};
+var CALCULATOR_SELECTION = {{ calculator_selection|default({}, true)|tojson }};
+var CALCULATOR_CHECKPOINTS = {{ calculator_checkpoints|default({}, true)|tojson }};
 var hourlyCache = {};
+var activeCheckpointSelection = null;
+var calculationVersion = 0;
+
+function hasOwn(value, key){
+  return value != null && Object.prototype.hasOwnProperty.call(value, key);
+}
+
+function firstDefined(){
+  for(var i=0;i<arguments.length;i++){
+    if(arguments[i]!==undefined && arguments[i]!==null && arguments[i]!=="") return arguments[i];
+  }
+  return null;
+}
+
+function numberOrNull(value){
+  if(value===null || value===undefined || value==="") return null;
+  var parsed=Number(value);
+  return Number.isFinite(parsed)?parsed:null;
+}
+
+function normalizeAirport(value){
+  var code=String(value||"").trim().toUpperCase();
+  return hasOwn(AIRPORTS,code)?code:"";
+}
+
+function normalizeLane(value){
+  var lane=String(value||"").trim().toUpperCase().replace(/[\s-]+/g,"_");
+  if(lane==="TSA_PRECHECK" || lane==="PRE_CHECK") lane="PRECHECK";
+  return lane==="STANDARD" || lane==="PRECHECK"?lane:"";
+}
+
+function escapeHtml(value){
+  return String(value==null?"":value).replace(/[&<>"']/g,function(character){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[character];
+  });
+}
+
+function checkpointSourceForAirport(code){
+  var root=CALCULATOR_CHECKPOINTS;
+  if(!root || typeof root!=="object") return null;
+  if(root.airports && typeof root.airports==="object" && root.airports[code]) return root.airports[code];
+  if(root[code]) return root[code];
+  return String(root.code||"").toUpperCase()===code?root:null;
+}
+
+function checkpointCandidates(source){
+  var candidates=[];
+  if(!source || typeof source!=="object") return candidates;
+  if(Array.isArray(source)) return source;
+  if(Array.isArray(source.terminals)){
+    source.terminals.forEach(function(terminal){
+      if(Array.isArray(terminal.checkpoints)) candidates=candidates.concat(terminal.checkpoints);
+      else if(terminal.checkpoints && typeof terminal.checkpoints==="object"){
+        Object.keys(terminal.checkpoints).forEach(function(id){
+          candidates.push({id:id,value:terminal.checkpoints[id]});
+        });
+      }
+    });
+  }
+  if(Array.isArray(source.checkpoints)) candidates=candidates.concat(source.checkpoints);
+  else if(source.checkpoints && typeof source.checkpoints==="object"){
+    Object.keys(source.checkpoints).forEach(function(id){
+      candidates.push({id:id,value:source.checkpoints[id]});
+    });
+  }
+  return candidates;
+}
+
+function findCheckpoint(code,checkpointId){
+  var source=checkpointSourceForAirport(code);
+  var wanted=String(checkpointId||"").trim().toLowerCase();
+  if(!source || !wanted) return null;
+  if(source[wanted] && typeof source[wanted]==="object"){
+    return {id:wanted,data:source[wanted]};
+  }
+  if(source.checkpoints && !Array.isArray(source.checkpoints) && source.checkpoints[wanted]){
+    return {id:wanted,data:source.checkpoints[wanted]};
+  }
+  var candidates=checkpointCandidates(source);
+  for(var i=0;i<candidates.length;i++){
+    var wrapper=candidates[i]||{};
+    var checkpoint=wrapper.value && typeof wrapper.value==="object"?wrapper.value:wrapper;
+    var id=String(firstDefined(checkpoint.id,checkpoint.checkpoint_id,wrapper.id)||"").toLowerCase();
+    if(id===wanted) return {id:id,data:checkpoint};
+  }
+  return null;
+}
+
+function readingFromCheckpoint(checkpoint,lane){
+  var laneKey=normalizeLane(lane);
+  var raw=null;
+  var exists=false;
+  var laneRows=checkpoint.lanes||checkpoint.lane_readings||checkpoint.laneReadings;
+  if(Array.isArray(laneRows)){
+    for(var i=0;i<laneRows.length;i++){
+      if(normalizeLane(firstDefined(laneRows[i].lane_type,laneRows[i].lane,laneRows[i].type))===laneKey){
+        raw=laneRows[i]; exists=true; break;
+      }
+    }
+  }
+  var laneWaits=checkpoint.lane_waits||checkpoint.laneWaits;
+  if(!exists && laneWaits && typeof laneWaits==="object"){
+    [laneKey,laneKey.toLowerCase()].some(function(key){
+      if(!hasOwn(laneWaits,key)) return false;
+      raw=laneWaits[key]; exists=true; return true;
+    });
+  }
+  var directKey=laneKey==="PRECHECK"?"precheck_wait":"standard_wait";
+  if(!exists && hasOwn(checkpoint,directKey)){
+    raw=checkpoint[directKey]; exists=true;
+  }
+  var reading=raw && typeof raw==="object"?raw:{wait_minutes:raw};
+  var freshness=firstDefined(
+    reading.freshness_state,
+    typeof reading.freshness==="string"?reading.freshness:null,
+    reading.freshness && reading.freshness.state,
+    checkpoint.freshness_state,
+    typeof checkpoint.freshness==="string"?checkpoint.freshness:null
+  );
+  if(!freshness && checkpoint.published_only) freshness="published_only";
+  if(!freshness && exists && numberOrNull(firstDefined(reading.wait_minutes,reading.wait))===null){
+    freshness="no_current_reading";
+  }
+  return {
+    exists:exists,
+    wait:numberOrNull(firstDefined(reading.wait_minutes,reading.wait,reading.minutes)),
+    freshness:String(freshness||"no_current_reading").toLowerCase(),
+    trend:String(firstDefined(reading.trend,checkpoint.trend)||"steady").toLowerCase(),
+    delta:numberOrNull(firstDefined(reading.trend_delta,reading.delta,checkpoint.trend_delta))||0,
+    sourceLabel:String(firstDefined(reading.source_label,reading.source && reading.source.label,checkpoint.source_label)||"official checkpoint feed"),
+    updatedAt:String(firstDefined(reading.updated_at,reading.captured_at,checkpoint.updated_at,checkpoint.captured_at)||"")
+  };
+}
+
+function checkpointLabel(selection){
+  return String(firstDefined(selection.checkpoint.data.label,selection.checkpoint.data.name,selection.id)||selection.id);
+}
+
+function requestedSelection(){
+  var params=null;
+  try{ params=new URLSearchParams(window.location.search); }catch(_error){}
+  var server=CALCULATOR_SELECTION && typeof CALCULATOR_SELECTION==="object"?CALCULATOR_SELECTION:{};
+  function requested(name,aliases){
+    var keys=[name].concat(aliases||[]);
+    for(var i=0;i<keys.length;i++){
+      if(hasOwn(server,keys[i])) return server[keys[i]];
+    }
+    return params?params.get(name):null;
+  }
+  return {
+    airport:normalizeAirport(requested("airport",["airport_code","code"])),
+    checkpoint:String(requested("checkpoint",["checkpoint_id"])||"").trim().toLowerCase(),
+    lane:normalizeLane(requested("lane",["lane_type"]))
+  };
+}
+
+function applyRequestedSelection(){
+  var requested=requestedSelection();
+  var airportSelect=document.getElementById("apt");
+  var precheck=document.getElementById("pre");
+  if(requested.airport) airportSelect.value=requested.airport;
+  if(requested.lane) precheck.checked=requested.lane==="PRECHECK";
+  if(requested.airport && requested.checkpoint && requested.lane){
+    var checkpoint=findCheckpoint(requested.airport,requested.checkpoint);
+    if(checkpoint){
+      activeCheckpointSelection={
+        airport:requested.airport,
+        id:checkpoint.id,
+        checkpoint:checkpoint,
+        lane:requested.lane
+      };
+    }
+  }
+}
+
+function selectedLane(){
+  return document.getElementById("pre").checked?"PRECHECK":"STANDARD";
+}
+
+function reconcileCheckpointSelection(){
+  if(!activeCheckpointSelection) return;
+  var code=document.getElementById("apt").value;
+  var lane=selectedLane();
+  if(code!==activeCheckpointSelection.airport){
+    activeCheckpointSelection=null;
+    return;
+  }
+  if(lane!==activeCheckpointSelection.lane){
+    var nextReading=readingFromCheckpoint(activeCheckpointSelection.checkpoint.data,lane);
+    if(!nextReading.exists){
+      activeCheckpointSelection=null;
+      return;
+    }
+    activeCheckpointSelection.lane=lane;
+  }
+}
+
+function calculationSource(code,airport,lane){
+  var fallback={
+    wait:Math.max(0,Number(airport.wait)||0),
+    live:Boolean(airport.live),
+    trend:String(airport.trend||"steady"),
+    delta:Number(airport.delta)||0,
+    checkpoint:null,
+    reading:null,
+    fallbackReason:""
+  };
+  if(!activeCheckpointSelection || activeCheckpointSelection.airport!==code || activeCheckpointSelection.lane!==lane){
+    return fallback;
+  }
+  var reading=readingFromCheckpoint(activeCheckpointSelection.checkpoint.data,lane);
+  if((reading.freshness==="live" || reading.freshness==="aging") && reading.wait!==null){
+    return {
+      wait:Math.max(0,reading.wait),
+      live:true,
+      trend:reading.trend,
+      delta:reading.delta,
+      checkpoint:activeCheckpointSelection,
+      reading:reading,
+      fallbackReason:""
+    };
+  }
+  fallback.checkpoint=activeCheckpointSelection;
+  fallback.reading=reading;
+  fallback.fallbackReason=reading.freshness;
+  fallback.live=false;
+  return fallback;
+}
+
+function freshnessFallbackText(state){
+  if(state==="stale") return "is stale";
+  if(state==="published_only") return "has published information only";
+  if(state==="no_current_reading") return "has no current reading";
+  return "is unavailable";
+}
 
 function fetchHourly(code, cb){
   if (hourlyCache[code]) return cb(hourlyCache[code]);
@@ -171,6 +408,7 @@ function fmt(mins){
 }
 
 function calc(){
+  var thisCalculation=++calculationVersion;
   var code=document.getElementById("apt").value;
   var a=AIRPORTS[code]||{wait:15,live:false,trend:"steady",delta:0};
   var depParts=document.getElementById("dep").value.split(":");
@@ -178,21 +416,26 @@ function calc(){
   var drive=+document.getElementById("drive").value;
   document.getElementById("driveVal").textContent=drive+" min";
   var pre=document.getElementById("pre").checked, bag=document.getElementById("bag").checked, intl=document.getElementById("intl").checked;
+  var lane=pre?"PRECHECK":"STANDARD";
+  var source=calculationSource(code,a,lane);
 
   fetchHourly(code, function(byHour){
-    var nowWait=Math.max(0,Number(a.wait)||0);
+    if(thisCalculation!==calculationVersion) return;
+    var nowWait=source.wait;
     var depHour=(+depParts[0]);
     var arriveHour=Math.floor(((depMin-drive-60)%1440+1440)%1440/60);
     var hourAvg=byHour[arriveHour];
     var base=nowWait;
     if(hourAvg!=null) base=Math.max(nowWait*0.6, (nowWait+hourAvg)/2);
-    if(a.trend==="rising") base+=Math.max(3, Math.abs(a.delta));
-    var sec=pre?Math.max(3,Math.round(base*0.35)):Math.max(5,Math.round(base));
+    if(source.trend==="rising") base+=Math.max(3,Math.abs(source.delta));
+    var sec=source.checkpoint && !source.fallbackReason
+      ?Math.max(pre?3:5,Math.round(base))
+      :(pre?Math.max(3,Math.round(base*0.35)):Math.max(5,Math.round(base)));
     var bagT=bag?20:0, walk=10, buf=intl?60:35;
     var total=drive+sec+bagT+walk+buf;
     var leaveAt=depMin-total;
-    document.getElementById("leaveLabel").textContent=a.live?"Leave home by":"Safer planning range";
-    document.getElementById("leave").textContent=a.live?fmt(leaveAt):(fmt(leaveAt-15)+" - "+fmt(leaveAt));
+    document.getElementById("leaveLabel").textContent=source.live?"Leave home by":"Safer planning range";
+    document.getElementById("leave").textContent=source.live?fmt(leaveAt):(fmt(leaveAt-15)+" - "+fmt(leaveAt));
 
     var rows=[["Drive",drive],["Security ("+(pre?"PreCheck":"standard")+")",sec]];
     if(bagT)rows.push(["Bag drop",bagT]);
@@ -202,14 +445,26 @@ function calc(){
     }).join("");
 
     var v=document.getElementById("verdict");
-    if(!a.live){v.className="verdict warn";v.textContent="Planning range - live source unavailable. Recheck before leaving.";}
+    if(!source.live){v.className="verdict warn";v.textContent="Planning range - live source unavailable. Recheck before leaving.";}
     else if(sec>=25){v.className="verdict bad";v.textContent="Tight - long security expected. Extra buffer included.";}
     else if(sec>=15){v.className="verdict warn";v.textContent="Moderate - recheck the live number before you leave.";}
     else{v.className="verdict ok";v.textContent="Comfortable - security looks manageable for this window.";}
 
     var note=document.getElementById("srcNote");
-    note.innerHTML=(a.live?'<span class="live">● live</span> official feed':'<span class="est">estimated</span> historical model')+
-      " at "+code+" · now "+Math.round(nowWait)+" min, "+a.trend+
+    var sourceText=(source.live?'<span class="live">● live</span> official feed':'<span class="est">estimated</span> historical model')+
+      " at "+escapeHtml(code)+" · now "+Math.round(nowWait)+" min, "+escapeHtml(source.trend);
+    if(source.checkpoint && !source.fallbackReason){
+      sourceText='<span class="live">● '+escapeHtml(source.reading.freshness)+'</span> '+
+        escapeHtml(checkpointLabel(source.checkpoint))+" / "+escapeHtml(lane==="PRECHECK"?"PreCheck":"Standard")+
+        " at "+escapeHtml(code)+" · checkpoint now "+Math.round(nowWait)+" min, "+escapeHtml(source.trend)+
+        " · "+escapeHtml(source.reading.sourceLabel);
+    }else if(source.checkpoint){
+      sourceText='<span class="est">airport fallback</span> '+escapeHtml(checkpointLabel(source.checkpoint))+" / "+
+        escapeHtml(lane==="PRECHECK"?"PreCheck":"Standard")+" "+escapeHtml(freshnessFallbackText(source.fallbackReason))+
+        "; using the labeled "+escapeHtml(code)+" airport planning estimate"+
+        " · now "+Math.round(nowWait)+" min, "+escapeHtml(source.trend);
+    }
+    note.innerHTML=sourceText+
       (hourAvg!=null?" · typical at your arrival hour: "+Math.round(hourAvg)+" min":"");
 
     var up=document.getElementById("upsell");
@@ -219,13 +474,25 @@ function calc(){
   });
 }
 
-["apt","dep","drive","pre","bag","intl"].forEach(function(id){
+["dep","drive","bag","intl"].forEach(function(id){
   document.getElementById(id).addEventListener("input",calc);
+});
+document.getElementById("apt").addEventListener("input",function(){
+  reconcileCheckpointSelection();
+  calc();
+});
+document.getElementById("pre").addEventListener("input",function(){
+  reconcileCheckpointSelection();
+  calc();
 });
 [["pre","tg-pre"],["bag","tg-bag"],["intl","tg-intl"]].forEach(function(p){
   document.getElementById(p[0]).addEventListener("change",function(e){
     document.getElementById(p[1]).classList.toggle("on",e.target.checked);
   });
+});
+applyRequestedSelection();
+[["pre","tg-pre"],["bag","tg-bag"],["intl","tg-intl"]].forEach(function(p){
+  document.getElementById(p[1]).classList.toggle("on",document.getElementById(p[0]).checked);
 });
 calc();
 </script>

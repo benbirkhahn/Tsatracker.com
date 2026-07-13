@@ -3625,3 +3625,1005 @@ ins.adsbygoogle[data-ad-status="unfilled"],
     transition-duration: 0.01ms !important;
   }
 }
+
+/* LAS Airport Arrival Mode */
+.airport-arrival-mode {
+  margin: 0 0 52px;
+}
+
+.arrival-mode-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.34fr);
+  gap: 48px;
+  align-items: end;
+  padding: 30px 0 28px;
+}
+
+.arrival-mode-heading .airport-identity {
+  padding: 10px 0;
+}
+
+.arrival-mode-heading .airport-page-title {
+  font-size: clamp(46px, 5.6vw, 76px);
+}
+
+.arrival-mode-intro {
+  max-width: 370px;
+  margin: 0 0 12px;
+  border-left: 3px solid var(--signal);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+  padding-left: 18px;
+}
+
+.arrival-workspace {
+  display: grid;
+  min-height: 690px;
+  grid-template-columns: minmax(0, 1.42fr) minmax(350px, 0.58fr);
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--navy);
+  background: var(--navy);
+  box-shadow: 9px 9px 0 var(--signal);
+}
+
+.arrival-map-stage {
+  position: relative;
+  min-width: 0;
+  min-height: 690px;
+  overflow: hidden;
+  isolation: isolate;
+  background: #081a2b;
+}
+
+.arrival-map-canvas {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: #0b2135;
+  cursor: grab;
+  font-family: var(--sans);
+}
+
+.arrival-map-canvas:active {
+  cursor: grabbing;
+}
+
+.arrival-map-canvas:focus-visible,
+.arrival-map-stage:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: -3px;
+}
+
+.arrival-map-canvas .leaflet-tile-pane {
+  filter: saturate(0.88) brightness(0.8) contrast(1.09);
+}
+
+.arrival-map-canvas .leaflet-control-attribution {
+  max-width: calc(100% - 16px);
+  overflow: hidden;
+  background: rgba(8, 26, 43, 0.82);
+  color: rgba(255, 255, 255, 0.72);
+  font-family: var(--mono);
+  font-size: 7px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arrival-map-canvas .leaflet-control-attribution a {
+  color: #c9def0;
+}
+
+.arrival-map-loading,
+.arrival-map-fallback {
+  position: absolute;
+  z-index: 18;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  place-items: center;
+  gap: 12px;
+  background: #081a2b;
+  color: #d5e1ec;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.arrival-map-loading[hidden],
+.arrival-map-fallback[hidden],
+.arrival-terminal-markers[hidden],
+.arrival-map-zoom[hidden],
+.arrival-map-expand[hidden],
+.arrival-map-done[hidden],
+.arrival-lane-reading[hidden] {
+  display: none !important;
+}
+
+.arrival-map-loading > span {
+  width: 34px;
+  height: 34px;
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  border-top-color: var(--signal);
+  border-radius: 50%;
+  animation: arrival-map-spin 850ms linear infinite;
+}
+
+.arrival-map-fallback {
+  z-index: 17;
+  background: linear-gradient(145deg, #081a2b, #122f48);
+  padding: 30px;
+  touch-action: pan-y;
+  text-transform: none;
+}
+
+.arrival-map-fallback strong {
+  color: #fff;
+  font-family: var(--display);
+  font-size: 27px;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.arrival-map-fallback span {
+  max-width: 330px;
+  color: #a9bacb;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.6;
+}
+
+.arrival-terminal-markers {
+  position: absolute;
+  z-index: 10;
+  inset: 0;
+  pointer-events: none;
+}
+
+.arrival-terminal-marker {
+  position: absolute;
+  display: flex;
+  min-width: 132px;
+  min-height: 48px;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 3px;
+  background: rgba(8, 26, 43, 0.94);
+  box-shadow: 0 7px 20px rgba(2, 9, 16, 0.42);
+  color: #fff;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+  padding: 5px 12px 5px 6px;
+  pointer-events: auto;
+  text-transform: uppercase;
+  transform: translate(-50%, -50%);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.arrival-terminal-marker:hover,
+.arrival-terminal-marker:focus-visible,
+.arrival-terminal-marker.is-active {
+  border-color: var(--signal);
+  box-shadow: 0 0 0 2px var(--signal), 0 9px 24px rgba(2, 9, 16, 0.5);
+  transform: translate(-50%, -50%) scale(1.04);
+}
+
+.arrival-terminal-marker:focus-visible,
+.arrival-map-zoom button:focus-visible,
+.arrival-map-expand:focus-visible,
+.arrival-map-done:focus-visible,
+.arrival-sheet-toggle:focus-visible,
+.arrival-checkpoint-choice:focus-visible,
+.arrival-calculator-link:focus-visible {
+  outline: 3px solid var(--signal);
+  outline-offset: 3px;
+}
+
+.arrival-terminal-marker-code {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 2px;
+  background: var(--signal);
+  color: var(--navy);
+  font-size: 10px;
+}
+
+.arrival-map-zoom {
+  position: absolute;
+  z-index: 14;
+  top: 16px;
+  left: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, 44px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.64);
+  border-radius: 3px;
+  background: rgba(8, 26, 43, 0.92);
+  box-shadow: 0 6px 18px rgba(2, 9, 16, 0.3);
+}
+
+.arrival-map-zoom button {
+  display: grid;
+  min-width: 44px;
+  min-height: 44px;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 17px;
+}
+
+.arrival-map-zoom button + button {
+  border-left: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.arrival-map-zoom button:hover {
+  background: #fff;
+  color: var(--navy);
+}
+
+.arrival-map-zoom button:disabled {
+  cursor: default;
+  opacity: 0.38;
+}
+
+.arrival-map-expand,
+.arrival-map-done {
+  position: absolute;
+  z-index: 16;
+  top: 12px;
+  right: 12px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  border-radius: 3px;
+  background: rgba(8, 26, 43, 0.94);
+  color: #fff;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  padding: 0 13px;
+  text-transform: uppercase;
+}
+
+.arrival-map-done {
+  z-index: 30;
+}
+
+.arrival-map-expand:not([hidden]),
+.arrival-map-done:not([hidden]) {
+  display: inline-flex;
+}
+
+.arrival-map-done span {
+  font-family: var(--sans);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.arrival-map-instruction {
+  position: absolute;
+  z-index: 9;
+  bottom: 16px;
+  left: 16px;
+  margin: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 2px;
+  background: rgba(8, 26, 43, 0.86);
+  color: #d3dfeb;
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  padding: 9px 11px;
+  text-transform: uppercase;
+}
+
+.arrival-operations {
+  min-width: 0;
+  max-height: 690px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--white);
+  scrollbar-color: var(--line-strong) transparent;
+  scrollbar-width: thin;
+}
+
+.arrival-sheet-toggle {
+  display: none;
+}
+
+.arrival-current-summary {
+  display: grid;
+  min-height: 188px;
+  align-content: space-between;
+  gap: 9px;
+  overflow: hidden;
+  background: var(--navy);
+  color: #fff;
+  padding: 21px 22px 20px;
+}
+
+.arrival-current-summary > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.arrival-current-label,
+.arrival-current-source,
+.arrival-current-trend {
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.065em;
+  text-transform: uppercase;
+}
+
+.arrival-current-label {
+  color: #aab8c7;
+}
+
+.arrival-current-source {
+  color: #58d9b5;
+  text-align: right;
+}
+
+.arrival-current-source.source-estimated {
+  color: #f2c36e;
+}
+
+.arrival-current-wait {
+  color: #fff;
+  font-family: var(--display);
+  font-size: 72px;
+  letter-spacing: -0.055em;
+  line-height: 0.8;
+  text-transform: uppercase;
+}
+
+.arrival-current-wait.med {
+  color: #f2c36e;
+}
+
+.arrival-current-wait.high,
+.arrival-current-wait.crit {
+  color: #ff8a72;
+}
+
+.arrival-current-wait small {
+  margin-left: 7px;
+  color: #9dafc0;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.arrival-current-wait > span {
+  display: block;
+  max-width: 260px;
+  font-size: 30px;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+}
+
+.arrival-current-trend {
+  color: #9dafc0;
+  line-height: 1.55;
+}
+
+.arrival-current-trend.rising {
+  color: #f2c36e;
+}
+
+.arrival-current-trend.falling {
+  color: #58d9b5;
+}
+
+.arrival-control-body {
+  background: var(--white);
+}
+
+.arrival-decision-controls {
+  gap: 17px;
+  padding: 20px 22px 22px;
+}
+
+.arrival-decision-controls .decision-result {
+  padding: 12px 13px;
+}
+
+.arrival-decision-controls .decision-caveat {
+  margin-top: -5px;
+}
+
+.arrival-terminal-choice-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.arrival-checkpoint-panel {
+  background: var(--white);
+  padding: 22px;
+}
+
+.arrival-checkpoint-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.arrival-checkpoint-heading h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 22px;
+  text-transform: uppercase;
+}
+
+.arrival-checkpoint-heading > span {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.arrival-checkpoint-list {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line-strong);
+  list-style: none;
+}
+
+.arrival-checkpoint-list > li {
+  position: relative;
+  border-bottom: 1px solid var(--line);
+  transition: opacity 150ms ease, background-color 150ms ease;
+}
+
+.arrival-checkpoint-list > li.is-muted {
+  opacity: 0.48;
+}
+
+.arrival-checkpoint-list > li.is-compatible {
+  background: #f3faf7;
+}
+
+.arrival-checkpoint-list > li.is-fastest {
+  background: #fff4e9;
+}
+
+.arrival-checkpoint-list > li.is-fastest::before,
+.arrival-checkpoint-list > li.is-selected::before {
+  position: absolute;
+  z-index: 2;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--signal);
+  content: "";
+}
+
+.arrival-checkpoint-list > li.is-selected {
+  box-shadow: inset 0 0 0 1px var(--navy);
+}
+
+.arrival-checkpoint-choice {
+  display: grid;
+  width: 100%;
+  min-height: 82px;
+  grid-template-columns: minmax(0, 1fr) minmax(98px, 0.38fr);
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-family: var(--sans);
+  padding: 12px 8px 12px 12px;
+  text-align: left;
+}
+
+.arrival-checkpoint-choice:hover {
+  background: rgba(8, 26, 43, 0.035);
+}
+
+.arrival-checkpoint-copy,
+.arrival-lane-stack,
+.arrival-lane-reading {
+  display: grid;
+  min-width: 0;
+}
+
+.arrival-checkpoint-copy {
+  gap: 3px;
+}
+
+.arrival-checkpoint-terminal,
+.arrival-checkpoint-hours,
+.arrival-lane-reading > span,
+.arrival-checkpoint-state {
+  font-family: var(--mono);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+  line-height: 1.45;
+  text-transform: uppercase;
+}
+
+.arrival-checkpoint-terminal {
+  color: var(--signal-dark);
+}
+
+.arrival-checkpoint-copy > strong {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.arrival-checkpoint-hours {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.arrival-lane-reading {
+  gap: 2px;
+  justify-items: end;
+  text-align: right;
+}
+
+.arrival-lane-reading > span {
+  color: var(--muted);
+}
+
+.arrival-lane-reading > strong {
+  color: var(--live);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.arrival-lane-reading.is-aging > strong {
+  color: var(--warning);
+}
+
+.arrival-lane-reading.is-stale > strong {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.arrival-lane-trend {
+  color: var(--muted) !important;
+}
+
+.arrival-checkpoint-state {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  color: var(--signal-dark);
+}
+
+.arrival-calculator-link {
+  display: flex;
+  min-height: 62px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0 22px;
+  background: var(--signal);
+  color: var(--navy);
+  font-family: var(--display);
+  font-size: 20px;
+  font-weight: 700;
+  padding: 14px 17px;
+  text-transform: uppercase;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.arrival-calculator-link:hover {
+  background: var(--navy);
+  color: #fff;
+}
+
+.arrival-source-note,
+.raw-checkpoint-intro,
+.arrival-noscript {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.65;
+}
+
+.arrival-source-note {
+  margin: 15px 22px 22px;
+}
+
+.arrival-source-note a {
+  color: var(--signal-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.arrival-noscript {
+  display: block;
+  margin: 16px 0 0;
+  border-left: 3px solid var(--signal);
+  padding: 10px 14px;
+}
+
+.raw-checkpoint-intro {
+  max-width: 680px;
+  margin: -4px 0 14px;
+}
+
+body.arrival-map-is-expanded {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.airport-arrival-mode.is-handoff {
+  position: fixed;
+  z-index: 1100;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  background: #081a2b;
+}
+
+.airport-arrival-mode.is-handoff .arrival-mode-heading,
+.airport-arrival-mode.is-handoff .arrival-operations {
+  display: none;
+}
+
+.airport-arrival-mode.is-handoff .arrival-workspace,
+.airport-arrival-mode.is-handoff .arrival-map-stage {
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  border: 0;
+  box-shadow: none;
+}
+
+.airport-arrival-mode.is-handoff .arrival-workspace {
+  display: block;
+}
+
+.airport-arrival-mode.is-handoff .arrival-map-done {
+  top: max(14px, env(safe-area-inset-top));
+  right: max(14px, env(safe-area-inset-right));
+}
+
+@supports (height: 100dvh) {
+  .airport-arrival-mode.is-handoff,
+  .airport-arrival-mode.is-handoff .arrival-workspace,
+  .airport-arrival-mode.is-handoff .arrival-map-stage {
+    height: 100dvh;
+    min-height: 100dvh;
+  }
+}
+
+@keyframes arrival-map-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 1000px) {
+  .arrival-mode-heading {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .arrival-mode-intro {
+    max-width: 680px;
+  }
+
+  .arrival-workspace {
+    min-height: 0;
+    grid-template-columns: 1fr;
+  }
+
+  .arrival-map-stage {
+    min-height: 540px;
+  }
+
+  .arrival-operations {
+    max-height: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .airport-arrival-mode {
+    margin-bottom: 42px;
+  }
+
+  .arrival-mode-heading {
+    padding: 22px 0 20px;
+  }
+
+  .arrival-mode-heading .airport-identity {
+    padding: 4px 0;
+  }
+
+  .arrival-mode-heading .airport-page-title {
+    font-size: clamp(42px, 13.5vw, 60px);
+  }
+
+  .arrival-mode-intro {
+    margin-bottom: 0;
+    font-size: 11px;
+  }
+
+  .arrival-workspace {
+    overflow: visible;
+    box-shadow: 6px 6px 0 var(--signal);
+  }
+
+  .arrival-map-stage {
+    height: min(54svh, 470px);
+    min-height: 370px;
+  }
+
+  .airport-arrival-mode.is-mobile-embedded .arrival-map-canvas {
+    cursor: pointer;
+    touch-action: pan-y !important;
+  }
+
+  .airport-arrival-mode.is-expanded .arrival-map-canvas,
+  .airport-arrival-mode.is-handoff .arrival-map-canvas {
+    touch-action: none !important;
+  }
+
+  .arrival-map-zoom {
+    top: 10px;
+    left: 10px;
+  }
+
+  .airport-arrival-mode.is-mobile-embedded .arrival-map-zoom {
+    display: none !important;
+  }
+
+  .arrival-map-expand,
+  .arrival-map-done {
+    top: 10px;
+    right: 10px;
+  }
+
+  .arrival-map-instruction {
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+    text-align: center;
+  }
+
+  .arrival-terminal-marker {
+    min-width: 112px;
+    min-height: 44px;
+    font-size: 8px;
+  }
+
+  .arrival-terminal-marker-code {
+    width: 32px;
+    height: 32px;
+  }
+
+  .airport-arrival-mode.is-mobile-embedded .arrival-terminal-marker {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    gap: 0;
+    padding: 5px;
+  }
+
+  .airport-arrival-mode.is-mobile-embedded .arrival-terminal-marker > span:last-child {
+    display: none;
+  }
+
+  .arrival-current-summary {
+    min-height: 164px;
+    padding: 18px;
+  }
+
+  .arrival-current-wait {
+    font-size: 62px;
+  }
+
+  .arrival-decision-controls,
+  .arrival-checkpoint-panel {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .arrival-checkpoint-choice {
+    min-height: 88px;
+  }
+
+  .arrival-calculator-link {
+    margin-right: 16px;
+    margin-left: 16px;
+  }
+
+  .arrival-source-note {
+    margin-right: 16px;
+    margin-left: 16px;
+  }
+
+  .airport-arrival-mode.is-expanded {
+    position: fixed;
+    z-index: 1100;
+    inset: 0;
+    width: 100vw;
+    height: 100svh;
+    margin: 0;
+    background: #081a2b;
+  }
+
+  .airport-arrival-mode.is-expanded .arrival-mode-heading {
+    display: none;
+  }
+
+  .airport-arrival-mode.is-expanded .arrival-workspace {
+    position: relative;
+    display: block;
+    width: 100vw;
+    height: 100svh;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .airport-arrival-mode.is-expanded .arrival-map-stage {
+    position: absolute;
+    inset: 0;
+    width: 100vw;
+    height: 100svh;
+    min-height: 100svh;
+  }
+
+  .airport-arrival-mode.is-expanded .arrival-map-zoom,
+  .airport-arrival-mode.is-expanded .arrival-map-done {
+    top: max(12px, env(safe-area-inset-top));
+  }
+
+  .airport-arrival-mode.is-expanded .arrival-map-zoom {
+    left: max(12px, env(safe-area-inset-left));
+  }
+
+  .airport-arrival-mode.is-expanded .arrival-map-done {
+    right: max(12px, env(safe-area-inset-right));
+  }
+
+  .airport-arrival-mode.is-expanded .arrival-map-instruction {
+    display: none;
+  }
+
+  .airport-arrival-mode.is-expanded .arrival-operations {
+    position: absolute;
+    z-index: 20;
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    left: max(10px, env(safe-area-inset-left));
+    max-height: calc(100svh - 84px);
+    overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.38);
+    border-radius: 15px 15px 5px 5px;
+    box-shadow: 0 9px 30px rgba(2, 9, 16, 0.5);
+  }
+
+  .airport-arrival-mode.is-expanded .arrival-sheet-toggle {
+    position: sticky;
+    z-index: 3;
+    top: 0;
+    display: flex;
+    width: 100%;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+    background: var(--navy);
+    color: #fff;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .airport-arrival-mode.is-expanded .arrival-sheet-toggle svg {
+    transition: transform 180ms ease;
+  }
+
+  .airport-arrival-mode.is-expanded .arrival-operations[data-sheet-state="detail"] .arrival-sheet-toggle svg {
+    transform: rotate(180deg);
+  }
+
+  .airport-arrival-mode.is-expanded .arrival-current-summary {
+    min-height: 116px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 7px 14px;
+    padding: 13px 16px 15px;
+  }
+
+  .airport-arrival-mode.is-expanded .arrival-current-summary > div,
+  .airport-arrival-mode.is-expanded .arrival-current-trend {
+    grid-column: 1;
+  }
+
+  .airport-arrival-mode.is-expanded .arrival-current-wait {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    align-self: center;
+    font-size: 46px;
+  }
+
+  .airport-arrival-mode.is-expanded .arrival-current-wait > span {
+    max-width: 120px;
+    font-size: 19px;
+    text-align: right;
+  }
+
+  .airport-arrival-mode.is-expanded .arrival-current-source {
+    display: none;
+  }
+
+  .airport-arrival-mode.is-expanded .arrival-current-trend {
+    font-size: 7px;
+  }
+
+  .airport-arrival-mode.is-expanded .arrival-operations[data-sheet-state="peek"] .arrival-control-body {
+    display: none;
+  }
+
+  .airport-arrival-mode.is-expanded .arrival-operations[data-sheet-state="detail"] {
+    max-height: min(72svh, 660px);
+  }
+
+  .airport-arrival-mode.is-expanded .arrival-operations[data-sheet-state="detail"] .arrival-current-summary {
+    min-height: 102px;
+  }
+
+  @supports (height: 100dvh) {
+    .airport-arrival-mode.is-expanded,
+    .airport-arrival-mode.is-expanded .arrival-workspace,
+    .airport-arrival-mode.is-expanded .arrival-map-stage {
+      height: 100dvh;
+      min-height: 100dvh;
+    }
+
+    .airport-arrival-mode.is-expanded .arrival-operations {
+      max-height: calc(100dvh - 84px);
+    }
+
+    .airport-arrival-mode.is-expanded .arrival-operations[data-sheet-state="detail"] {
+      max-height: min(72dvh, 660px);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrival-map-loading > span {
+    border-top-color: #fff;
+  }
+}
