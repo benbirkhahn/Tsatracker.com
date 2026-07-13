@@ -887,6 +887,79 @@ class FrontendContractTests(unittest.TestCase):
         )
         self.assertEqual(model["unmatched_rows"], model["unmatched_readings"])
 
+    def test_generic_arrival_mode_normalizes_checkpoint_first_airports(self):
+        now = datetime(2026, 7, 10, 20, 0, tzinfo=timezone.utc)
+        rows = [
+            {
+                "checkpoint": "A East General",
+                "lane_type": "STANDARD",
+                "wait_minutes": 0,
+                "captured_at": (now - timedelta(minutes=2)).isoformat(),
+            },
+            {
+                "checkpoint": "A East TSA PreCheck",
+                "lane_type": "STANDARD",
+                "wait_minutes": 4,
+                "captured_at": (now - timedelta(minutes=3)).isoformat(),
+            },
+            {
+                "checkpoint": "A East Priority",
+                "lane_type": "STANDARD",
+                "wait_minutes": 1,
+                "captured_at": (now - timedelta(minutes=1)).isoformat(),
+            },
+            {
+                "checkpoint": "Estimated Wait",
+                "lane_type": "STANDARD",
+                "wait_minutes": 12,
+                "captured_at": now.isoformat(),
+            },
+        ]
+        model = self.app_module.build_airport_arrival_mode(
+            "PHL", rows=rows, history_rows=rows, now=now
+        )
+
+        self.assertEqual(model["decision_mode"], "checkpoint_only")
+        self.assertFalse(model["has_published_hours"])
+        self.assertEqual(model["map"]["location_accuracy"], "airport_overview")
+        self.assertEqual(len(model["terminals"]), 1)
+        self.assertEqual(model["terminals"][0]["id"], "airport")
+        self.assertEqual(
+            model["terminals"][0]["location_accuracy"],
+            "airport_overview_anchor",
+        )
+        checkpoints = model["terminals"][0]["checkpoints"]
+        self.assertEqual([checkpoint["id"] for checkpoint in checkpoints], ["phl-a-east"])
+        lanes = {lane["lane_type"]: lane for lane in checkpoints[0]["lanes"]}
+        self.assertEqual(lanes["STANDARD"]["wait_minutes"], 0)
+        self.assertEqual(lanes["PRECHECK"]["wait_minutes"], 4)
+        self.assertEqual(
+            {row["checkpoint"] for row in model["unmatched_readings"]},
+            {"A East Priority", "Estimated Wait"},
+        )
+
+    def test_generic_arrival_mode_keeps_label_encoded_lane_trends_separate(self):
+        now = datetime(2026, 7, 10, 20, 0, tzinfo=timezone.utc)
+        history_rows = [
+            {"checkpoint": "A East General", "lane_type": "STANDARD", "wait_minutes": 5, "captured_at": (now - timedelta(minutes=30)).isoformat()},
+            {"checkpoint": "A East General", "lane_type": "STANDARD", "wait_minutes": 12, "captured_at": (now - timedelta(minutes=20)).isoformat()},
+            {"checkpoint": "A East TSA PreCheck", "lane_type": "STANDARD", "wait_minutes": 9, "captured_at": (now - timedelta(minutes=30)).isoformat()},
+            {"checkpoint": "A East TSA PreCheck", "lane_type": "STANDARD", "wait_minutes": 3, "captured_at": (now - timedelta(minutes=20)).isoformat()},
+        ]
+        rows = [
+            {"checkpoint": "A East General", "lane_type": "STANDARD", "wait_minutes": 12, "captured_at": (now - timedelta(minutes=2)).isoformat()},
+            {"checkpoint": "A East TSA PreCheck", "lane_type": "STANDARD", "wait_minutes": 3, "captured_at": (now - timedelta(minutes=2)).isoformat()},
+        ]
+        model = self.app_module.build_airport_arrival_mode(
+            "PHL", rows=rows, history_rows=history_rows, now=now
+        )
+        lanes = {
+            lane["lane_type"]: lane
+            for lane in model["terminals"][0]["checkpoints"][0]["lanes"]
+        }
+        self.assertEqual(lanes["STANDARD"]["trend"], "rising")
+        self.assertEqual(lanes["PRECHECK"]["trend"], "falling")
+
     def test_las_arrival_mode_trends_remain_checkpoint_and_lane_separated(self):
         now = datetime(2026, 7, 10, 20, 0, tzinfo=timezone.utc)
         rows = [
@@ -1203,7 +1276,7 @@ class FrontendContractTests(unittest.TestCase):
                 ),
                 1,
             )
-            self.assertIn("Satellite terminal view", las_html)
+            self.assertIn("Satellite airport view", las_html)
             self.assertIn("Hours are published reference windows", las_html)
             self.assertIn("not an “open now” calculation", las_html)
 
@@ -1216,6 +1289,78 @@ class FrontendContractTests(unittest.TestCase):
             self.assertNotRegex(phl_html, r"/static/tracker\.css\?v=")
         finally:
             module.AIRPORT_ARRIVAL_MODE_CODES = original_codes
+
+    def test_arrival_mode_rollout_renders_generic_pages_api_and_calculator_links(self):
+        now = self.app_module.utc_now()
+        rows = [
+            {
+                "checkpoint": "A East General",
+                "lane_type": "STANDARD",
+                "wait_minutes": 7,
+                "captured_at": now.isoformat(),
+            },
+            {
+                "checkpoint": "A East TSA PreCheck",
+                "lane_type": "STANDARD",
+                "wait_minutes": 3,
+                "captured_at": now.isoformat(),
+            },
+        ]
+        module = self.app_module
+        original_codes = module.AIRPORT_ARRIVAL_MODE_CODES
+        try:
+            module.AIRPORT_ARRIVAL_MODE_CODES = set(module.LIVE_AIRPORTS)
+            with patch.object(module, "latest_for_code", return_value=rows), patch.object(
+                module, "history_for_airport", return_value=rows
+            ):
+                html, document = self.get_html(self.airport_routes["PHL"])
+                api_response = self.client.get(
+                    "/api/airport-arrival-mode?airport=PHL"
+                )
+                calculator_html, _ = self.get_html(
+                    "/when-should-i-leave?airport=PHL&checkpoint=phl-a-east&lane=PRECHECK"
+                )
+
+            arrivals = [
+                attrs for tag, attrs in document.elements
+                if tag == "section" and "data-airport-arrival-mode" in attrs
+            ]
+            self.assertEqual(len(arrivals), 1)
+            self.assertEqual(arrivals[0].get("data-airport-code"), "PHL")
+            self.assertEqual(document.h1_count, 1)
+            self.assertIn("Satellite airport view", html)
+            self.assertIn("Explore the airport from above", html)
+            self.assertNotIn("Check-in terminal", html)
+            self.assertNotIn("Gate on your boarding pass", html)
+            self.assertIn("Screening lane", html)
+            self.assertIn("phl-a-east", html)
+            self.assertIn("tracker.css?v=20260713-3", html)
+            self.assertIn("airport-decision-map.js?v=20260713-3", html)
+
+            self.assertEqual(api_response.status_code, 200)
+            payload = api_response.get_json()
+            self.assertEqual(payload["airport"]["code"], "PHL")
+            self.assertEqual(payload["decision_mode"], "checkpoint_only")
+            self.assertEqual(payload["terminals"][0]["marker_code"], "PHL")
+
+            match = re.search(
+                r"var CALCULATOR_SELECTION = (\{.*?\});", calculator_html, re.DOTALL
+            )
+            self.assertIsNotNone(match)
+            self.assertEqual(
+                json.loads(match.group(1)),
+                {"airport": "PHL", "checkpoint": "phl-a-east", "lane": "PRECHECK"},
+            )
+        finally:
+            module.AIRPORT_ARRIVAL_MODE_CODES = original_codes
+
+    def test_default_arrival_mode_rollout_matches_every_tracked_airport(self):
+        configured = {
+            code.strip()
+            for code in self.app_module.DEFAULT_AIRPORT_ARRIVAL_MODE_CODES.split(",")
+            if code.strip()
+        }
+        self.assertEqual(configured, set(self.app_module.LIVE_AIRPORTS))
 
     def test_arrival_mode_controls_and_assets_have_accessible_fallback_contracts(self):
         html, document = self.get_html(self.airport_routes["LAS"])

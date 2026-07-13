@@ -18,7 +18,7 @@ services:
       - key: POLL_SECONDS
         value: "120"
       - key: AIRPORT_ARRIVAL_MODE_CODES
-        value: "LAS"
+        value: "ATL,BOS,CLT,DCA,DFW,EWR,JAX,JFK,LAS,LAX,LGA,MCO,MIA,ORD,PHL,SEA,SFO"
       - key: SUPABASE_SAMPLE_MINUTES
         value: "10"
       - key: DB_PATH
