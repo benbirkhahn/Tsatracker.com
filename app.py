@@ -60,9 +60,14 @@ ADSENSE_SLOT_MULTIPLEX = os.getenv(
     os.getenv("ADSENSE_SLOT_GUIDE", ""),
 ).strip()
 ENABLE_INTERNAL_GRAPH = os.getenv("ENABLE_INTERNAL_GRAPH", "false").lower() == "true"
+DEFAULT_AIRPORT_ARRIVAL_MODE_CODES = (
+    "ATL,BOS,CLT,DCA,DFW,EWR,JAX,JFK,LAS,LAX,LGA,MCO,MIA,ORD,PHL,SEA,SFO"
+)
 AIRPORT_ARRIVAL_MODE_CODES = {
     code.strip().upper()
-    for code in os.getenv("AIRPORT_ARRIVAL_MODE_CODES", "LAS").split(",")
+    for code in os.getenv(
+        "AIRPORT_ARRIVAL_MODE_CODES", DEFAULT_AIRPORT_ARRIVAL_MODE_CODES
+    ).split(",")
     if code.strip()
 }
 
@@ -836,6 +841,8 @@ AIRPORT_STATUS_NOTICES = {
 
 AIRPORT_DECISION_MAPS = {
     "LAS": {
+        "decision_mode": "terminal_gate",
+        "has_published_hours": True,
         "map": {
             "center": [36.0862, -115.1426],
             "bounds": [[36.0775, -115.1595], [36.0955, -115.1260]],
@@ -853,6 +860,7 @@ AIRPORT_DECISION_MAPS = {
         "terminals": [
             {
                 "id": "t1",
+                "marker_code": "T1",
                 "label": "Terminal 1",
                 "summary": "A, B, C, and some D-gate routing",
                 "anchor": [36.0853711, -115.1480354],
@@ -889,6 +897,7 @@ AIRPORT_DECISION_MAPS = {
             },
             {
                 "id": "t3",
+                "marker_code": "T3",
                 "label": "Terminal 3",
                 "summary": "D and E gates, with a limited-hours Innovation option",
                 "anchor": [36.0868828, -115.1371475],
@@ -918,6 +927,147 @@ AIRPORT_DECISION_MAPS = {
         ],
     }
 }
+
+
+GENERIC_AIRPORT_MAP_SPANS = {
+    "ATL": (0.027, 0.040),
+    "DFW": (0.045, 0.072),
+    "JFK": (0.028, 0.044),
+    "LAX": (0.026, 0.046),
+    "ORD": (0.032, 0.048),
+}
+
+
+def _arrival_normalized_lane_type(row: Dict) -> str:
+    """Recover lane semantics when an upstream feed encodes them in the label."""
+    lane_type = _lane_type_key(row.get("lane_type"))
+    if lane_type != "STANDARD":
+        return lane_type
+
+    checkpoint = str(row.get("checkpoint") or "").strip().lower()
+    if re.search(r"\b(?:tsa[\s-]*pre|precheck|pre-check)\b", checkpoint):
+        return "PRECHECK"
+    if re.search(r"\bclear\b", checkpoint):
+        return "CLEAR"
+    if re.search(r"\b(?:priority|premium|spot saver|visitor pass)\b", checkpoint):
+        return "PRIORITY"
+    return "STANDARD"
+
+
+def _generic_arrival_checkpoint_label(code: str, raw_label: object) -> Optional[str]:
+    label = re.sub(r"\s+", " ", str(raw_label or "").strip())
+    if not label or normalize_checkpoint_alias(label) in {"estimatedwait", "airportaverage"}:
+        return None
+
+    if code == "JAX" and normalize_checkpoint_alias(label) in {
+        "standard", "tsapre", "prioritylane"
+    }:
+        return "Main checkpoint"
+
+    label = re.sub(
+        r"\s*\((?:general|regular|standard|priority|tsa[\s-]*pre|precheck|clear|premium|pre)\)\s*$",
+        "",
+        label,
+        flags=re.IGNORECASE,
+    )
+    label = re.sub(
+        r"\s+(?:general|regular|standard|priority lane|priority|tsa[\s-]*precheck|tsa[\s-]*pre|precheck only|precheck|clear|premium)\s*$",
+        "",
+        label,
+        flags=re.IGNORECASE,
+    ).strip(" -—:/")
+
+    if re.fullmatch(r"\d+", label):
+        label = f"Checkpoint {label}"
+    elif code == "MCO" and label.lower() in {"east", "south", "west"}:
+        label = f"{label.title()} checkpoint"
+    return label or "Main checkpoint"
+
+
+def _generic_arrival_checkpoint_id(code: str, label: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
+    return f"{code.lower()}-{slug or 'main-checkpoint'}"
+
+
+def _generic_arrival_source(code: str) -> Dict:
+    links = AIRPORT_PAGE_GUIDES.get(code, {}).get("links", [])
+    official = links[0] if links else {
+        "label": "TSA Tracker source methodology",
+        "url": "/methodology",
+    }
+    return {
+        "label": str(official.get("label") or f"Official {code} airport source"),
+        "url": str(official.get("url") or ""),
+        "verified_on": "2026-07-10",
+    }
+
+
+def build_generic_airport_arrival_config(
+    code: str,
+    rows: Optional[List[Dict]] = None,
+    history_rows: Optional[List[Dict]] = None,
+) -> Optional[Dict]:
+    """Build checkpoint-only airport geometry from official feed labels."""
+    meta = LIVE_AIRPORTS.get(code)
+    point = AIRPORT_MAP_COORDINATES.get(code)
+    if not meta or not point:
+        return None
+
+    checkpoints: Dict[str, Dict] = {}
+    for row in [*(history_rows or []), *(rows or [])]:
+        lane_type = _arrival_normalized_lane_type(row)
+        if lane_type not in {"STANDARD", "PRECHECK"}:
+            continue
+        raw_label = str(row.get("checkpoint") or "").strip()
+        label = _generic_arrival_checkpoint_label(code, raw_label)
+        if not label:
+            continue
+        checkpoint_id = _generic_arrival_checkpoint_id(code, label)
+        checkpoint = checkpoints.setdefault(
+            checkpoint_id,
+            {
+                "id": checkpoint_id,
+                "label": label,
+                "aliases": [],
+                "primary_for": [],
+                "alternate_for": [],
+                "hours": "",
+                "note": "Checkpoint label supplied by the official airport feed.",
+            },
+        )
+        if raw_label and raw_label not in checkpoint["aliases"]:
+            checkpoint["aliases"].append(raw_label)
+
+    lat = float(point["lat"])
+    lng = float(point["lng"])
+    lat_span, lng_span = GENERIC_AIRPORT_MAP_SPANS.get(code, (0.022, 0.034))
+    return {
+        "decision_mode": "checkpoint_only",
+        "has_published_hours": False,
+        "map": {
+            "center": [lat, lng],
+            "bounds": [[lat - lat_span, lng - lng_span], [lat + lat_span, lng + lng_span]],
+            "overview_zoom": 14,
+            "detail_zoom": 15.5,
+            "location_accuracy": "airport_overview",
+            "tile_url": "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}",
+            "tile_attribution": "Imagery: USDA / USGS The National Map",
+        },
+        "source": _generic_arrival_source(code),
+        "terminals": [
+            {
+                "id": "airport",
+                "marker_code": code,
+                "label": f"{code} airport overview",
+                "summary": "Airport overview anchor; checkpoint locations are listed in the panel.",
+                "anchor": [lat, lng],
+                "location_accuracy": "airport_overview_anchor",
+                "checkpoints": sorted(
+                    checkpoints.values(), key=lambda checkpoint: checkpoint["label"].lower()
+                ),
+            }
+        ],
+    }
 
 
 AIRPORT_FACTORS = {
@@ -1496,7 +1646,7 @@ def _arrival_lane_trend(
     for row in history_rows or []:
         if _arrival_checkpoint_id(row, aliases) != checkpoint_id:
             continue
-        if _lane_type_key(row.get("lane_type")) != lane_type:
+        if _arrival_normalized_lane_type(row) != lane_type:
             continue
         wait = _arrival_wait_minutes(row.get("wait_minutes"))
         captured = _arrival_datetime(row.get("captured_at"))
@@ -1533,8 +1683,12 @@ def build_airport_arrival_mode(
 ) -> Optional[Dict]:
     """Build the reusable airport-level map model without inferring checkpoint closure."""
     code = str(code or "").strip().upper()
-    config = AIRPORT_DECISION_MAPS.get(code)
     meta = LIVE_AIRPORTS.get(code)
+    config = AIRPORT_DECISION_MAPS.get(code) or build_generic_airport_arrival_config(
+        code,
+        rows=rows,
+        history_rows=history_rows,
+    )
     if not config or not meta:
         return None
 
@@ -1552,7 +1706,7 @@ def build_airport_arrival_mode(
         checkpoint_id = _arrival_checkpoint_id(row, aliases)
         if not checkpoint_id:
             continue
-        lane_type = _lane_type_key(row.get("lane_type"))
+        lane_type = _arrival_normalized_lane_type(row)
         if lane_type not in AIRPORT_ARRIVAL_MODE_LANES:
             continue
         wait = _arrival_wait_minutes(row.get("wait_minutes"))
@@ -1678,6 +1832,8 @@ def build_airport_arrival_mode(
         "code": code,
         "generated_at": generated_at.isoformat(),
         "refresh_seconds": AIRPORT_ARRIVAL_MODE_REFRESH_SECONDS,
+        "decision_mode": config.get("decision_mode", "terminal_gate"),
+        "has_published_hours": bool(config.get("has_published_hours")),
         "map": map_config,
         "source": source,
         "source_status": source_status,
@@ -4428,28 +4584,6 @@ def when_should_i_leave_page():
         }
         for a in overview["airport_summaries"]
     }
-    calculator_arrival_mode = None
-    if "LAS" in AIRPORT_ARRIVAL_MODE_CODES:
-        calculator_history = []
-        try:
-            calculator_history = history_for_airport(
-                "LAS",
-                hours=AIRPORT_ARRIVAL_MODE_HISTORY_HOURS,
-            )
-        except Exception as e:
-            logger.warning(
-                "Calculator checkpoint history unavailable; using current LAS rows: %s",
-                e,
-            )
-        try:
-            calculator_arrival_mode = build_airport_arrival_mode(
-                "LAS",
-                rows=latest_for_code("LAS"),
-                history_rows=calculator_history,
-            )
-        except Exception as e:
-            logger.error("Error building calculator checkpoint context: %s", e)
-
     requested_airport = str(request.args.get("airport") or "").strip().upper()
     requested_checkpoint = str(request.args.get("checkpoint") or "").strip().lower()
     requested_lane = _lane_type_key(request.args.get("lane")) if request.args.get("lane") else ""
@@ -4461,13 +4595,40 @@ def when_should_i_leave_page():
         else ""
     )
 
+    calculator_arrival_mode = None
+    if selected_airport in AIRPORT_ARRIVAL_MODE_CODES:
+        calculator_history = []
+        try:
+            calculator_history = history_for_airport(
+                selected_airport,
+                hours=AIRPORT_ARRIVAL_MODE_HISTORY_HOURS,
+            )
+        except Exception as e:
+            logger.warning(
+                "Calculator checkpoint history unavailable for %s; using current rows: %s",
+                selected_airport,
+                e,
+            )
+        try:
+            calculator_arrival_mode = build_airport_arrival_mode(
+                selected_airport,
+                rows=latest_for_code(selected_airport),
+                history_rows=calculator_history,
+            )
+        except Exception as e:
+            logger.error(
+                "Error building calculator checkpoint context for %s: %s",
+                selected_airport,
+                e,
+            )
+
     configured_checkpoint_ids = {
         checkpoint["id"]
         for terminal in (calculator_arrival_mode or {}).get("terminals", [])
         for checkpoint in terminal.get("checkpoints", [])
     }
     if (
-        selected_airport == "LAS"
+        selected_airport in AIRPORT_ARRIVAL_MODE_CODES
         and requested_checkpoint in configured_checkpoint_ids
         and selected_lane
     ):
@@ -4666,7 +4827,7 @@ def api_airport_arrival_mode():
     code = str(request.args.get("airport") or "").strip().upper()
     if not re.fullmatch(r"[A-Z]{3}", code) or code not in LIVE_AIRPORTS:
         return jsonify({"error": "Unknown airport"}), 400
-    if code not in AIRPORT_ARRIVAL_MODE_CODES or code not in AIRPORT_DECISION_MAPS:
+    if code not in AIRPORT_ARRIVAL_MODE_CODES:
         return jsonify({"error": "Arrival mode unavailable"}), 404
 
     history_rows = []

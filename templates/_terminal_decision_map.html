@@ -1,6 +1,7 @@
 {% if airport_arrival_mode %}
 {% set arrival = airport_arrival_mode %}
 {% set overall_wait = cw.standard if cw and cw.standard is not none else none %}
+{% set detailed_routing = arrival.decision_mode == 'terminal_gate' %}
 {% set arrival_counts = namespace(checkpoints=0) %}
 {% for terminal in arrival.terminals %}{% set arrival_counts.checkpoints = arrival_counts.checkpoints + terminal.checkpoints|length %}{% endfor %}
 <section class="airport-arrival-mode"
@@ -15,16 +16,21 @@
       <h1 class="airport-page-title" id="arrival-mode-title">{{ initial_airport_code }} TSA wait times <span>at {{ airport_display_name }}</span></h1>
       <div class="airport-page-meta">
         <span>{{ airport_city }}</span>
-        <span>Satellite terminal view</span>
-        <span>{{ arrival.terminals|length }} terminals / {{ arrival_counts.checkpoints }} published checkpoints</span>
+        <span>Satellite airport view</span>
+        {% if detailed_routing %}<span>{{ arrival.terminals|length }} terminals / {{ arrival_counts.checkpoints }} published checkpoints</span>
+        {% else %}<span>{{ arrival_counts.checkpoints }} reporting checkpoint{{ 's' if arrival_counts.checkpoints != 1 }}</span>{% endif %}
         {% if airport_summary %}<span>{% if is_live %}Captured{% else %}Estimate generated{% endif %} {{ airport_summary.updated_at }}</span>{% endif %}
       </div>
     </div>
+    {% if detailed_routing %}
     <p class="arrival-mode-intro">Choose the terminal, gate, and screening lane on your boarding pass. Arrival Mode keeps the airport in view while it compares compatible current readings.</p>
+    {% else %}
+    <p class="arrival-mode-intro">Explore the airport from above, switch screening lanes, and compare the freshest checkpoint readings published by the airport.</p>
+    {% endif %}
   </header>
 
   <div class="arrival-workspace" data-arrival-workspace>
-    <div class="arrival-map-stage" data-arrival-map-stage data-location-accuracy="{{ arrival.map.location_accuracy }}" role="region" aria-label="Interactive satellite map of Harry Reid International Airport" aria-busy="true" tabindex="-1">
+    <div class="arrival-map-stage" data-arrival-map-stage data-location-accuracy="{{ arrival.map.location_accuracy }}" role="region" aria-label="Interactive satellite map of {{ airport_display_name }}" aria-busy="true" tabindex="-1">
       <div class="arrival-map-canvas" id="arrival-airport-map" aria-hidden="true"></div>
       <div class="arrival-map-fallback" data-arrival-map-fallback hidden>
         <strong>Satellite imagery is unavailable.</strong>
@@ -32,7 +38,7 @@
       </div>
       <div class="arrival-map-loading" data-arrival-map-loading>
         <span aria-hidden="true"></span>
-        Loading LAS satellite view
+        Loading {{ initial_airport_code }} satellite view
       </div>
       <noscript>
         <style>
@@ -53,10 +59,10 @@
                 data-location-accuracy="{{ terminal.location_accuracy }}"
                 data-lat="{{ terminal.anchor[0] }}"
                 data-lng="{{ terminal.anchor[1] }}"
-                aria-label="Select {{ terminal.label }} on the airport map"
+                aria-label="Focus {{ terminal.label }} on the airport map"
                 aria-controls="arrival-checkpoint-list"
                 aria-pressed="false">
-          <span class="arrival-terminal-marker-code" aria-hidden="true">{{ terminal.id|upper }}</span>
+          <span class="arrival-terminal-marker-code" aria-hidden="true">{{ (terminal.marker_code or terminal.id)|upper }}</span>
           <span>{{ terminal.label }}</span>
         </button>
         {% endfor %}
@@ -68,11 +74,11 @@
       </div>
       <button type="button" class="arrival-map-expand" data-arrival-map-expand aria-controls="arrival-airport-map" aria-expanded="false" hidden>Explore airport</button>
       <button type="button" class="arrival-map-done" data-arrival-map-done aria-label="Exit expanded airport map" hidden>Done <span aria-hidden="true">×</span></button>
-      <p class="arrival-map-instruction" data-arrival-map-instruction>Drag to explore · choose a terminal marker</p>
+      <p class="arrival-map-instruction" data-arrival-map-instruction>{% if detailed_routing %}Drag to explore · choose a terminal marker{% else %}Drag to explore · choose a checkpoint below{% endif %}</p>
       <p class="sr-only" id="arrival-map-status" data-arrival-map-status role="status" aria-live="polite"></p>
     </div>
 
-    <aside class="arrival-operations" data-arrival-sheet data-sheet-state="peek" aria-label="LAS checkpoint planner">
+    <aside class="arrival-operations" data-arrival-sheet data-sheet-state="peek" aria-label="{{ initial_airport_code }} checkpoint planner">
       <button type="button"
               class="arrival-sheet-toggle"
               data-arrival-sheet-toggle
@@ -99,6 +105,7 @@
 
       <div class="arrival-control-body" id="arrival-control-body">
         <form class="decision-controls arrival-decision-controls" data-decision-controls>
+          {% if detailed_routing %}
           <fieldset>
             <legend>Check-in terminal</legend>
             <div class="choice-grid arrival-terminal-choice-grid">
@@ -108,7 +115,9 @@
               {% endfor %}
             </div>
           </fieldset>
+          {% endif %}
 
+          {% if detailed_routing %}
           <fieldset>
             <legend>Gate on your boarding pass</legend>
             <div class="choice-grid gate-choice-grid">
@@ -118,6 +127,7 @@
               {% endfor %}
             </div>
           </fieldset>
+          {% endif %}
 
           <fieldset>
             <legend>Screening lane</legend>
@@ -127,8 +137,8 @@
             </div>
           </fieldset>
 
-          <p class="decision-result" data-decision-result role="status" aria-live="polite">Choose a gate or terminal to compare compatible checkpoints.</p>
-          <p class="decision-caveat">D gates can be reached through either terminal. Choose the terminal where you check in before relying on a recommendation.</p>
+          <p class="decision-result" data-decision-result role="status" aria-live="polite">{% if detailed_routing %}Choose a gate or terminal to compare compatible checkpoints.{% else %}Comparing fresh standard-screening readings across reporting checkpoints.{% endif %}</p>
+          {% if detailed_routing %}<p class="decision-caveat">D gates can be reached through either terminal. Choose the terminal where you check in before relying on a recommendation.</p>{% endif %}
         </form>
 
         <div class="arrival-checkpoint-panel">
@@ -147,12 +157,12 @@
                 <button type="button"
                         class="arrival-checkpoint-choice"
                         data-arrival-checkpoint-choice="{{ checkpoint.id }}"
-                        aria-label="Select {{ checkpoint.label }} checkpoint in {{ terminal.label }}"
+                        aria-label="Select {{ checkpoint.label }} checkpoint{% if detailed_routing %} in {{ terminal.label }}{% endif %}"
                         aria-pressed="false">
                   <span class="arrival-checkpoint-copy">
-                    <span class="arrival-checkpoint-terminal">{{ terminal.label }}</span>
+                    {% if detailed_routing %}<span class="arrival-checkpoint-terminal">{{ terminal.label }}</span>{% endif %}
                     <strong>{{ checkpoint.label }}</strong>
-                    <span class="arrival-checkpoint-hours">Published hours: {{ checkpoint.hours }}</span>
+                    {% if checkpoint.hours %}<span class="arrival-checkpoint-hours">Published hours: {{ checkpoint.hours }}</span>{% endif %}
                   </span>
                   <span class="arrival-lane-stack">
                     {% for lane in checkpoint.lanes %}
@@ -178,6 +188,9 @@
               </li>
               {% endfor %}
             {% endfor %}
+            {% if arrival_counts.checkpoints == 0 %}
+            <li class="arrival-checkpoint-empty">No current checkpoint rows are available. Use the labeled airport planning estimate and check the raw feed below.</li>
+            {% endif %}
           </ol>
         </div>
 
@@ -188,9 +201,15 @@
           <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M3 9h11M10 4l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
         <p class="arrival-source-note">
+          {% if arrival.has_published_hours %}
           Checkpoint hours verified {{ arrival.source.verified_on }} from
           <a href="{{ arrival.source.url }}" target="_blank" rel="noopener">{{ arrival.source.label }}</a>.
           Hours are published reference windows, not an “open now” calculation.
+          {% else %}
+          Checkpoint labels and current readings are sourced from
+          <a href="{{ arrival.source.url }}" target="_blank" rel="noopener">{{ arrival.source.label }}</a>.
+          Verify operating hours directly; Arrival Mode never infers open or closed from a missing row.
+          {% endif %}
         </p>
       </div>
     </aside>

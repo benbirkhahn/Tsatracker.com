@@ -49,6 +49,8 @@
 
   var airportObject = model && typeof model.airport === "object" ? model.airport : {};
   var code = String(root.dataset.airportCode || airportObject.code || model.code || model.airport || "LAS").toUpperCase();
+  var decisionMode = String(model.decision_mode || "terminal_gate");
+  var checkpointOnly = decisionMode === "checkpoint_only";
   var mapConfig = model.map || {};
   var map = null;
   var imagery = null;
@@ -194,6 +196,16 @@
     return [coordinates(bounds[0], DEFAULT_BOUNDS[0]), coordinates(bounds[1], DEFAULT_BOUNDS[1])];
   }
 
+  function interactionBounds() {
+    var bounds = mapBounds();
+    var latPadding = Math.max(0.03, Math.abs(bounds[1][0] - bounds[0][0]) * 1.4);
+    var lngPadding = Math.max(0.04, Math.abs(bounds[1][1] - bounds[0][1]) * 1.4);
+    return [
+      [bounds[0][0] - latPadding, bounds[0][1] - lngPadding],
+      [bounds[1][0] + latPadding, bounds[1][1] + lngPadding]
+    ];
+  }
+
   function overviewZoom() {
     return numeric(mapConfig.overview_zoom) === null ? DEFAULT_OVERVIEW_ZOOM : Number(mapConfig.overview_zoom);
   }
@@ -289,7 +301,7 @@
     }
     setLoadingSettled();
     syncResponsiveMap();
-    announce("Satellite imagery is unavailable. Terminal and checkpoint controls remain available.");
+    announce("Satellite imagery is unavailable. Checkpoint controls remain available.");
     if (!handoffSettled) completeHandoff();
   }
 
@@ -342,7 +354,8 @@
     if (instruction) {
       instruction.textContent = embeddedMobile
         ? "Explore airport to pan and pinch"
-        : "Drag to explore · choose a terminal marker";
+        : checkpointOnly ? "Drag to explore · choose a checkpoint below"
+          : "Drag to explore · choose a terminal marker";
     }
   }
 
@@ -414,7 +427,9 @@
       }
       if (stage) stage.focus({ preventScroll: true });
     }, 80);
-    announce("LAS Arrival Mode ready. Choose a terminal, gate, or checkpoint.");
+    announce(code + " Arrival Mode ready. " + (checkpointOnly
+      ? "Choose a screening lane or checkpoint."
+      : "Choose a terminal, gate, or checkpoint."));
   }
 
   function completeHandoff() {
@@ -455,7 +470,7 @@
       dragging: true,
       keyboard: true,
       keyboardPanDelta: 72,
-      maxBounds: [[35.9, -115.4], [36.25, -114.9]],
+      maxBounds: interactionBounds(),
       maxBoundsViscosity: 0.82,
       scrollWheelZoom: true,
       tap: true,
@@ -585,8 +600,10 @@
     }
     if (currentTrend) {
       currentTrend.className = "arrival-current-trend " + String(lane.trend || "");
-      currentTrend.textContent = isFreshReading(lane, checkpoint) && lane.trend
-        ? String(lane.trend_arrow || "→") + " " + lane.trend + " for this checkpoint and lane"
+      currentTrend.textContent = isFreshReading(lane, checkpoint)
+        ? lane.trend
+          ? String(lane.trend_arrow || "→") + " " + lane.trend + " for this checkpoint and lane"
+          : "Fresh official reading · lane trend not available yet"
         : "Use the labeled airport estimate for planning when this reading is unavailable.";
     }
   }
@@ -623,7 +640,13 @@
     var conflict = (selectedTerminal === "t3" && /^(A|B|C)$/.test(selectedGate)) ||
       (selectedTerminal === "t1" && selectedGate === "E");
 
-    if (conflict) {
+    if (checkpointOnly) {
+      filterActive = false;
+      allowRecommendation = true;
+      message = items.length
+        ? "Comparing fresh " + (selectedLane === "PRECHECK" ? "PreCheck" : "standard-screening") + " readings across reporting checkpoints."
+        : "No current checkpoint rows are available. Use the labeled airport planning estimate.";
+    } else if (conflict) {
       compatible = [];
       allowRecommendation = false;
       message = "That gate and terminal combination does not match this routing map. Recheck the terminal on your boarding pass.";
@@ -662,10 +685,10 @@
     var fastest = allowRecommendation && ranked.length ? ranked[0] : null;
     recommendedCheckpoint = fastest ? fastest.item.dataset.checkpointId : "";
     if (fastest) {
-      message = "Fastest compatible fresh reading: " + itemName(fastest.item) + ", " +
+      message = (checkpointOnly ? "Fastest fresh reading: " : "Fastest compatible fresh reading: ") + itemName(fastest.item) + ", " +
         Math.round(fastest.wait) + " minutes for " + (selectedLane === "PRECHECK" ? "PreCheck." : "standard screening.");
     } else if (allowRecommendation && compatible.length) {
-      message = "Compatible checkpoints are highlighted, but no fresh " +
+      message = (checkpointOnly ? "No reporting checkpoint has a fresh " : "Compatible checkpoints are highlighted, but no fresh ") +
         (selectedLane === "PRECHECK" ? "PreCheck" : "standard") + " reading is available.";
     }
 
@@ -695,7 +718,7 @@
     syncTerminalMarkers(activeTerminal);
     updateCalculatorLink(summaryCheckpoint);
     if (result) result.textContent = message;
-    if (compatibleCount) compatibleCount.textContent = compatible.length + " compatible";
+    if (compatibleCount) compatibleCount.textContent = compatible.length + (checkpointOnly ? " checkpoints" : " compatible");
   }
 
   function chooseTerminal(id, moveMap) {
@@ -704,7 +727,8 @@
     selectedCheckpoint = "";
     updateDecision();
     if (selectedTerminal && moveMap) focusTerminal(selectedTerminal, true);
-    announce((selectedTerminal === "t1" ? "Terminal 1" : "Terminal 3") + " selected. Compatible checkpoint choices updated.");
+    var terminal = terminalForId(selectedTerminal);
+    announce((terminal ? terminal.label : "Terminal") + " selected. Compatible checkpoint choices updated.");
   }
 
   function chooseCheckpoint(id) {
@@ -762,7 +786,13 @@
 
   markers.forEach(function (marker) {
     marker.addEventListener("click", function () {
-      chooseTerminal(marker.dataset.arrivalTerminalMarker, true);
+      if (checkpointOnly) {
+        fitOverview(true);
+        syncTerminalMarkers(marker.dataset.arrivalTerminalMarker);
+        announce(code + " airport overview focused. Choose a checkpoint from the panel for current lane detail.");
+      } else {
+        chooseTerminal(marker.dataset.arrivalTerminalMarker, true);
+      }
     });
   });
 

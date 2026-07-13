@@ -36,30 +36,31 @@ Incomplete animation-example stubs were excluded from design decisions.
 3. `/airports/<code>-tsa-wait-times` puts current status, checkpoint comparison, the 30-day pattern, and timing guidance before editorial content.
 4. `/when-should-i-leave` uses the same shell and turns live data into a departure recommendation.
 
-## LAS Airport Arrival Mode Pilot
+## Network-wide Airport Arrival Mode
 
-- LAS uses a progressively enhanced satellite arrival canvas with trustworthy Terminal 1 and Terminal 3 anchors. Its attached panel maps gates to the five exact checkpoints published by the airport without implying indoor-level pin precision.
-- Four checkpoints consume current lane readings; the Innovation checkpoint remains published-only because the live feed does not report it separately.
-- Gate, lane, terminal, and checkpoint controls identify the fastest compatible fresh reading. Missing and stale readings fall back explicitly, while a provider-supplied zero remains `0 min` and is never inferred to mean closed.
-- The homepage writes a short-lived `tsaAirportHandoffV1` session handoff before its cinematic fly-in. A matching LAS page consumes it to preserve the satellite framing; direct visits start with the embedded arrival canvas.
+- Every tracked airport uses the progressively enhanced satellite arrival canvas. LAS retains trustworthy Terminal 1 and Terminal 3 anchors plus gate compatibility because it has a reviewed routing model.
+- The other tracked airports use checkpoint-first mode: one airport-overview anchor, official feed checkpoint labels, Standard/PreCheck comparison, and no invented terminal, gate, or indoor checkpoint geometry.
+- At LAS, four checkpoints consume current lane readings; the Innovation checkpoint remains published-only because the live feed does not report it separately.
+- LAS gate, lane, terminal, and checkpoint controls identify the fastest compatible fresh reading. Checkpoint-first airports compare the selected lane across all reporting checkpoints. Missing and stale readings fall back explicitly, while a provider-supplied zero remains `0 min` and is never inferred to mean closed.
+- The homepage writes a short-lived `tsaAirportHandoffV1` session handoff before its cinematic fly-in. A matching airport page consumes it to preserve the satellite framing; direct visits start with the embedded arrival canvas.
 - Arrival Mode links to a checkpoint-aware calculator URL. The calculator uses a selected `live` or `aging` lane reading and falls back to a labeled airport planning estimate for `stale`, `no_current_reading`, or `published_only` states.
 - The raw checkpoint feed stays below Arrival Mode for auditing, no-JavaScript access, and graceful fallback.
 
 ```mermaid
 flowchart LR
-  Home["Live board /"] -->|"tsaAirportHandoffV1"| LAS["LAS Arrival Mode /airports/las-tsa-wait-times"]
-  Home --> Airport["Other airport details /airports/<code>-tsa-wait-times"]
+  Home["Live board /"] -->|"tsaAirportHandoffV1"| Arrival["Arrival Mode /airports/<code>-tsa-wait-times"]
   Home --> Directory["Airport directory /airports"]
   Home --> Calculator["Leave-time tool /when-should-i-leave"]
-  Directory --> Airport
-  Directory --> LAS
-  LAS --> ArrivalAPI["Arrival Mode API /api/airport-arrival-mode?airport=LAS"]
-  LAS -->|"airport + checkpoint + lane"| CheckpointCalculator["Checkpoint-aware calculator /when-should-i-leave"]
+  Directory --> Arrival
+  Arrival --> LAS["LAS terminal + gate routing"]
+  Arrival --> Generic["16 checkpoint-first airport views"]
+  LAS --> ArrivalAPI["Arrival Mode API /api/airport-arrival-mode?airport=CODE"]
+  Generic --> ArrivalAPI
+  Arrival -->|"airport + checkpoint + lane"| CheckpointCalculator["Checkpoint-aware calculator /when-should-i-leave"]
   CheckpointCalculator --> History["Airport and checkpoint history APIs"]
-  Airport --> History["Airport and checkpoint history APIs"]
+  Arrival --> History
   Calculator --> History
-  LAS --> Guides["Official sources and related airports"]
-  Airport --> Guides["Official sources and related airports"]
+  Arrival --> Guides["Official sources and related airports"]
 ```
 
 ## Contracts That Must Not Change
