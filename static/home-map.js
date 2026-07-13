@@ -22,6 +22,11 @@
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   var coarsePointer = window.matchMedia("(pointer: coarse)");
   var NYC_CODES = ["EWR", "JFK", "LGA"];
+  var AIRPORT_REVEAL_ZOOM = 13;
+  var AIRPORT_REVEAL_DURATION = 1.18;
+  var AIRPORT_REVEAL_HOLD_MS = 900;
+  var AIRPORT_REVEAL_TILE_WAIT_MS = 900;
+  var AIRPORT_REVEAL_FALLBACK_MS = 3200;
   var LABEL_LAYOUT = {
     BOS: { side: "left", y: -10 },
     DCA: { side: "left", y: 14 },
@@ -79,6 +84,8 @@
   var activeCode = null;
   var pinnedCode = null;
   var navigationTimer = null;
+  var revealTimer = null;
+  var revealLoadHandler = null;
   var searchTimer = null;
   var tileErrors = 0;
   var initialTilesResolved = false;
@@ -359,8 +366,41 @@
 
   function navigateToAirport(airport) {
     if (leaving && stage.dataset.navigationStarted === "true") return;
+    clearHandoffTimers();
     stage.dataset.navigationStarted = "true";
     window.location.assign(airport.href);
+  }
+
+  function clearHandoffTimers() {
+    window.clearTimeout(navigationTimer);
+    window.clearTimeout(revealTimer);
+    navigationTimer = null;
+    revealTimer = null;
+    if (revealLoadHandler && imagery) imagery.off("load", revealLoadHandler);
+    revealLoadHandler = null;
+  }
+
+  function holdAirportReveal(airport) {
+    var finishReveal = function () {
+      if (!leaving || stage.dataset.navigationStarted === "true") return;
+      window.clearTimeout(revealTimer);
+      if (revealLoadHandler && imagery) imagery.off("load", revealLoadHandler);
+      revealLoadHandler = null;
+      revealTimer = window.setTimeout(function () {
+        navigateToAirport(airport);
+      }, AIRPORT_REVEAL_HOLD_MS);
+    };
+
+    if (imagery && typeof imagery.isLoading === "function" && imagery.isLoading()) {
+      revealLoadHandler = finishReveal;
+      imagery.once("load", revealLoadHandler);
+      revealTimer = window.setTimeout(finishReveal, AIRPORT_REVEAL_TILE_WAIT_MS);
+      return;
+    }
+
+    revealTimer = window.setTimeout(function () {
+      navigateToAirport(airport);
+    }, AIRPORT_REVEAL_HOLD_MS);
   }
 
   function beginHandoff(event, airport) {
@@ -374,22 +414,30 @@
     markerByCode.forEach(function (marker, code) {
       marker.classList.toggle("is-departure-target", code === airport.code);
     });
+    var targetZoom = Math.min(AIRPORT_REVEAL_ZOOM, map.getMaxZoom());
+    stage.dataset.revealCode = airport.code;
+    stage.dataset.revealZoom = String(targetZoom);
+    if (status) {
+      status.textContent = "Zooming into " + airport.code +
+        " satellite view before opening airport details.";
+    }
 
     if (reduceMotion.matches) {
       navigateToAirport(airport);
       return;
     }
 
-    map.flyTo([airport.lat, airport.lng], 8, { duration: 0.46, easeLinearity: 0.35 });
+    clearHandoffTimers();
     map.once("moveend", function () {
-      window.clearTimeout(navigationTimer);
-      navigationTimer = window.setTimeout(function () {
-        navigateToAirport(airport);
-      }, 90);
+      holdAirportReveal(airport);
     });
     navigationTimer = window.setTimeout(function () {
       navigateToAirport(airport);
-    }, 720);
+    }, AIRPORT_REVEAL_FALLBACK_MS);
+    map.flyTo([airport.lat, airport.lng], targetZoom, {
+      duration: AIRPORT_REVEAL_DURATION,
+      easeLinearity: 0.18
+    });
   }
 
   markerByCode.forEach(function (marker, code) {
@@ -555,7 +603,7 @@
   if (resizeObserver) resizeObserver.observe(mapElement);
 
   window.addEventListener("pagehide", function () {
-    window.clearTimeout(navigationTimer);
+    clearHandoffTimers();
     window.clearTimeout(searchTimer);
     window.clearTimeout(initialTileTimer);
   });
@@ -563,6 +611,8 @@
     if (!event.persisted) return;
     leaving = false;
     stage.dataset.navigationStarted = "false";
+    delete stage.dataset.revealCode;
+    delete stage.dataset.revealZoom;
     stage.classList.remove("is-departing");
     stage.setAttribute("aria-busy", "false");
     markerByCode.forEach(function (marker) {

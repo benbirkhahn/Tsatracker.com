@@ -724,6 +724,7 @@ summary:focus-visible {
   border-radius: 3px;
   background: rgba(8, 26, 43, 0.92);
   box-shadow: 0 6px 18px rgba(2, 9, 16, 0.28);
+  transition: opacity 180ms ease, transform 180ms ease;
 }
 
 .airport-map-controls button,
@@ -975,6 +976,7 @@ summary:focus-visible {
   letter-spacing: 0.06em;
   padding: 0 12px;
   text-transform: uppercase;
+  transition: opacity 180ms ease, transform 180ms ease;
 }
 
 .airport-map-preview {
@@ -988,6 +990,7 @@ summary:focus-visible {
   color: var(--ink);
   box-shadow: 8px 8px 0 rgba(8, 26, 43, 0.88);
   padding: 18px 20px 20px;
+  transition: opacity 180ms ease, transform 180ms ease;
 }
 
 .airport-map-preview-close {
@@ -1146,6 +1149,14 @@ summary:focus-visible {
 .network-map-stage.is-departing .airport-map-marker:not(.is-departure-target),
 .network-map-stage.is-departing .airport-map-cluster {
   opacity: 0.18;
+}
+
+.network-map-stage.is-departing .airport-map-controls,
+.network-map-stage.is-departing .airport-map-reset,
+.network-map-stage.is-departing .airport-map-preview {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
 }
 
 .network-map-stage.is-departing .airport-map-marker.is-departure-target {
