@@ -51,6 +51,9 @@
   var code = String(root.dataset.airportCode || airportObject.code || model.code || model.airport || "LAS").toUpperCase();
   var decisionMode = String(model.decision_mode || "terminal_gate");
   var checkpointOnly = decisionMode === "checkpoint_only";
+  var terminalCheckpoint = decisionMode === "terminal_checkpoint";
+  var gateRouting = decisionMode === "terminal_gate";
+  var terminalRouting = gateRouting || terminalCheckpoint;
   var mapConfig = model.map || {};
   var map = null;
   var imagery = null;
@@ -327,8 +330,12 @@
       var anchor = coordinates(terminal && terminal.anchor, coordinates([marker.dataset.lat, marker.dataset.lng], null));
       if (!anchor) return;
       var point = map.latLngToContainerPoint(anchor);
-      marker.style.left = Math.round(point.x) + "px";
-      marker.style.top = Math.round(point.y) + "px";
+      var markerOffset = terminal && Array.isArray(terminal.marker_offset) ? terminal.marker_offset : [0, 0];
+      var applyOffset = map.getZoom() <= overviewZoom() + 0.5;
+      var offsetX = applyOffset ? numeric(markerOffset[0]) || 0 : 0;
+      var offsetY = applyOffset ? numeric(markerOffset[1]) || 0 : 0;
+      marker.style.left = Math.round(point.x + offsetX) + "px";
+      marker.style.top = Math.round(point.y + offsetY) + "px";
     });
   }
 
@@ -429,7 +436,9 @@
     }, 80);
     announce(code + " Arrival Mode ready. " + (checkpointOnly
       ? "Choose a screening lane or checkpoint."
-      : "Choose a terminal, gate, or checkpoint."));
+      : gateRouting
+        ? "Choose a terminal, gate, or checkpoint."
+        : "Choose a terminal area, screening lane, or checkpoint."));
   }
 
   function completeHandoff() {
@@ -646,6 +655,19 @@
       message = items.length
         ? "Comparing fresh " + (selectedLane === "PRECHECK" ? "PreCheck" : "standard-screening") + " readings across reporting checkpoints."
         : "No current checkpoint rows are available. Use the labeled airport planning estimate.";
+    } else if (terminalCheckpoint) {
+      filterActive = Boolean(selectedTerminal);
+      allowRecommendation = true;
+      if (selectedTerminal) {
+        compatible = items.filter(function (item) { return item.dataset.terminal === selectedTerminal; });
+        var selectedTerminalModel = terminalForId(selectedTerminal);
+        message = "Comparing fresh " + (selectedLane === "PRECHECK" ? "PreCheck" : "standard-screening") +
+          " readings near " + (selectedTerminalModel ? selectedTerminalModel.label : "the selected terminal area") + ".";
+      } else {
+        message = items.length
+          ? "Comparing fresh " + (selectedLane === "PRECHECK" ? "PreCheck" : "standard-screening") + " readings across all terminal areas."
+          : "No current checkpoint rows are available. Use the labeled airport planning estimate.";
+      }
     } else if (conflict) {
       compatible = [];
       allowRecommendation = false;
@@ -685,11 +707,15 @@
     var fastest = allowRecommendation && ranked.length ? ranked[0] : null;
     recommendedCheckpoint = fastest ? fastest.item.dataset.checkpointId : "";
     if (fastest) {
-      message = (checkpointOnly ? "Fastest fresh reading: " : "Fastest compatible fresh reading: ") + itemName(fastest.item) + ", " +
+      message = (checkpointOnly ? "Fastest fresh reading: " : terminalCheckpoint ? "Fastest fresh reading in this view: " : "Fastest compatible fresh reading: ") + itemName(fastest.item) + ", " +
         Math.round(fastest.wait) + " minutes for " + (selectedLane === "PRECHECK" ? "PreCheck." : "standard screening.");
     } else if (allowRecommendation && compatible.length) {
-      message = (checkpointOnly ? "No reporting checkpoint has a fresh " : "Compatible checkpoints are highlighted, but no fresh ") +
-        (selectedLane === "PRECHECK" ? "PreCheck" : "standard") + " reading is available.";
+      var laneName = selectedLane === "PRECHECK" ? "PreCheck" : "standard";
+      message = checkpointOnly
+        ? "No reporting checkpoint has a fresh " + laneName + " reading."
+        : terminalCheckpoint
+          ? "No checkpoint in this view has a fresh " + laneName + " reading."
+          : "Compatible checkpoints are highlighted, but no fresh " + laneName + " reading is available.";
     }
 
     if (selectedCheckpoint && filterActive && !compatible.some(function (item) { return item.dataset.checkpointId === selectedCheckpoint; })) {
@@ -718,7 +744,7 @@
     syncTerminalMarkers(activeTerminal);
     updateCalculatorLink(summaryCheckpoint);
     if (result) result.textContent = message;
-    if (compatibleCount) compatibleCount.textContent = compatible.length + (checkpointOnly ? " checkpoints" : " compatible");
+    if (compatibleCount) compatibleCount.textContent = compatible.length + (checkpointOnly ? " checkpoints" : terminalCheckpoint ? " shown" : " compatible");
   }
 
   function chooseTerminal(id, moveMap) {
@@ -739,7 +765,7 @@
     selectedCheckpoint = id;
     selectedTerminal = terminal;
     selectRadio("decision-terminal", terminal);
-    if (!compatibleWithGate) {
+    if (gateRouting && !compatibleWithGate) {
       selectedGate = "";
       selectRadio("decision-gate", "");
     }
@@ -790,7 +816,7 @@
         fitOverview(true);
         syncTerminalMarkers(marker.dataset.arrivalTerminalMarker);
         announce(code + " airport overview focused. Choose a checkpoint from the panel for current lane detail.");
-      } else {
+      } else if (terminalRouting) {
         chooseTerminal(marker.dataset.arrivalTerminalMarker, true);
       }
     });

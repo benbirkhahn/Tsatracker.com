@@ -1,7 +1,8 @@
 {% if airport_arrival_mode %}
 {% set arrival = airport_arrival_mode %}
 {% set overall_wait = cw.standard if cw and cw.standard is not none else none %}
-{% set detailed_routing = arrival.decision_mode == 'terminal_gate' %}
+{% set terminal_routing = arrival.decision_mode in ['terminal_gate', 'terminal_checkpoint'] %}
+{% set gate_routing = arrival.decision_mode == 'terminal_gate' %}
 {% set arrival_counts = namespace(checkpoints=0) %}
 {% for terminal in arrival.terminals %}{% set arrival_counts.checkpoints = arrival_counts.checkpoints + terminal.checkpoints|length %}{% endfor %}
 <section class="airport-arrival-mode"
@@ -17,13 +18,15 @@
       <div class="airport-page-meta">
         <span>{{ airport_city }}</span>
         <span>Satellite airport view</span>
-        {% if detailed_routing %}<span>{{ arrival.terminals|length }} terminals / {{ arrival_counts.checkpoints }} published checkpoints</span>
+        {% if terminal_routing %}<span>{{ arrival.terminals|length }} terminal areas / {{ arrival_counts.checkpoints }} published checkpoints</span>
         {% else %}<span>{{ arrival_counts.checkpoints }} reporting checkpoint{{ 's' if arrival_counts.checkpoints != 1 }}</span>{% endif %}
         {% if airport_summary %}<span>{% if is_live %}Captured{% else %}Estimate generated{% endif %} {{ airport_summary.updated_at }}</span>{% endif %}
       </div>
     </div>
-    {% if detailed_routing %}
+    {% if gate_routing %}
     <p class="arrival-mode-intro">Choose the terminal, gate, and screening lane on your boarding pass. Arrival Mode keeps the airport in view while it compares compatible current readings.</p>
+    {% elif terminal_routing %}
+    <p class="arrival-mode-intro">Choose a terminal area and screening lane. Arrival Mode keeps the airport in view while it compares the freshest nearby checkpoint readings.</p>
     {% else %}
     <p class="arrival-mode-intro">Explore the airport from above, switch screening lanes, and compare the freshest checkpoint readings published by the airport.</p>
     {% endif %}
@@ -63,7 +66,7 @@
                 aria-controls="arrival-checkpoint-list"
                 aria-pressed="false">
           <span class="arrival-terminal-marker-code" aria-hidden="true">{{ (terminal.marker_code or terminal.id)|upper }}</span>
-          <span>{{ terminal.label }}</span>
+          <span>{{ terminal.marker_label or terminal.label }}</span>
         </button>
         {% endfor %}
       </div>
@@ -74,7 +77,7 @@
       </div>
       <button type="button" class="arrival-map-expand" data-arrival-map-expand aria-controls="arrival-airport-map" aria-expanded="false" hidden>Explore airport</button>
       <button type="button" class="arrival-map-done" data-arrival-map-done aria-label="Exit expanded airport map" hidden>Done <span aria-hidden="true">×</span></button>
-      <p class="arrival-map-instruction" data-arrival-map-instruction>{% if detailed_routing %}Drag to explore · choose a terminal marker{% else %}Drag to explore · choose a checkpoint below{% endif %}</p>
+      <p class="arrival-map-instruction" data-arrival-map-instruction>{% if terminal_routing %}Drag to explore · choose a terminal marker{% else %}Drag to explore · choose a checkpoint below{% endif %}</p>
       <p class="sr-only" id="arrival-map-status" data-arrival-map-status role="status" aria-live="polite"></p>
     </div>
 
@@ -105,9 +108,9 @@
 
       <div class="arrival-control-body" id="arrival-control-body">
         <form class="decision-controls arrival-decision-controls" data-decision-controls>
-          {% if detailed_routing %}
+          {% if terminal_routing %}
           <fieldset>
-            <legend>Check-in terminal</legend>
+            <legend>{% if gate_routing %}Check-in terminal{% else %}Terminal or checkpoint area{% endif %}</legend>
             <div class="choice-grid arrival-terminal-choice-grid">
               <label><input type="radio" name="decision-terminal" value="" checked><span>Not sure</span></label>
               {% for terminal in arrival.terminals %}
@@ -117,7 +120,7 @@
           </fieldset>
           {% endif %}
 
-          {% if detailed_routing %}
+          {% if gate_routing %}
           <fieldset>
             <legend>Gate on your boarding pass</legend>
             <div class="choice-grid gate-choice-grid">
@@ -137,8 +140,8 @@
             </div>
           </fieldset>
 
-          <p class="decision-result" data-decision-result role="status" aria-live="polite">{% if detailed_routing %}Choose a gate or terminal to compare compatible checkpoints.{% else %}Comparing fresh standard-screening readings across reporting checkpoints.{% endif %}</p>
-          {% if detailed_routing %}<p class="decision-caveat">D gates can be reached through either terminal. Choose the terminal where you check in before relying on a recommendation.</p>{% endif %}
+          <p class="decision-result" data-decision-result role="status" aria-live="polite">{% if gate_routing %}Choose a gate or terminal to compare compatible checkpoints.{% elif terminal_routing %}Comparing fresh standard-screening readings across all terminal areas.{% else %}Comparing fresh standard-screening readings across reporting checkpoints.{% endif %}</p>
+          {% if arrival.routing_note %}<p class="decision-caveat">{{ arrival.routing_note }}</p>{% endif %}
         </form>
 
         <div class="arrival-checkpoint-panel">
@@ -157,10 +160,10 @@
                 <button type="button"
                         class="arrival-checkpoint-choice"
                         data-arrival-checkpoint-choice="{{ checkpoint.id }}"
-                        aria-label="Select {{ checkpoint.label }} checkpoint{% if detailed_routing %} in {{ terminal.label }}{% endif %}"
+                        aria-label="Select {{ checkpoint.label }} checkpoint{% if terminal_routing %} in {{ terminal.label }}{% endif %}"
                         aria-pressed="false">
                   <span class="arrival-checkpoint-copy">
-                    {% if detailed_routing %}<span class="arrival-checkpoint-terminal">{{ terminal.label }}</span>{% endif %}
+                    {% if terminal_routing %}<span class="arrival-checkpoint-terminal">{{ terminal.label }}</span>{% endif %}
                     <strong>{{ checkpoint.label }}</strong>
                     {% if checkpoint.hours %}<span class="arrival-checkpoint-hours">Published hours: {{ checkpoint.hours }}</span>{% endif %}
                   </span>

@@ -938,6 +938,203 @@ class FrontendContractTests(unittest.TestCase):
             {"A East Priority", "Estimated Wait"},
         )
 
+    def test_dca_arrival_mode_maps_three_reviewed_checkpoint_areas(self):
+        now = datetime(2026, 7, 13, 20, 0, tzinfo=timezone.utc)
+        rows = [
+            {
+                "checkpoint": "Terminal 1 (A Gates)",
+                "lane_type": "STANDARD",
+                "wait_minutes": 0,
+                "captured_at": (now - timedelta(minutes=2)).isoformat(),
+            },
+            {
+                "checkpoint": "Terminal 2 South (B, C, D, E Gates)",
+                "lane_type": "PRECHECK",
+                "wait_minutes": 4,
+                "captured_at": (now - timedelta(minutes=3)).isoformat(),
+            },
+            {
+                "checkpoint": "Terminal 2 North (B, C, D, E Gates)",
+                "lane_type": "STANDARD",
+                "wait_minutes": 7,
+                "captured_at": (now - timedelta(minutes=4)).isoformat(),
+            },
+        ]
+        model = self.app_module.build_airport_arrival_mode(
+            "DCA", rows=rows, history_rows=rows, now=now
+        )
+
+        self.assertEqual(model["decision_mode"], "terminal_checkpoint")
+        self.assertFalse(model["has_published_hours"])
+        self.assertFalse(model["all_checkpoints_reach_all_gates"])
+        self.assertIn("Terminal 1 serves A gates", model["routing_note"])
+        self.assertEqual(model["map"]["location_accuracy"], "checkpoint_area_overview")
+        self.assertEqual(
+            [terminal["id"] for terminal in model["terminals"]],
+            ["t1", "t2-south", "t2-north"],
+        )
+        self.assertTrue(
+            all(
+                terminal["location_accuracy"] == "checkpoint_area_anchor"
+                for terminal in model["terminals"]
+            )
+        )
+        checkpoints = {
+            checkpoint["id"]: checkpoint
+            for terminal in model["terminals"]
+            for checkpoint in terminal["checkpoints"]
+        }
+        self.assertEqual(
+            set(checkpoints), {"dca-t1", "dca-t2-south", "dca-t2-north"}
+        )
+        self.assertEqual(checkpoints["dca-t1"]["standard_wait"], 0)
+        self.assertEqual(checkpoints["dca-t2-south"]["precheck_wait"], 4)
+        self.assertEqual(checkpoints["dca-t2-north"]["standard_wait"], 7)
+        self.assertEqual(model["fastest_fresh_reading"]["checkpoint_id"], "dca-t1")
+        self.assertEqual(model["unmatched_readings"], [])
+
+    def test_sfo_arrival_mode_groups_six_checkpoints_under_five_terminals(self):
+        now = datetime(2026, 7, 13, 20, 0, tzinfo=timezone.utc)
+        labels = (
+            "Checkpoint A · International Terminal A",
+            "Checkpoint B · Harvey Milk Terminal 1",
+            "Checkpoint B - Mezzanine Level · Harvey Milk Terminal 1",
+            "Checkpoint D · Terminal 2",
+            "Checkpoint F · Terminal 3",
+            "Checkpoint G · International Terminal G",
+        )
+        rows = [
+            {
+                "checkpoint": label,
+                "lane_type": "STANDARD",
+                "wait_minutes": index,
+                "captured_at": (now - timedelta(minutes=2)).isoformat(),
+            }
+            for index, label in enumerate(labels)
+        ]
+        rows.append(
+            {
+                "checkpoint": "Estimated Wait",
+                "lane_type": "STANDARD",
+                "wait_minutes": 15,
+                "captured_at": now.isoformat(),
+            }
+        )
+        model = self.app_module.build_airport_arrival_mode(
+            "SFO", rows=rows, history_rows=rows, now=now
+        )
+
+        self.assertEqual(model["decision_mode"], "terminal_checkpoint")
+        self.assertTrue(model["all_checkpoints_reach_all_gates"])
+        self.assertIn("every gate is accessible", model["routing_note"])
+        self.assertEqual(model["map"]["location_accuracy"], "terminal_building_overview")
+        self.assertEqual(len(model["terminals"]), 5)
+        self.assertEqual(
+            [terminal["id"] for terminal in model["terminals"]],
+            ["intl-a", "t1", "t2", "t3", "intl-g"],
+        )
+        self.assertTrue(
+            all(
+                terminal["location_accuracy"] == "terminal_building_centroid"
+                for terminal in model["terminals"]
+            )
+        )
+        checkpoints = [
+            checkpoint
+            for terminal in model["terminals"]
+            for checkpoint in terminal["checkpoints"]
+        ]
+        self.assertEqual(len(checkpoints), 6)
+        terminal_one = next(
+            terminal for terminal in model["terminals"] if terminal["id"] == "t1"
+        )
+        self.assertEqual(
+            [checkpoint["id"] for checkpoint in terminal_one["checkpoints"]],
+            ["sfo-checkpoint-b", "sfo-checkpoint-b-mezzanine"],
+        )
+        self.assertEqual(
+            [row["checkpoint"] for row in model["unmatched_readings"]],
+            ["Estimated Wait"],
+        )
+
+    def test_dca_and_sfo_render_terminal_controls_without_las_gate_controls(self):
+        now = datetime.now(timezone.utc)
+        rows_by_code = {
+            "DCA": [
+                {
+                    "checkpoint": "Terminal 1 (A Gates)",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 5,
+                    "captured_at": now.isoformat(),
+                }
+            ],
+            "SFO": [
+                {
+                    "checkpoint": "Checkpoint B · Harvey Milk Terminal 1",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 6,
+                    "captured_at": now.isoformat(),
+                }
+            ],
+        }
+        module = self.app_module
+        original_codes = module.AIRPORT_ARRIVAL_MODE_CODES
+        try:
+            module.AIRPORT_ARRIVAL_MODE_CODES = {"DCA", "SFO"}
+            for code, marker_count, checkpoint_count, checkpoint_id in (
+                ("DCA", 3, 3, "dca-t1"),
+                ("SFO", 5, 6, "sfo-checkpoint-b"),
+            ):
+                with self.subTest(code=code), patch.object(
+                    module, "latest_for_code", return_value=rows_by_code[code]
+                ), patch.object(
+                    module, "history_for_airport", return_value=rows_by_code[code]
+                ):
+                    html, document = self.get_html(self.airport_routes[code])
+                    api_response = self.client.get(
+                        f"/api/airport-arrival-mode?airport={code}"
+                    )
+                    calculator_html, _ = self.get_html(
+                        f"/when-should-i-leave?airport={code}"
+                        f"&checkpoint={checkpoint_id}&lane=STANDARD"
+                    )
+
+                markers = [
+                    attrs
+                    for tag, attrs in document.elements
+                    if tag == "button" and "data-arrival-terminal-marker" in attrs
+                ]
+                checkpoint_buttons = [
+                    attrs
+                    for tag, attrs in document.elements
+                    if tag == "button" and "data-arrival-checkpoint-choice" in attrs
+                ]
+                self.assertEqual(len(markers), marker_count)
+                self.assertEqual(len(checkpoint_buttons), checkpoint_count)
+                self.assertIn("Terminal or checkpoint area", html)
+                self.assertNotIn("Gate on your boarding pass", html)
+                self.assertIn("data-location-accuracy", html)
+                self.assertEqual(api_response.status_code, 200)
+                self.assertEqual(
+                    api_response.get_json()["decision_mode"], "terminal_checkpoint"
+                )
+                selection_match = re.search(
+                    r"var CALCULATOR_SELECTION = (\{.*?\});",
+                    calculator_html,
+                    re.DOTALL,
+                )
+                self.assertIsNotNone(selection_match)
+                self.assertEqual(
+                    json.loads(selection_match.group(1)),
+                    {
+                        "airport": code,
+                        "checkpoint": checkpoint_id,
+                        "lane": "STANDARD",
+                    },
+                )
+        finally:
+            module.AIRPORT_ARRIVAL_MODE_CODES = original_codes
+
     def test_generic_arrival_mode_keeps_label_encoded_lane_trends_separate(self):
         now = datetime(2026, 7, 10, 20, 0, tzinfo=timezone.utc)
         history_rows = [
@@ -1334,8 +1531,8 @@ class FrontendContractTests(unittest.TestCase):
             self.assertNotIn("Gate on your boarding pass", html)
             self.assertIn("Screening lane", html)
             self.assertIn("phl-a-east", html)
-            self.assertIn("tracker.css?v=20260713-3", html)
-            self.assertIn("airport-decision-map.js?v=20260713-3", html)
+            self.assertIn("tracker.css?v=20260713-4", html)
+            self.assertIn("airport-decision-map.js?v=20260713-4", html)
 
             self.assertEqual(api_response.status_code, 200)
             payload = api_response.get_json()
