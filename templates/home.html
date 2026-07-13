@@ -82,8 +82,8 @@
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="m5 3 13 8-6 2-3 6z"></path>
         </svg>
-        <span class="pointer-fine-copy">Hover or focus to preview.<br>Drag, scroll, or use + / − to explore.</span>
-        <span class="pointer-coarse-copy">Tap an airport to preview.<br>Drag or pinch to explore.</span>
+        <span class="pointer-fine-copy">Hover or focus to preview.<br>Select for a satellite fly-in.</span>
+        <span class="pointer-coarse-copy">Tap an airport to preview.<br>Open the card for a satellite fly-in.</span>
       </div>
 
       <div class="home-atlas-legend" aria-label="Airport wait map legend">
@@ -327,7 +327,7 @@
 
 <script id="airport-map-data" type="application/json">{{ airport_summaries|tojson }}</script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
-<script src="/static/home-map.js?v=20260712-1" defer></script>
+<script src="/static/home-map.js?v=20260712-3" defer></script>
 <script>
 (function(){
   var q=document.getElementById("q"),board=document.getElementById("board");
