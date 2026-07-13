@@ -23,10 +23,10 @@
   var coarsePointer = window.matchMedia("(pointer: coarse)");
   var NYC_CODES = ["EWR", "JFK", "LGA"];
   var AIRPORT_REVEAL_ZOOM = 13;
-  var AIRPORT_REVEAL_DURATION = 1.18;
-  var AIRPORT_REVEAL_HOLD_MS = 900;
-  var AIRPORT_REVEAL_TILE_WAIT_MS = 900;
-  var AIRPORT_REVEAL_FALLBACK_MS = 3200;
+  var AIRPORT_REVEAL_DURATION = 1.25;
+  var AIRPORT_REVEAL_HOLD_MS = 1500;
+  var AIRPORT_REVEAL_TILE_WAIT_MS = 1200;
+  var AIRPORT_REVEAL_FALLBACK_MS = 5000;
   var LABEL_LAYOUT = {
     BOS: { side: "left", y: -10 },
     DCA: { side: "left", y: 14 },
