@@ -546,7 +546,7 @@
     var freshness = laneFreshness(lane, checkpoint);
     var wait = numeric(lane && lane.wait_minutes);
     if (wait !== null && (freshness === "live" || freshness === "aging")) return Math.round(wait) + " min";
-    if (freshness === "stale") return "Stale";
+    if (freshness === "stale") return "Stale — no number";
     if (freshness === "published_only") return "Published only";
     return "No current reading";
   }

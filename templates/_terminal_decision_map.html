@@ -178,7 +178,7 @@
                       <span>{{ lane.label or (lane.lane_type|lane_label) }}</span>
                       <strong data-arrival-lane-value>
                         {% if lane.wait_minutes is not none and freshness in ['live', 'aging'] %}{{ lane.wait_minutes|round|int }} min
-                        {% elif freshness == 'stale' %}Stale
+                        {% elif freshness == 'stale' %}Stale — no number
                         {% elif freshness == 'published_only' %}Published only
                         {% else %}No current reading{% endif %}
                       </strong>

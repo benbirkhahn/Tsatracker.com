@@ -879,6 +879,13 @@ class FrontendContractTests(unittest.TestCase):
                 lanes[("las-t3-innovation", lane_type)]["wait_minutes"]
             )
 
+        module = self.app_module
+        with patch.object(module, "latest_for_code", return_value=rows), patch.object(
+            module, "history_for_airport", return_value=[]
+        ):
+            html, _ = self.get_html(self.airport_routes["LAS"])
+        self.assertIn("Stale — no number", html)
+
         self.assertEqual(model["fastest_fresh_reading"]["checkpoint_id"], "las-t1-ab")
         self.assertEqual(model["fastest_fresh_reading"]["wait_minutes"], 0)
         self.assertEqual(
