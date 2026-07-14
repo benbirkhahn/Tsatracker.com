@@ -16,6 +16,8 @@ from zoneinfo import ZoneInfo
 import requests
 from flask import Flask, Response, abort, jsonify, redirect, render_template, request, send_from_directory
 
+from airport_arrival_configs import AIRPORT_DECISION_MAPS
+
 # Import Supabase integration (optional)
 try:
     from supabase_integration import (
@@ -836,96 +838,6 @@ AIRPORT_STATUS_NOTICES = {
             {"label": "JFK alerts and advisories", "url": "https://www.jfkairport.com/alerts-advisories"},
         ],
     },
-}
-
-
-AIRPORT_DECISION_MAPS = {
-    "LAS": {
-        "decision_mode": "terminal_gate",
-        "has_published_hours": True,
-        "map": {
-            "center": [36.0862, -115.1426],
-            "bounds": [[36.0775, -115.1595], [36.0955, -115.1260]],
-            "overview_zoom": 14,
-            "detail_zoom": 16,
-            "location_accuracy": "airport_overview",
-            "tile_url": "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}",
-            "tile_attribution": "Imagery: USDA / USGS The National Map",
-        },
-        "source": {
-            "label": "Official LAS security page",
-            "url": "https://www.harryreidairport.com/security-at-las",
-            "verified_on": "2026-07-10",
-        },
-        "terminals": [
-            {
-                "id": "t1",
-                "marker_code": "T1",
-                "label": "Terminal 1",
-                "summary": "A, B, C, and some D-gate routing",
-                "anchor": [36.0853711, -115.1480354],
-                "location_accuracy": "terminal_curb_anchor",
-                "checkpoints": [
-                    {
-                        "id": "las-t1-ab",
-                        "label": "A/B Gates",
-                        "aliases": ["T1 - A/B Gates", "Terminal 1 - A/B Gates"],
-                        "primary_for": ["A", "B"],
-                        "alternate_for": [],
-                        "hours": "3:15 a.m.-1 a.m.",
-                        "note": "Primary Terminal 1 checkpoint for A and B gates.",
-                    },
-                    {
-                        "id": "las-t1-c",
-                        "label": "C Gates",
-                        "aliases": ["T1 - C Gates", "Terminal 1 - C Gates"],
-                        "primary_for": ["C"],
-                        "alternate_for": [],
-                        "hours": "3:05 a.m.-10 p.m.",
-                        "note": "Southwest-focused checkpoint for C gates.",
-                    },
-                    {
-                        "id": "las-t1-cd",
-                        "label": "C/D Gates",
-                        "aliases": ["T1 - C/D Gates", "Terminal 1 - C/D Gates"],
-                        "primary_for": ["D"],
-                        "alternate_for": ["C"],
-                        "hours": "Open 24 hours",
-                        "note": "Terminal 1 option for D gates and an alternative for C gates.",
-                    },
-                ],
-            },
-            {
-                "id": "t3",
-                "marker_code": "T3",
-                "label": "Terminal 3",
-                "summary": "D and E gates, with a limited-hours Innovation option",
-                "anchor": [36.0868828, -115.1371475],
-                "location_accuracy": "terminal_curb_anchor",
-                "checkpoints": [
-                    {
-                        "id": "las-t3-de",
-                        "label": "Level 2 / D & E Gates",
-                        "aliases": ["T3 - D/E Gates", "Terminal 3 - D/E Gates"],
-                        "primary_for": ["D", "E"],
-                        "alternate_for": [],
-                        "hours": "3:30 a.m.-1:30 a.m.",
-                        "note": "Main Terminal 3 checkpoint for D and E gates.",
-                    },
-                    {
-                        "id": "las-t3-innovation",
-                        "label": "Level Zero Innovation",
-                        "aliases": [],
-                        "primary_for": [],
-                        "alternate_for": ["D", "E"],
-                        "hours": "5 a.m.-1:30 p.m.",
-                        "note": "Published checkpoint; the current LAS feed has no separate live reading.",
-                        "published_only": True,
-                    },
-                ],
-            },
-        ],
-    }
 }
 
 
@@ -1834,6 +1746,10 @@ def build_airport_arrival_mode(
         "refresh_seconds": AIRPORT_ARRIVAL_MODE_REFRESH_SECONDS,
         "decision_mode": config.get("decision_mode", "terminal_gate"),
         "has_published_hours": bool(config.get("has_published_hours")),
+        "all_checkpoints_reach_all_gates": bool(
+            config.get("all_checkpoints_reach_all_gates")
+        ),
+        "routing_note": str(config.get("routing_note") or ""),
         "map": map_config,
         "source": source,
         "source_status": source_status,

@@ -39,7 +39,8 @@ Incomplete animation-example stubs were excluded from design decisions.
 ## Network-wide Airport Arrival Mode
 
 - Every tracked airport uses the progressively enhanced satellite arrival canvas. LAS retains trustworthy Terminal 1 and Terminal 3 anchors plus gate compatibility because it has a reviewed routing model.
-- The other tracked airports use checkpoint-first mode: one airport-overview anchor, official feed checkpoint labels, Standard/PreCheck comparison, and no invented terminal, gate, or indoor checkpoint geometry.
+- DCA uses three reviewed checkpoint-area anchors: Terminal 1, Terminal 2 South, and Terminal 2 North. SFO uses five reviewed terminal-building anchors and groups six published checkpoints beneath them. Both use terminal + checkpoint mode without inheriting LAS-specific gate rules.
+- The other 14 tracked airports use checkpoint-first mode: one airport-overview anchor, official feed checkpoint labels, Standard/PreCheck comparison, and no invented terminal, gate, or indoor checkpoint geometry.
 - At LAS, four checkpoints consume current lane readings; the Innovation checkpoint remains published-only because the live feed does not report it separately.
 - LAS gate, lane, terminal, and checkpoint controls identify the fastest compatible fresh reading. Checkpoint-first airports compare the selected lane across all reporting checkpoints. Missing and stale readings fall back explicitly, while a provider-supplied zero remains `0 min` and is never inferred to mean closed.
 - The homepage writes a short-lived `tsaAirportHandoffV1` session handoff before its cinematic fly-in. A matching airport page consumes it to preserve the satellite framing; direct visits start with the embedded arrival canvas.
@@ -53,8 +54,10 @@ flowchart LR
   Home --> Calculator["Leave-time tool /when-should-i-leave"]
   Directory --> Arrival
   Arrival --> LAS["LAS terminal + gate routing"]
-  Arrival --> Generic["16 checkpoint-first airport views"]
+  Arrival --> TerminalCheckpoint["DCA / SFO terminal + checkpoint routing"]
+  Arrival --> Generic["14 checkpoint-first airport views"]
   LAS --> ArrivalAPI["Arrival Mode API /api/airport-arrival-mode?airport=CODE"]
+  TerminalCheckpoint --> ArrivalAPI
   Generic --> ArrivalAPI
   Arrival -->|"airport + checkpoint + lane"| CheckpointCalculator["Checkpoint-aware calculator /when-should-i-leave"]
   CheckpointCalculator --> History["Airport and checkpoint history APIs"]
