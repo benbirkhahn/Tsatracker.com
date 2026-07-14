@@ -388,7 +388,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_offset": [0, 0],
                 "label": "Main Checkpoint",
                 "summary": "Central terminal checkpoint",
-                "anchor": [30.4941, -81.6879],
+                # Central area of the Main Terminal building; not the adjacent roadway.
+                "anchor": [30.4915, -81.6846],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {

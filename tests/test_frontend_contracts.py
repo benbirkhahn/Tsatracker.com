@@ -1073,6 +1073,26 @@ class FrontendContractTests(unittest.TestCase):
         self.assertEqual(model["fastest_fresh_reading"]["checkpoint_id"], "clt-checkpoint-2")
         self.assertEqual(model["unmatched_readings"], [])
 
+    def test_jax_arrival_mode_uses_the_main_terminal_checkpoint_anchor(self):
+        now = datetime(2026, 7, 13, 20, 0, tzinfo=timezone.utc)
+        rows = [
+            {
+                "checkpoint": "Main Checkpoint",
+                "lane_type": "STANDARD",
+                "wait_minutes": 4,
+                "captured_at": (now - timedelta(minutes=2)).isoformat(),
+            }
+        ]
+        model = self.app_module.build_airport_arrival_mode(
+            "JAX", rows=rows, history_rows=rows, now=now
+        )
+
+        self.assertEqual(model["map"]["location_accuracy"], "checkpoint_area_overview")
+        self.assertEqual(len(model["terminals"]), 1)
+        self.assertEqual(model["terminals"][0]["id"], "main")
+        self.assertEqual(model["terminals"][0]["anchor"], [30.4915, -81.6846])
+        self.assertEqual(model["terminals"][0]["location_accuracy"], "checkpoint_area_anchor")
+
     def test_dca_arrival_mode_maps_three_reviewed_checkpoint_areas(self):
         now = datetime(2026, 7, 13, 20, 0, tzinfo=timezone.utc)
         rows = [
