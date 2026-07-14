@@ -1535,6 +1535,72 @@ class FrontendContractTests(unittest.TestCase):
             [("A12 (General)", "STANDARD", 0.0), ("A21 (TSA Pre)", "PRECHECK", 2.0)],
         )
 
+    def test_jfk_collector_uses_public_graphql_endpoint_and_compressed_payload(self):
+        module = self.app_module
+        from lzstring import LZString
+
+        class Response:
+            def __init__(self, payload):
+                self.payload = payload
+                self.status_code = 200
+
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return self.payload
+
+        payload = {
+            "data": {
+                "securityWaitTimes": [
+                    {
+                        "title": "Terminal 1",
+                        "terminal": "1",
+                        "gate": "All Gates",
+                        "checkPoint": "Main ChekPoint",
+                        "queueType": "Reg",
+                        "isOpen": True,
+                        "waitTime": 7,
+                        "isWaitTimeAvailable": True,
+                        "status": "Open",
+                        "lastUpdated": "1:15 AM",
+                    },
+                    {
+                        "title": "Terminal 1",
+                        "terminal": "1",
+                        "gate": "All Gates",
+                        "checkPoint": "Main ChekPoint",
+                        "queueType": "TSAPre",
+                        "isOpen": True,
+                        "waitTime": 2,
+                        "isWaitTimeAvailable": True,
+                        "status": "Open",
+                        "lastUpdated": "1:15 AM",
+                    },
+                ]
+            }
+        }
+        captured = {}
+
+        def fake_post(url, data=None, headers=None, timeout=None):
+            captured["url"] = url
+            captured["data"] = data
+            captured["headers"] = headers
+            captured["timeout"] = timeout
+            return Response(payload)
+
+        with patch.object(module.requests, "post", side_effect=fake_post):
+            rows = module.fetch_jfk_rows()
+
+        self.assertEqual(captured["url"], "https://www.jfkairport.com/api/graphql")
+        self.assertEqual(captured["headers"]["Content-Type"], "text/plain")
+        self.assertEqual(captured["headers"]["Origin"], "https://www.jfkairport.com")
+        decoded = json.loads(LZString().decompressFromEncodedURIComponent(captured["data"]))
+        self.assertEqual(decoded["operationName"], "GetSecurityWaitTimes")
+        self.assertEqual(decoded["variables"], {"airportCode": "JFK"})
+        self.assertEqual([row["lane_type"] for row in rows], ["STANDARD", "PRECHECK"])
+        self.assertEqual([row["wait_minutes"] for row in rows], [7.0, 2.0])
+
     def test_mia_and_lax_arrival_modes_distinguish_live_and_published_context(self):
         now = datetime(2026, 7, 13, 20, 0, tzinfo=timezone.utc)
         rows_by_code = {

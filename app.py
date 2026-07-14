@@ -14,6 +14,7 @@ from typing import Dict, List, Optional
 from zoneinfo import ZoneInfo
 
 import requests
+from lzstring import LZString
 from flask import Flask, Response, abort, jsonify, redirect, render_template, request, send_from_directory
 
 from airport_arrival_configs import AIRPORT_DECISION_MAPS
@@ -3126,21 +3127,41 @@ def fetch_dca_rows() -> List[Dict]:
     return rows
 
 
-_PANYNJ_GQL = "https://api.jfkairport.com/graphql"
+_PANYNJ_GQL = "https://www.jfkairport.com/api/graphql"
+_PANYNJ_LZ = LZString()
+_PANYNJ_QUERY = (
+    'query GetSecurityWaitTimes($airportCode: String!, $terminal: String) { '
+    "securityWaitTimes(airportCode: $airportCode, terminal: $terminal) { "
+    "title terminal gate checkPoint queueType isOpen waitTime isWaitTimeAvailable status lastUpdated __typename "
+    "} }"
+)
 
 
 def _fetch_panynj_rows(airport_code: str) -> List[Dict]:
     """Shared PANYNJ GraphQL fetcher for JFK, EWR, and LGA.
 
-    PANYNJ does not expose explicit lane types. For terminals with exactly two
-    rows, assume the shorter wait is TSA PreCheck and the longer wait is Regular.
-    Any extra rows remain unlabeled alternates.
+    The public terminal pages use a compressed Apollo GraphQL POST payload.
+    Each terminal generally exposes one or two lanes; where the airport returns
+    multiple rows for a terminal, keep the measured values and infer the lane
+    type from the airport's published queue labels.
     """
-    query = f'{{ securityWaitTimes(airportCode: "{airport_code}") {{ checkPoint waitTime terminal }} }}'
+    payload = {
+        "operationName": "GetSecurityWaitTimes",
+        "variables": {"airportCode": airport_code},
+        "extensions": {"clientLibrary": {"name": "@apollo/client", "version": "4.0.4"}},
+        "query": _PANYNJ_QUERY,
+    }
+    body = _PANYNJ_LZ.compressToEncodedURIComponent(json.dumps(payload, separators=(",", ":")))
     resp = requests.post(
         _PANYNJ_GQL,
-        json={"query": query},
-        headers={**UA, "Content-Type": "application/json", "Accept": "application/json"},
+        data=body,
+        headers={
+            **UA,
+            "Content-Type": "text/plain",
+            "Accept": "application/graphql-response+json,application/json;q=0.9",
+            "Origin": "https://www.jfkairport.com",
+            "Referer": "https://www.jfkairport.com/",
+        },
         timeout=20,
     )
     if resp.status_code in (401, 403):
