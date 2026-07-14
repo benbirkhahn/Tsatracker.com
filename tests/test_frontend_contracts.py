@@ -1192,6 +1192,30 @@ class FrontendContractTests(unittest.TestCase):
             },
         )
 
+    def test_bwi_arrival_mode_uses_the_reviewed_main_terminal_checkpoint_anchors(self):
+        now = datetime(2026, 7, 13, 20, 0, tzinfo=timezone.utc)
+        rows = [
+            {
+                "checkpoint": "Checkpoint B",
+                "lane_type": "STANDARD",
+                "wait_minutes": 4,
+                "captured_at": (now - timedelta(minutes=2)).isoformat(),
+            }
+        ]
+        model = self.app_module.build_airport_arrival_mode(
+            "BWI", rows=rows, history_rows=rows, now=now
+        )
+
+        self.assertEqual(
+            {terminal["id"]: terminal["anchor"] for terminal in model["terminals"]},
+            {
+                "a": [39.1792, -76.6724],
+                "b": [39.1791, -76.6706],
+                "c": [39.1789, -76.6685],
+                "de": [39.1791, -76.6669],
+            },
+        )
+
     def test_dca_arrival_mode_maps_three_reviewed_checkpoint_areas(self):
         now = datetime(2026, 7, 13, 20, 0, tzinfo=timezone.utc)
         rows = [

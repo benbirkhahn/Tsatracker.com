@@ -1234,7 +1234,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_code": "A",
                 "label": "Checkpoint A",
                 "summary": "Checkpoint A",
-                "anchor": [39.1769, -76.6739],
+                # West side of the Main Terminal, by Concourse A.
+                "anchor": [39.1792, -76.6724],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
@@ -1253,7 +1254,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_code": "B",
                 "label": "Checkpoint B",
                 "summary": "Checkpoint B",
-                "anchor": [39.1768, -76.6718],
+                # Main Terminal checkpoint area between Concourses A and B.
+                "anchor": [39.1791, -76.6706],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
@@ -1272,7 +1274,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_code": "C",
                 "label": "Checkpoint C",
                 "summary": "Checkpoint C",
-                "anchor": [39.1761, -76.6696],
+                # Central Main Terminal checkpoint area by Concourse C.
+                "anchor": [39.1789, -76.6685],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
@@ -1291,7 +1294,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_code": "D/E",
                 "label": "Checkpoint D/E",
                 "summary": "Checkpoint D/E",
-                "anchor": [39.1739, -76.6662],
+                # East side of the Main Terminal, serving Concourses D and E.
+                "anchor": [39.1791, -76.6669],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
