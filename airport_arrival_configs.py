@@ -970,7 +970,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_label": "East Checkpoint",
                 "label": "East Checkpoint",
                 "summary": "East checkpoint",
-                "anchor": [38.9537, -77.4490],
+                # East end of the Dulles Main Terminal security hall.
+                "anchor": [38.9529, -77.4463],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
@@ -994,7 +995,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_label": "West Checkpoint",
                 "label": "West Checkpoint",
                 "summary": "West checkpoint",
-                "anchor": [38.9522, -77.4467],
+                # West end of the Dulles Main Terminal security hall.
+                "anchor": [38.9529, -77.4493],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {

@@ -1144,6 +1144,29 @@ class FrontendContractTests(unittest.TestCase):
             },
         )
 
+    def test_iad_arrival_mode_uses_the_reviewed_main_terminal_checkpoint_anchors(self):
+        now = datetime(2026, 7, 13, 20, 0, tzinfo=timezone.utc)
+        rows = [
+            {
+                "checkpoint": "East Checkpoint",
+                "lane_type": "STANDARD",
+                "wait_minutes": 4,
+                "captured_at": (now - timedelta(minutes=2)).isoformat(),
+            }
+        ]
+        model = self.app_module.build_airport_arrival_mode(
+            "IAD", rows=rows, history_rows=rows, now=now
+        )
+
+        self.assertEqual(
+            {terminal["id"]: terminal["anchor"] for terminal in model["terminals"]},
+            {
+                "east": [38.9529, -77.4463],
+                "west": [38.9529, -77.4493],
+                "precheck": [38.9529, -77.4480],
+            },
+        )
+
     def test_dca_arrival_mode_maps_three_reviewed_checkpoint_areas(self):
         now = datetime(2026, 7, 13, 20, 0, tzinfo=timezone.utc)
         rows = [
