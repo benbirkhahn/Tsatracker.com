@@ -974,6 +974,16 @@ class FrontendContractTests(unittest.TestCase):
             [terminal["id"] for terminal in model["terminals"]],
             ["main", "north", "lower-north", "south", "international-main"],
         )
+        self.assertEqual(
+            {terminal["id"]: terminal["anchor"] for terminal in model["terminals"]},
+            {
+                "main": [33.6409, -84.4440],
+                "north": [33.64105, -84.4449],
+                "lower-north": [33.64075, -84.44485],
+                "south": [33.6405, -84.4439],
+                "international-main": [33.64037, -84.41821],
+            },
+        )
         self.assertTrue(
             all(
                 terminal["location_accuracy"] == "checkpoint_area_anchor"

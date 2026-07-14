@@ -129,7 +129,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_offset": [0, 18],
                 "label": "Main Checkpoint",
                 "summary": "Domestic Terminal Main",
-                "anchor": [33.6419, -84.4315],
+                # Domestic Terminal, west of Concourse T; not a concourse pin.
+                "anchor": [33.6409, -84.4440],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
@@ -154,7 +155,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_offset": [-18, -10],
                 "label": "North Checkpoint",
                 "summary": "Domestic Terminal North",
-                "anchor": [33.6445, -84.4350],
+                # North end of the Domestic Terminal checkpoint area.
+                "anchor": [33.64105, -84.4449],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
@@ -179,7 +181,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_offset": [18, -10],
                 "label": "Lower North Checkpoint",
                 "summary": "Domestic Terminal Lower North",
-                "anchor": [33.6394, -84.4344],
+                # Lower North remains within the Domestic Terminal footprint.
+                "anchor": [33.64075, -84.44485],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
@@ -204,7 +207,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_offset": [18, 14],
                 "label": "South Checkpoint",
                 "summary": "Domestic Terminal South",
-                "anchor": [33.6368, -84.4286],
+                # South end of the Domestic Terminal checkpoint area.
+                "anchor": [33.6405, -84.4439],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
@@ -229,7 +233,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_offset": [-20, 0],
                 "label": "International Main Checkpoint",
                 "summary": "International Terminal Departures",
-                "anchor": [33.6410, -84.4148],
+                # International Terminal, east of Concourse F.
+                "anchor": [33.64037, -84.41821],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
