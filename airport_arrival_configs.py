@@ -1069,7 +1069,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_label": "Terminal A",
                 "label": "Terminal A",
                 "summary": "A North and A South checkpoints",
-                "anchor": [29.9849, -95.3408],
+                # Terminal A's security area, west of Terminal B.
+                "anchor": [29.9856, -95.3440],
                 "location_accuracy": "terminal_building_centroid",
                 "checkpoints": [
                     {
@@ -1127,7 +1128,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_label": "Terminal C",
                 "label": "Terminal C",
                 "summary": "C North and C South checkpoints",
-                "anchor": [29.9899, -95.3361],
+                # Terminal C's central terminal building.
+                "anchor": [29.9869, -95.3394],
                 "location_accuracy": "terminal_building_centroid",
                 "checkpoints": [
                     {
@@ -1165,7 +1167,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_label": "Terminal D",
                 "label": "Terminal D",
                 "summary": "Terminal D checkpoint",
-                "anchor": [29.9930, -95.3450],
+                # Terminal D / Mickey Leland International Terminal west pier.
+                "anchor": [29.9890, -95.3386],
                 "location_accuracy": "terminal_building_centroid",
                 "checkpoints": [
                     {
@@ -1185,7 +1188,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_label": "Terminal E",
                 "label": "Terminal E",
                 "summary": "Terminal E checkpoint",
-                "anchor": [29.9846, -95.3385],
+                # Terminal E building, east of the D/E connector.
+                "anchor": [29.9852, -95.3339],
                 "location_accuracy": "terminal_building_centroid",
                 "checkpoints": [
                     {

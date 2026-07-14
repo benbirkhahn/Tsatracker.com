@@ -1167,6 +1167,31 @@ class FrontendContractTests(unittest.TestCase):
             },
         )
 
+    def test_iah_arrival_mode_uses_the_reviewed_terminal_anchors(self):
+        now = datetime(2026, 7, 13, 20, 0, tzinfo=timezone.utc)
+        rows = [
+            {
+                "checkpoint": "Terminal C North",
+                "lane_type": "STANDARD",
+                "wait_minutes": 4,
+                "captured_at": (now - timedelta(minutes=2)).isoformat(),
+            }
+        ]
+        model = self.app_module.build_airport_arrival_mode(
+            "IAH", rows=rows, history_rows=rows, now=now
+        )
+
+        self.assertEqual(
+            {terminal["id"]: terminal["anchor"] for terminal in model["terminals"]},
+            {
+                "terminal-a": [29.9856, -95.3440],
+                "terminal-b": [29.9891, -95.3466],
+                "terminal-c": [29.9869, -95.3394],
+                "terminal-d": [29.9890, -95.3386],
+                "terminal-e": [29.9852, -95.3339],
+            },
+        )
+
     def test_dca_arrival_mode_maps_three_reviewed_checkpoint_areas(self):
         now = datetime(2026, 7, 13, 20, 0, tzinfo=timezone.utc)
         rows = [
