@@ -778,4 +778,278 @@ AIRPORT_DECISION_MAPS = {
             },
         ],
     },
+    "DFW": {
+        "decision_mode": "terminal_checkpoint",
+        "has_published_hours": False,
+        "routing_note": (
+            "Choose Terminal A, B, C, D, or E from your boarding pass. DFW "
+            "publishes several checkpoint readings per terminal; compare the "
+            "checkpoint name and lane before heading to security."
+        ),
+        "map": {
+            "center": [32.8980, -97.0402],
+            "bounds": [[32.8870, -97.0470], [32.9080, -97.0335]],
+            "overview_zoom": 14.75,
+            "detail_zoom": 16.5,
+            "location_accuracy": "terminal_building_overview",
+            "tile_url": USGS_IMAGERY_URL,
+            "tile_attribution": USGS_IMAGERY_ATTRIBUTION,
+        },
+        "source": {
+            "label": "Official DFW security information",
+            "url": "https://www.dfwairport.com/security/",
+            "verified_on": "2026-07-13",
+        },
+        "terminals": [
+            {
+                "id": "terminal-a",
+                "marker_code": "A",
+                "marker_label": "Terminal A",
+                "marker_offset": [10, -10],
+                "label": "Terminal A",
+                "summary": "Checkpoints A12, A21, and A35",
+                "anchor": [32.9045373, -97.0371022],
+                "location_accuracy": "terminal_building_centroid",
+                "checkpoints": [
+                    {
+                        "id": "dfw-a12",
+                        "label": "A12",
+                        "aliases": ["A12", "A12 (General)", "A12 (Priority)"],
+                        "primary_for": [], "alternate_for": [], "hours": "",
+                        "note": "Published checkpoint reading for Terminal A near A12.",
+                    },
+                    {
+                        "id": "dfw-a21",
+                        "label": "A21",
+                        "aliases": ["A21", "A21 (General)", "A21 (Priority)", "A21 (TSA Pre)"],
+                        "primary_for": [], "alternate_for": [], "hours": "",
+                        "note": "Published Standard, Priority, and PreCheck readings near A21.",
+                    },
+                    {
+                        "id": "dfw-a35",
+                        "label": "A35",
+                        "aliases": ["A35", "A35 (General)", "A35 (Priority)"],
+                        "primary_for": [], "alternate_for": [], "hours": "",
+                        "note": "Published checkpoint reading for Terminal A near A35.",
+                    },
+                ],
+            },
+            {
+                "id": "terminal-b",
+                "marker_code": "B",
+                "marker_label": "Terminal B",
+                "marker_offset": [-10, -10],
+                "label": "Terminal B",
+                "summary": "Checkpoints B9 and B30",
+                "anchor": [32.9047891, -97.0437526],
+                "location_accuracy": "terminal_building_centroid",
+                "checkpoints": [
+                    {
+                        "id": "dfw-b9", "label": "B9",
+                        "aliases": ["B9", "B9 (General)", "B9 (Priority)", "B9 (TSA Pre)"],
+                        "primary_for": [], "alternate_for": [], "hours": "",
+                        "note": "Published Standard, Priority, and PreCheck readings near B9.",
+                    },
+                    {
+                        "id": "dfw-b30", "label": "B30",
+                        "aliases": ["B30", "B30 (General)", "B30 (Priority)", "B30 (TSA Pre)"],
+                        "primary_for": [], "alternate_for": [], "hours": "",
+                        "note": "Published Standard, Priority, and PreCheck readings near B30.",
+                    },
+                ],
+            },
+            {
+                "id": "terminal-c",
+                "marker_code": "C",
+                "marker_label": "Terminal C",
+                "marker_offset": [10, 8],
+                "label": "Terminal C",
+                "summary": "Checkpoints C10, C11, and C20",
+                "anchor": [32.8977107, -97.0365668],
+                "location_accuracy": "terminal_building_centroid",
+                "checkpoints": [
+                    {
+                        "id": "dfw-c10", "label": "C10",
+                        "aliases": ["C10", "C10 (General)", "C10 (Priority)", "C10 (TSA Pre)"],
+                        "primary_for": [], "alternate_for": [], "hours": "",
+                        "note": "Published Standard, Priority, and PreCheck readings near C10.",
+                    },
+                    {
+                        "id": "dfw-c11", "label": "C11",
+                        "aliases": ["C11", "C11 (General)", "C11 (Priority)", "C11 (TSA Pre)"],
+                        "primary_for": [], "alternate_for": [], "hours": "",
+                        "note": "Published Standard, Priority, and PreCheck readings near C11.",
+                    },
+                    {
+                        "id": "dfw-c20", "label": "C20",
+                        "aliases": ["C20", "C20 (General)", "C20 (TSA Pre)"],
+                        "primary_for": [], "alternate_for": [], "hours": "",
+                        "note": "Published Standard and PreCheck readings near C20.",
+                    },
+                ],
+            },
+            {
+                "id": "terminal-d",
+                "marker_code": "D",
+                "marker_label": "Terminal D",
+                "marker_offset": [-10, 8],
+                "label": "Terminal D",
+                "summary": "Checkpoints D18, D22, and D30",
+                "anchor": [32.8978960, -97.0435516],
+                "location_accuracy": "terminal_building_centroid",
+                "checkpoints": [
+                    {
+                        "id": "dfw-d18", "label": "D18",
+                        "aliases": ["D18", "D18 (General)", "D18 (TSA Pre)"],
+                        "primary_for": [], "alternate_for": [], "hours": "",
+                        "note": "Published Standard and PreCheck readings near D18.",
+                    },
+                    {
+                        "id": "dfw-d22", "label": "D22",
+                        "aliases": ["D22", "D22 (General)"],
+                        "primary_for": [], "alternate_for": [], "hours": "",
+                        "note": "Published checkpoint reading near D22.",
+                    },
+                    {
+                        "id": "dfw-d30", "label": "D30",
+                        "aliases": ["D30", "D30 (General)", "D30 (TSA Pre)"],
+                        "primary_for": [], "alternate_for": [], "hours": "",
+                        "note": "Published Standard and PreCheck readings near D30.",
+                    },
+                ],
+            },
+            {
+                "id": "terminal-e",
+                "marker_code": "E",
+                "marker_label": "Terminal E",
+                "label": "Terminal E",
+                "summary": "Checkpoints E8, E16, E18, and E33",
+                "anchor": [32.8897745, -97.0363673],
+                "location_accuracy": "terminal_building_centroid",
+                "checkpoints": [
+                    {
+                        "id": "dfw-e8", "label": "E8",
+                        "aliases": ["E8", "E8 (General)", "E8 (Priority)", "E8 (TSA Pre)"],
+                        "primary_for": [], "alternate_for": [], "hours": "",
+                        "note": "Published Standard, Priority, and PreCheck readings near E8.",
+                    },
+                    {
+                        "id": "dfw-e16", "label": "E16",
+                        "aliases": ["E16", "E16 (TSA Pre)"],
+                        "primary_for": [], "alternate_for": [], "hours": "",
+                        "note": "Published PreCheck reading near E16.",
+                    },
+                    {
+                        "id": "dfw-e18", "label": "E18",
+                        "aliases": ["E18", "E18 (General)", "E18 (TSA Pre)"],
+                        "primary_for": [], "alternate_for": [], "hours": "",
+                        "note": "Published Standard and PreCheck readings near E18.",
+                    },
+                    {
+                        "id": "dfw-e33", "label": "E33",
+                        "aliases": ["E33", "E33 (General)", "E33 (Priority)"],
+                        "primary_for": [], "alternate_for": [], "hours": "",
+                        "note": "Published checkpoint reading near E33.",
+                    },
+                ],
+            },
+        ],
+    },
+    "PHL": {
+        "decision_mode": "terminal_checkpoint",
+        "has_published_hours": False,
+        "routing_note": (
+            "Choose the checkpoint area on your boarding pass. All PHL terminals "
+            "are connected after screening, but checkpoint availability changes; "
+            "verify the current status with PHL before heading to a different area."
+        ),
+        "map": {
+            "center": [39.8762, -75.2446],
+            "bounds": [[39.8715, -75.2540], [39.8820, -75.2350]],
+            "overview_zoom": 15.25,
+            "detail_zoom": 17,
+            "location_accuracy": "terminal_building_overview",
+            "tile_url": USGS_IMAGERY_URL,
+            "tile_attribution": USGS_IMAGERY_ATTRIBUTION,
+        },
+        "source": {
+            "label": "Official PHL checkpoint information",
+            "url": "https://www.phl.org/flights/security-information/checkpoint-hours",
+            "verified_on": "2026-07-13",
+        },
+        "terminals": [
+            {
+                "id": "a-west", "marker_code": "A-W", "marker_label": "A-West",
+                "marker_offset": [-10, 10], "label": "A-West",
+                "summary": "A-West checkpoint area", "anchor": [39.8731426, -75.2519383],
+                "location_accuracy": "terminal_building_centroid",
+                "checkpoints": [{
+                    "id": "phl-a-west", "label": "A-West",
+                    "aliases": ["A-West", "A-West General"],
+                    "primary_for": [], "alternate_for": [], "hours": "",
+                    "note": "Published checkpoint reading for the A-West area; verify current availability with PHL.",
+                }],
+            },
+            {
+                "id": "a-east", "marker_code": "A-E", "marker_label": "A-East",
+                "marker_offset": [8, -10], "label": "A-East",
+                "summary": "A-East Standard and PreCheck", "anchor": [39.8738227, -75.2472237],
+                "location_accuracy": "terminal_building_centroid",
+                "checkpoints": [{
+                    "id": "phl-a-east", "label": "A-East",
+                    "aliases": ["A-East", "A-East General", "A-East TSA PreCheck"],
+                    "primary_for": [], "alternate_for": [], "hours": "",
+                    "note": "Published Standard and PreCheck readings for the A-East area.",
+                }],
+            },
+            {
+                "id": "b", "marker_code": "B", "marker_label": "Terminal B",
+                "marker_offset": [-8, 10], "label": "Terminal B",
+                "summary": "Terminal B checkpoint", "anchor": [39.8744920, -75.2437474],
+                "location_accuracy": "terminal_building_centroid",
+                "checkpoints": [{
+                    "id": "phl-b", "label": "B",
+                    "aliases": ["B", "B General"],
+                    "primary_for": [], "alternate_for": [], "hours": "",
+                    "note": "Published checkpoint reading for Terminal B.",
+                }],
+            },
+            {
+                "id": "c", "marker_code": "C", "marker_label": "Terminal C",
+                "marker_offset": [8, -10], "label": "Terminal C",
+                "summary": "PreCheck-only checkpoint", "anchor": [39.8749401, -75.2412406],
+                "location_accuracy": "terminal_building_centroid",
+                "checkpoints": [{
+                    "id": "phl-c", "label": "C",
+                    "aliases": ["C", "C General"],
+                    "primary_for": [], "alternate_for": [], "hours": "",
+                    "note": "PHL currently identifies Terminal C as a PreCheck-only checkpoint.",
+                }],
+            },
+            {
+                "id": "d-e", "marker_code": "D/E", "marker_label": "D/E",
+                "marker_offset": [-8, 8], "label": "D/E",
+                "summary": "Shared D/E Standard and PreCheck", "anchor": [39.8779073, -75.2398912],
+                "location_accuracy": "terminal_building_overview_anchor",
+                "checkpoints": [{
+                    "id": "phl-d-e", "label": "D/E",
+                    "aliases": ["D/E", "D/E General", "D/E TSA PreCheck"],
+                    "primary_for": [], "alternate_for": [], "hours": "",
+                    "note": "Shared checkpoint readings for the Terminal D/E area.",
+                }],
+            },
+            {
+                "id": "f", "marker_code": "F", "marker_label": "Terminal F",
+                "marker_offset": [8, -10], "label": "Terminal F",
+                "summary": "Terminal F checkpoint", "anchor": [39.8807808, -75.2374961],
+                "location_accuracy": "terminal_building_centroid",
+                "checkpoints": [{
+                    "id": "phl-f", "label": "F",
+                    "aliases": ["F", "F General"],
+                    "primary_for": [], "alternate_for": [], "hours": "",
+                    "note": "Published checkpoint reading for Terminal F; verify current availability with PHL.",
+                }],
+            },
+        ],
+    },
 }

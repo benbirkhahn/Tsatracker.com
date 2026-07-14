@@ -916,7 +916,7 @@ class FrontendContractTests(unittest.TestCase):
             },
         ]
         model = self.app_module.build_airport_arrival_mode(
-            "PHL", rows=rows, history_rows=rows, now=now
+            "ATL", rows=rows, history_rows=rows, now=now
         )
 
         self.assertEqual(model["decision_mode"], "checkpoint_only")
@@ -929,7 +929,7 @@ class FrontendContractTests(unittest.TestCase):
             "airport_overview_anchor",
         )
         checkpoints = model["terminals"][0]["checkpoints"]
-        self.assertEqual([checkpoint["id"] for checkpoint in checkpoints], ["phl-a-east"])
+        self.assertEqual([checkpoint["id"] for checkpoint in checkpoints], ["atl-a-east"])
         lanes = {lane["lane_type"]: lane for lane in checkpoints[0]["lanes"]}
         self.assertEqual(lanes["STANDARD"]["wait_minutes"], 0)
         self.assertEqual(lanes["PRECHECK"]["wait_minutes"], 4)
@@ -1295,6 +1295,129 @@ class FrontendContractTests(unittest.TestCase):
         )
         self.assertEqual(checkpoint_five["lane_waits"], {"STANDARD": 4.0, "PRECHECK": 1.0})
 
+    def test_dfw_and_phl_arrival_modes_preserve_terminal_checkpoint_ids(self):
+        now = datetime(2026, 7, 13, 20, 0, tzinfo=timezone.utc)
+        rows_by_code = {
+            "DFW": [
+                {
+                    "checkpoint": f"{checkpoint} ({lane})",
+                    "lane_type": "PRECHECK" if lane == "TSA Pre" else "STANDARD",
+                    "wait_minutes": index,
+                    "captured_at": (now - timedelta(minutes=2)).isoformat(),
+                }
+                for index, (checkpoint, lane) in enumerate(
+                    (
+                        ("A12", "General"), ("A21", "TSA Pre"),
+                        ("A35", "General"), ("B9", "General"),
+                        ("B30", "TSA Pre"), ("C10", "General"),
+                        ("C11", "TSA Pre"), ("C20", "General"),
+                        ("D18", "General"), ("D22", "General"),
+                        ("D30", "TSA Pre"), ("E8", "General"),
+                        ("E16", "TSA Pre"), ("E18", "General"),
+                        ("E33", "General"),
+                    )
+                )
+            ],
+            "PHL": [
+                {
+                    "checkpoint": checkpoint,
+                    "lane_type": "PRECHECK" if checkpoint == "C" else "STANDARD",
+                    "wait_minutes": index,
+                    "captured_at": (now - timedelta(minutes=2)).isoformat(),
+                }
+                for index, checkpoint in enumerate(
+                    ("A-West", "A-East", "B", "C", "D/E", "F")
+                )
+            ],
+        }
+        expected = {
+            "DFW": {
+                "terminal_ids": [
+                    "terminal-a", "terminal-b", "terminal-c", "terminal-d", "terminal-e"
+                ],
+                "checkpoint_ids": [
+                    "dfw-a12", "dfw-a21", "dfw-a35", "dfw-b9", "dfw-b30",
+                    "dfw-c10", "dfw-c11", "dfw-c20", "dfw-d18", "dfw-d22",
+                    "dfw-d30", "dfw-e8", "dfw-e16", "dfw-e18", "dfw-e33",
+                ],
+            },
+            "PHL": {
+                "terminal_ids": ["a-west", "a-east", "b", "c", "d-e", "f"],
+                "checkpoint_ids": [
+                    "phl-a-west", "phl-a-east", "phl-b", "phl-c", "phl-d-e", "phl-f"
+                ],
+            },
+        }
+
+        for code in ("DFW", "PHL"):
+            with self.subTest(code=code):
+                model = self.app_module.build_airport_arrival_mode(
+                    code, rows=rows_by_code[code], history_rows=rows_by_code[code], now=now
+                )
+                self.assertEqual(model["decision_mode"], "terminal_checkpoint")
+                self.assertFalse(model["has_published_hours"])
+                self.assertEqual(
+                    [terminal["id"] for terminal in model["terminals"]],
+                    expected[code]["terminal_ids"],
+                )
+                checkpoints = [
+                    checkpoint
+                    for terminal in model["terminals"]
+                    for checkpoint in terminal["checkpoints"]
+                ]
+                self.assertEqual(
+                    [checkpoint["id"] for checkpoint in checkpoints],
+                    expected[code]["checkpoint_ids"],
+                )
+                self.assertEqual(model["unmatched_readings"], [])
+
+        phl_c = next(
+            checkpoint
+            for terminal in self.app_module.build_airport_arrival_mode(
+                "PHL", rows=rows_by_code["PHL"], history_rows=[], now=now
+            )["terminals"]
+            for checkpoint in terminal["checkpoints"]
+            if checkpoint["id"] == "phl-c"
+        )
+        self.assertEqual(phl_c["lane_waits"], {"STANDARD": None, "PRECHECK": 3.0})
+
+    def test_phl_and_dfw_collectors_preserve_lane_and_missing_wait_semantics(self):
+        module = self.app_module
+
+        class Response:
+            def __init__(self, payload):
+                self.payload = payload
+
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return self.payload
+
+        phl_payload = {
+            "content": {"rows": [["5052", 4], ["4386", 6], ["3971", 8]]}
+        }
+        with patch.object(module.requests, "get", return_value=Response(phl_payload)):
+            phl_rows = module.fetch_phl_rows()
+        self.assertEqual(
+            [(row["checkpoint"], row["lane_type"]) for row in phl_rows],
+            [("C", "PRECHECK"), ("A-East", "PRECHECK"), ("D/E", "STANDARD")],
+        )
+
+        dfw_payload = {
+            "data": {"wait_times": [
+                {"isDisplayable": True, "name": "A12", "lane": "General", "waitSeconds": 0},
+                {"isDisplayable": True, "name": "A21", "lane": "TSA Pre", "waitSeconds": 120},
+                {"isDisplayable": True, "name": "A35", "lane": "General", "waitSeconds": None},
+            ]}
+        }
+        with patch.object(module.requests, "get", return_value=Response(dfw_payload)):
+            dfw_rows = module.fetch_dfw_rows()
+        self.assertEqual(
+            [(row["checkpoint"], row["lane_type"], row["wait_minutes"]) for row in dfw_rows],
+            [("A12 (General)", "STANDARD", 0.0), ("A21 (TSA Pre)", "PRECHECK", 2.0)],
+        )
+
     def test_terminal_checkpoint_airports_render_without_las_gate_controls(self):
         now = datetime.now(timezone.utc)
         rows_by_code = {
@@ -1346,6 +1469,22 @@ class FrontendContractTests(unittest.TestCase):
                     "captured_at": now.isoformat(),
                 }
             ],
+            "DFW": [
+                {
+                    "checkpoint": "C20 (General)",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 6,
+                    "captured_at": now.isoformat(),
+                }
+            ],
+            "PHL": [
+                {
+                    "checkpoint": "D/E",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 5,
+                    "captured_at": now.isoformat(),
+                }
+            ],
         }
         module = self.app_module
         original_codes = module.AIRPORT_ARRIVAL_MODE_CODES
@@ -1357,6 +1496,8 @@ class FrontendContractTests(unittest.TestCase):
                 "LGA",
                 "BOS",
                 "ORD",
+                "DFW",
+                "PHL",
             }
             for code, marker_count, checkpoint_count, checkpoint_id in (
                 ("DCA", 3, 3, "dca-t1"),
@@ -1365,6 +1506,8 @@ class FrontendContractTests(unittest.TestCase):
                 ("LGA", 2, 2, "lga-terminal-c"),
                 ("BOS", 4, 7, "bos-checkpoint-4-gates-b23-40"),
                 ("ORD", 4, 8, "ord-terminal-3-checkpoint-7a"),
+                ("DFW", 5, 15, "dfw-c20"),
+                ("PHL", 6, 6, "phl-d-e"),
             ):
                 with self.subTest(code=code), patch.object(
                     module, "latest_for_code", return_value=rows_by_code[code]
@@ -1429,7 +1572,7 @@ class FrontendContractTests(unittest.TestCase):
             {"checkpoint": "A East TSA PreCheck", "lane_type": "STANDARD", "wait_minutes": 3, "captured_at": (now - timedelta(minutes=2)).isoformat()},
         ]
         model = self.app_module.build_airport_arrival_mode(
-            "PHL", rows=rows, history_rows=history_rows, now=now
+            "ATL", rows=rows, history_rows=history_rows, now=now
         )
         lanes = {
             lane["lane_type"]: lane
@@ -1791,12 +1934,12 @@ class FrontendContractTests(unittest.TestCase):
             with patch.object(module, "latest_for_code", return_value=rows), patch.object(
                 module, "history_for_airport", return_value=rows
             ):
-                html, document = self.get_html(self.airport_routes["PHL"])
+                html, document = self.get_html(self.airport_routes["ATL"])
                 api_response = self.client.get(
-                    "/api/airport-arrival-mode?airport=PHL"
+                    "/api/airport-arrival-mode?airport=ATL"
                 )
                 calculator_html, _ = self.get_html(
-                    "/when-should-i-leave?airport=PHL&checkpoint=phl-a-east&lane=PRECHECK"
+                    "/when-should-i-leave?airport=ATL&checkpoint=atl-a-east&lane=PRECHECK"
                 )
 
             arrivals = [
@@ -1804,22 +1947,22 @@ class FrontendContractTests(unittest.TestCase):
                 if tag == "section" and "data-airport-arrival-mode" in attrs
             ]
             self.assertEqual(len(arrivals), 1)
-            self.assertEqual(arrivals[0].get("data-airport-code"), "PHL")
+            self.assertEqual(arrivals[0].get("data-airport-code"), "ATL")
             self.assertEqual(document.h1_count, 1)
             self.assertIn("Satellite airport view", html)
             self.assertIn("Explore the airport from above", html)
             self.assertNotIn("Check-in terminal", html)
             self.assertNotIn("Gate on your boarding pass", html)
             self.assertIn("Screening lane", html)
-            self.assertIn("phl-a-east", html)
+            self.assertIn("atl-a-east", html)
             self.assertIn("tracker.css?v=20260713-4", html)
             self.assertIn("airport-decision-map.js?v=20260713-4", html)
 
             self.assertEqual(api_response.status_code, 200)
             payload = api_response.get_json()
-            self.assertEqual(payload["airport"]["code"], "PHL")
+            self.assertEqual(payload["airport"]["code"], "ATL")
             self.assertEqual(payload["decision_mode"], "checkpoint_only")
-            self.assertEqual(payload["terminals"][0]["marker_code"], "PHL")
+            self.assertEqual(payload["terminals"][0]["marker_code"], "ATL")
 
             match = re.search(
                 r"var CALCULATOR_SELECTION = (\{.*?\});", calculator_html, re.DOTALL
@@ -1827,7 +1970,7 @@ class FrontendContractTests(unittest.TestCase):
             self.assertIsNotNone(match)
             self.assertEqual(
                 json.loads(match.group(1)),
-                {"airport": "PHL", "checkpoint": "phl-a-east", "lane": "PRECHECK"},
+                {"airport": "ATL", "checkpoint": "atl-a-east", "lane": "PRECHECK"},
             )
         finally:
             module.AIRPORT_ARRIVAL_MODE_CODES = original_codes

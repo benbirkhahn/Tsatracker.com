@@ -1425,7 +1425,10 @@ def normalize_checkpoint_alias(value: object) -> str:
 
 def build_airport_decision_map(code: str, rows: List[Dict]) -> Optional[Dict]:
     config = AIRPORT_DECISION_MAPS.get(code)
-    if not config:
+    # The legacy schematic contains LAS-specific gate and check-in controls.
+    # Terminal/checkpoint airports use Arrival Mode only; if their feature flag
+    # is disabled they must fall back to the ordinary checkpoint page instead.
+    if not config or config.get("decision_mode") != "terminal_gate":
         return None
 
     alias_to_node = {}
@@ -2760,14 +2763,14 @@ def fetch_phl_rows() -> List[Dict]:
     resp.raise_for_status()
     payload = resp.json()
     zone_map = {
-        "4126": "D/E TSA PreCheck",
-        "3971": "D/E General",
-        "4377": "A-West General",
-        "4386": "A-East TSA PreCheck",
-        "4368": "A-East General",
-        "5047": "B General",
-        "5052": "C General",
-        "5068": "F General",
+        "4126": ("D/E", "PRECHECK"),
+        "3971": ("D/E", "STANDARD"),
+        "4377": ("A-West", "STANDARD"),
+        "4386": ("A-East", "PRECHECK"),
+        "4368": ("A-East", "STANDARD"),
+        "5047": ("B", "STANDARD"),
+        "5052": ("C", "PRECHECK"),
+        "5068": ("F", "STANDARD"),
     }
     rows = []
     stamp = utc_now().isoformat()
@@ -2775,12 +2778,14 @@ def fetch_phl_rows() -> List[Dict]:
         zone_id = str(row[0])
         if zone_id not in zone_map:
             continue
+        checkpoint, lane_type = zone_map[zone_id]
         wait_minutes = float(row[1])
         rows.append(
             {
                 "airport_code": "PHL",
-                "checkpoint": zone_map[zone_id],
+                "checkpoint": checkpoint,
                 "checkpoint_id": zone_id,
+                "lane_type": lane_type,
                 "wait_minutes": wait_minutes,
                 "source": url,
                 "captured_at": stamp,
@@ -2989,11 +2994,16 @@ def fetch_dfw_rows() -> List[Dict]:
         lane = wt.get("lane", "")
         checkpoint = f"{name} ({lane})" if lane else name
         wait_secs = wt.get("waitSeconds")
-        wait_minutes = round(wait_secs / 60, 1) if wait_secs is not None else 0.0
+        if wait_secs is None:
+            continue
+        wait_minutes = round(wait_secs / 60, 1)
         rows.append(
             {
                 "airport_code": "DFW",
                 "checkpoint": checkpoint,
+                "lane_type": _arrival_normalized_lane_type(
+                    {"checkpoint": checkpoint}
+                ),
                 "wait_minutes": wait_minutes,
                 "source": _DFW_API,
                 "captured_at": stamp,
