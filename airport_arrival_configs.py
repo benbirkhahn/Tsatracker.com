@@ -434,7 +434,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_offset": [-18, 8],
                 "label": "Terminal 1",
                 "summary": "Terminal 1 departures",
-                "anchor": [40.6431, -73.7821],
+                # Current Terminal 1 departures building, west of Terminal 4.
+                "anchor": [40.6428, -73.7914],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
@@ -455,7 +456,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_offset": [16, -8],
                 "label": "Terminal 4",
                 "summary": "Terminal 4 departures",
-                "anchor": [40.6447, -73.7823],
+                # Terminal 4 departures building.
+                "anchor": [40.6441, -73.7828],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
@@ -476,7 +478,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_offset": [-20, -8],
                 "label": "Terminal 5",
                 "summary": "Terminal 5 departures",
-                "anchor": [40.6450, -73.7884],
+                # Terminal 5 departures building, east of the TWA Hotel complex.
+                "anchor": [40.6456, -73.7779],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
@@ -497,7 +500,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_offset": [18, 8],
                 "label": "Terminal 7",
                 "summary": "Terminal 7 departures",
-                "anchor": [40.6442, -73.7908],
+                # Terminal 7 departures area, north of Terminal 4.
+                "anchor": [40.6485, -73.7832],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
@@ -518,7 +522,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_offset": [0, -16],
                 "label": "Terminal 8",
                 "summary": "Terminal 8 departures",
-                "anchor": [40.6461, -73.7789],
+                # Terminal 8 departures building, west/northwest of Terminal 1.
+                "anchor": [40.6471, -73.7900],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {

@@ -1093,6 +1093,31 @@ class FrontendContractTests(unittest.TestCase):
         self.assertEqual(model["terminals"][0]["anchor"], [30.4915, -81.6846])
         self.assertEqual(model["terminals"][0]["location_accuracy"], "checkpoint_area_anchor")
 
+    def test_jfk_arrival_mode_uses_the_reviewed_terminal_anchors(self):
+        now = datetime(2026, 7, 13, 20, 0, tzinfo=timezone.utc)
+        rows = [
+            {
+                "checkpoint": "Terminal 4",
+                "lane_type": "STANDARD",
+                "wait_minutes": 4,
+                "captured_at": (now - timedelta(minutes=2)).isoformat(),
+            }
+        ]
+        model = self.app_module.build_airport_arrival_mode(
+            "JFK", rows=rows, history_rows=rows, now=now
+        )
+
+        self.assertEqual(
+            {terminal["id"]: terminal["anchor"] for terminal in model["terminals"]},
+            {
+                "terminal-1": [40.6428, -73.7914],
+                "terminal-4": [40.6441, -73.7828],
+                "terminal-5": [40.6456, -73.7779],
+                "terminal-7": [40.6485, -73.7832],
+                "terminal-8": [40.6471, -73.7900],
+            },
+        )
+
     def test_dca_arrival_mode_maps_three_reviewed_checkpoint_areas(self):
         now = datetime(2026, 7, 13, 20, 0, tzinfo=timezone.utc)
         rows = [
