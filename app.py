@@ -3033,7 +3033,9 @@ def fetch_lax_rows() -> List[Dict]:
         if terminal.lower() in ("terminal", "security wait times"):
             continue
         m = re.search(r"(\d+(?:\.\d+)?)", wait_str)
-        wait_minutes = float(m.group(1)) if m else 0.0
+        if not m:
+            continue
+        wait_minutes = float(m.group(1))
         rows.append({
             "airport_code": "LAX",
             "checkpoint": terminal,

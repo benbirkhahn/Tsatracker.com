@@ -5,7 +5,7 @@
 {% set gate_routing = arrival.decision_mode == 'terminal_gate' %}
 {% set arrival_counts = namespace(checkpoints=0) %}
 {% for terminal in arrival.terminals %}{% set arrival_counts.checkpoints = arrival_counts.checkpoints + terminal.checkpoints|length %}{% endfor %}
-<section class="airport-arrival-mode"
+<section class="airport-arrival-mode{% if arrival.terminals|length > 5 %} arrival-many-terminals{% endif %}"
          data-airport-arrival-mode
          data-airport-code="{{ arrival.airport.code if arrival.airport else arrival.code }}"
          aria-labelledby="arrival-mode-title">

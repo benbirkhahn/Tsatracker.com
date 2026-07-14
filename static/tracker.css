@@ -4522,6 +4522,19 @@ body.arrival-map-is-expanded {
     display: none;
   }
 
+  .airport-arrival-mode.arrival-many-terminals.is-expanded .arrival-terminal-marker {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    gap: 0;
+    padding: 5px;
+  }
+
+  .airport-arrival-mode.arrival-many-terminals.is-expanded .arrival-terminal-marker > span:last-child {
+    display: none;
+  }
+
   .airport-arrival-mode.is-expanded .arrival-operations {
     position: absolute;
     z-index: 20;

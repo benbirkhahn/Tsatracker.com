@@ -1418,6 +1418,115 @@ class FrontendContractTests(unittest.TestCase):
             [("A12 (General)", "STANDARD", 0.0), ("A21 (TSA Pre)", "PRECHECK", 2.0)],
         )
 
+    def test_mia_and_lax_arrival_modes_distinguish_live_and_published_context(self):
+        now = datetime(2026, 7, 13, 20, 0, tzinfo=timezone.utc)
+        rows_by_code = {
+            "MIA": [
+                {
+                    "checkpoint": label,
+                    "wait_minutes": index + 1,
+                    "captured_at": (now - timedelta(minutes=2)).isoformat(),
+                }
+                for index, label in enumerate(
+                    ("2 General", "2 Priority", "9 Clear", "9 General", "9 Priority")
+                )
+            ],
+            "LAX": [
+                {
+                    "checkpoint": "TBIT",
+                    "lane_type": lane,
+                    "wait_minutes": wait,
+                    "captured_at": (now - timedelta(minutes=2)).isoformat(),
+                }
+                for lane, wait in (("STANDARD", 4), ("PRECHECK", 1))
+            ],
+        }
+        expected = {
+            "MIA": {
+                "terminal_ids": ["north-terminal-d", "central-terminal", "south-terminal"],
+                "checkpoint_ids": [
+                    "mia-1", "mia-2", "mia-3", "mia-4", "mia-dfis",
+                    "mia-5", "mia-6", "mia-7", "mia-8", "mia-9", "mia-10",
+                ],
+                "published_only": 9,
+            },
+            "LAX": {
+                "terminal_ids": [
+                    "terminal-1", "terminal-2", "terminal-3", "terminal-b",
+                    "terminal-4", "terminal-5", "terminal-6", "terminal-7-8",
+                ],
+                "checkpoint_ids": [
+                    "lax-terminal-1", "lax-terminal-2", "lax-terminal-3", "lax-tbit",
+                    "lax-terminal-4", "lax-terminal-5", "lax-terminal-6", "lax-terminal-7-8",
+                ],
+                "published_only": 7,
+            },
+        }
+
+        for code in ("MIA", "LAX"):
+            with self.subTest(code=code):
+                model = self.app_module.build_airport_arrival_mode(
+                    code, rows=rows_by_code[code], history_rows=rows_by_code[code], now=now
+                )
+                checkpoints = [
+                    checkpoint
+                    for terminal in model["terminals"]
+                    for checkpoint in terminal["checkpoints"]
+                ]
+                self.assertEqual(model["decision_mode"], "terminal_checkpoint")
+                self.assertEqual(
+                    [terminal["id"] for terminal in model["terminals"]],
+                    expected[code]["terminal_ids"],
+                )
+                self.assertEqual(
+                    [checkpoint["id"] for checkpoint in checkpoints],
+                    expected[code]["checkpoint_ids"],
+                )
+                self.assertEqual(
+                    sum(checkpoint["published_only"] for checkpoint in checkpoints),
+                    expected[code]["published_only"],
+                )
+                self.assertEqual(model["unmatched_readings"], [])
+
+        mia = self.app_module.build_airport_arrival_mode(
+            "MIA", rows=rows_by_code["MIA"], history_rows=[], now=now
+        )
+        mia_two = next(
+            checkpoint for terminal in mia["terminals"]
+            for checkpoint in terminal["checkpoints"] if checkpoint["id"] == "mia-2"
+        )
+        self.assertEqual(mia_two["lane_waits"]["STANDARD"], 1.0)
+
+        lax = self.app_module.build_airport_arrival_mode(
+            "LAX", rows=rows_by_code["LAX"], history_rows=[], now=now
+        )
+        tbit = next(
+            checkpoint for terminal in lax["terminals"]
+            for checkpoint in terminal["checkpoints"] if checkpoint["id"] == "lax-tbit"
+        )
+        self.assertEqual(tbit["lane_waits"], {"STANDARD": 4.0, "PRECHECK": 1.0})
+
+    def test_lax_collector_does_not_convert_missing_wait_to_zero(self):
+        module = self.app_module
+
+        class Response:
+            text = """
+                <table>
+                  <tr><th>Terminal</th><th>Boarding Type</th><th>Wait Time</th></tr>
+                  <tr><td>TBIT</td><td>General Boarding</td><td>0 minutes</td></tr>
+                  <tr><td>Terminal 1</td><td>General Boarding</td><td>Unavailable</td></tr>
+                </table>
+            """
+
+            def raise_for_status(self):
+                return None
+
+        with patch.object(module.requests, "get", return_value=Response()):
+            rows = module.fetch_lax_rows()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["checkpoint"], "TBIT")
+        self.assertEqual(rows[0]["wait_minutes"], 0.0)
+
     def test_terminal_checkpoint_airports_render_without_las_gate_controls(self):
         now = datetime.now(timezone.utc)
         rows_by_code = {
@@ -1485,6 +1594,22 @@ class FrontendContractTests(unittest.TestCase):
                     "captured_at": now.isoformat(),
                 }
             ],
+            "MIA": [
+                {
+                    "checkpoint": "2 General",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 4,
+                    "captured_at": now.isoformat(),
+                }
+            ],
+            "LAX": [
+                {
+                    "checkpoint": "TBIT",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 4,
+                    "captured_at": now.isoformat(),
+                }
+            ],
         }
         module = self.app_module
         original_codes = module.AIRPORT_ARRIVAL_MODE_CODES
@@ -1498,6 +1623,8 @@ class FrontendContractTests(unittest.TestCase):
                 "ORD",
                 "DFW",
                 "PHL",
+                "MIA",
+                "LAX",
             }
             for code, marker_count, checkpoint_count, checkpoint_id in (
                 ("DCA", 3, 3, "dca-t1"),
@@ -1508,6 +1635,8 @@ class FrontendContractTests(unittest.TestCase):
                 ("ORD", 4, 8, "ord-terminal-3-checkpoint-7a"),
                 ("DFW", 5, 15, "dfw-c20"),
                 ("PHL", 6, 6, "phl-d-e"),
+                ("MIA", 3, 11, "mia-2"),
+                ("LAX", 8, 8, "lax-tbit"),
             ):
                 with self.subTest(code=code), patch.object(
                     module, "latest_for_code", return_value=rows_by_code[code]
@@ -1955,8 +2084,8 @@ class FrontendContractTests(unittest.TestCase):
             self.assertNotIn("Gate on your boarding pass", html)
             self.assertIn("Screening lane", html)
             self.assertIn("atl-a-east", html)
-            self.assertIn("tracker.css?v=20260713-4", html)
-            self.assertIn("airport-decision-map.js?v=20260713-4", html)
+            self.assertIn("tracker.css?v=20260713-5", html)
+            self.assertIn("airport-decision-map.js?v=20260713-5", html)
 
             self.assertEqual(api_response.status_code, 200)
             payload = api_response.get_json()
