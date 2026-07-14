@@ -891,22 +891,16 @@ class FrontendContractTests(unittest.TestCase):
         now = datetime(2026, 7, 10, 20, 0, tzinfo=timezone.utc)
         rows = [
             {
-                "checkpoint": "Main General",
+                "checkpoint": "Terminal 4 General",
                 "lane_type": "STANDARD",
                 "wait_minutes": 0,
                 "captured_at": (now - timedelta(minutes=2)).isoformat(),
             },
             {
-                "checkpoint": "Main TSA PreCheck",
+                "checkpoint": "Terminal 4 TSA PreCheck",
                 "lane_type": "STANDARD",
                 "wait_minutes": 4,
                 "captured_at": (now - timedelta(minutes=3)).isoformat(),
-            },
-            {
-                "checkpoint": "Main Priority",
-                "lane_type": "STANDARD",
-                "wait_minutes": 1,
-                "captured_at": (now - timedelta(minutes=1)).isoformat(),
             },
             {
                 "checkpoint": "Estimated Wait",
@@ -916,7 +910,7 @@ class FrontendContractTests(unittest.TestCase):
             },
         ]
         model = self.app_module.build_airport_arrival_mode(
-            "JAX", rows=rows, history_rows=rows, now=now
+            "JFK", rows=rows, history_rows=rows, now=now
         )
 
         self.assertEqual(model["decision_mode"], "checkpoint_only")
@@ -929,13 +923,13 @@ class FrontendContractTests(unittest.TestCase):
             "airport_overview_anchor",
         )
         checkpoints = model["terminals"][0]["checkpoints"]
-        self.assertEqual([checkpoint["id"] for checkpoint in checkpoints], ["jax-main"])
+        self.assertEqual([checkpoint["id"] for checkpoint in checkpoints], ["jfk-terminal-4"])
         lanes = {lane["lane_type"]: lane for lane in checkpoints[0]["lanes"]}
         self.assertEqual(lanes["STANDARD"]["wait_minutes"], 0)
         self.assertEqual(lanes["PRECHECK"]["wait_minutes"], 4)
         self.assertEqual(
             {row["checkpoint"] for row in model["unmatched_readings"]},
-            {"Main Priority", "Estimated Wait"},
+            {"Estimated Wait"},
         )
 
     def test_atl_arrival_mode_maps_five_reviewed_checkpoint_areas(self):
@@ -1723,6 +1717,64 @@ class FrontendContractTests(unittest.TestCase):
                     "captured_at": now.isoformat(),
                 }
             ],
+            "JAX": [
+                {
+                    "checkpoint": "Main Checkpoint",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 4,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Main Checkpoint",
+                    "lane_type": "PRECHECK",
+                    "wait_minutes": 1,
+                    "captured_at": now.isoformat(),
+                },
+            ],
+            "SEA": [
+                {
+                    "checkpoint": "Checkpoint 1",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 7,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Checkpoint 2",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 6,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Checkpoint 3",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 15,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Checkpoint 4",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 4,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Checkpoint 5",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 9,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Checkpoint 6",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 11,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Checkpoint 6",
+                    "lane_type": "PRECHECK",
+                    "wait_minutes": 2,
+                    "captured_at": now.isoformat(),
+                },
+            ],
         }
         module = self.app_module
         original_codes = module.AIRPORT_ARRIVAL_MODE_CODES
@@ -1738,6 +1790,8 @@ class FrontendContractTests(unittest.TestCase):
                 "PHL",
                 "MIA",
                 "LAX",
+                "JAX",
+                "SEA",
             }
             for code, marker_count, checkpoint_count, checkpoint_id in (
                 ("DCA", 3, 3, "dca-t1"),
@@ -1750,6 +1804,8 @@ class FrontendContractTests(unittest.TestCase):
                 ("PHL", 6, 6, "phl-d-e"),
                 ("MIA", 3, 11, "mia-2"),
                 ("LAX", 8, 8, "lax-tbit"),
+                ("JAX", 1, 1, "jax-main"),
+                ("SEA", 6, 6, "sea-checkpoint-6"),
             ):
                 with self.subTest(code=code), patch.object(
                     module, "latest_for_code", return_value=rows_by_code[code]
@@ -1804,17 +1860,17 @@ class FrontendContractTests(unittest.TestCase):
     def test_generic_arrival_mode_keeps_label_encoded_lane_trends_separate(self):
         now = datetime(2026, 7, 10, 20, 0, tzinfo=timezone.utc)
         history_rows = [
-            {"checkpoint": "A East General", "lane_type": "STANDARD", "wait_minutes": 5, "captured_at": (now - timedelta(minutes=30)).isoformat()},
-            {"checkpoint": "A East General", "lane_type": "STANDARD", "wait_minutes": 12, "captured_at": (now - timedelta(minutes=20)).isoformat()},
-            {"checkpoint": "A East TSA PreCheck", "lane_type": "STANDARD", "wait_minutes": 9, "captured_at": (now - timedelta(minutes=30)).isoformat()},
-            {"checkpoint": "A East TSA PreCheck", "lane_type": "STANDARD", "wait_minutes": 3, "captured_at": (now - timedelta(minutes=20)).isoformat()},
+            {"checkpoint": "Terminal 4 General", "lane_type": "STANDARD", "wait_minutes": 5, "captured_at": (now - timedelta(minutes=30)).isoformat()},
+            {"checkpoint": "Terminal 4 General", "lane_type": "STANDARD", "wait_minutes": 12, "captured_at": (now - timedelta(minutes=20)).isoformat()},
+            {"checkpoint": "Terminal 4 TSA PreCheck", "lane_type": "STANDARD", "wait_minutes": 9, "captured_at": (now - timedelta(minutes=30)).isoformat()},
+            {"checkpoint": "Terminal 4 TSA PreCheck", "lane_type": "STANDARD", "wait_minutes": 3, "captured_at": (now - timedelta(minutes=20)).isoformat()},
         ]
         rows = [
-            {"checkpoint": "A East General", "lane_type": "STANDARD", "wait_minutes": 12, "captured_at": (now - timedelta(minutes=2)).isoformat()},
-            {"checkpoint": "A East TSA PreCheck", "lane_type": "STANDARD", "wait_minutes": 3, "captured_at": (now - timedelta(minutes=2)).isoformat()},
+            {"checkpoint": "Terminal 4 General", "lane_type": "STANDARD", "wait_minutes": 12, "captured_at": (now - timedelta(minutes=2)).isoformat()},
+            {"checkpoint": "Terminal 4 TSA PreCheck", "lane_type": "STANDARD", "wait_minutes": 3, "captured_at": (now - timedelta(minutes=2)).isoformat()},
         ]
         model = self.app_module.build_airport_arrival_mode(
-            "JAX", rows=rows, history_rows=history_rows, now=now
+            "JFK", rows=rows, history_rows=history_rows, now=now
         )
         lanes = {
             lane["lane_type"]: lane
@@ -2214,6 +2270,64 @@ class FrontendContractTests(unittest.TestCase):
                     "captured_at": now.isoformat(),
                 },
             ],
+            "JAX": [
+                {
+                    "checkpoint": "Main Checkpoint",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 4,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Main Checkpoint",
+                    "lane_type": "PRECHECK",
+                    "wait_minutes": 1,
+                    "captured_at": now.isoformat(),
+                },
+            ],
+            "SEA": [
+                {
+                    "checkpoint": "Checkpoint 1",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 7,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Checkpoint 2",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 6,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Checkpoint 3",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 15,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Checkpoint 4",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 4,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Checkpoint 5",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 9,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Checkpoint 6",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 11,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Checkpoint 6",
+                    "lane_type": "PRECHECK",
+                    "wait_minutes": 2,
+                    "captured_at": now.isoformat(),
+                },
+            ],
         }
         expectations = {
             "ATL": {
@@ -2226,6 +2340,18 @@ class FrontendContractTests(unittest.TestCase):
                 "checkpoint_id": "clt-checkpoint-2",
                 "marker_count": 3,
                 "checkpoint_count": 3,
+                "lane": "PRECHECK",
+            },
+            "JAX": {
+                "checkpoint_id": "jax-main",
+                "marker_count": 1,
+                "checkpoint_count": 1,
+                "lane": "PRECHECK",
+            },
+            "SEA": {
+                "checkpoint_id": "sea-checkpoint-6",
+                "marker_count": 6,
+                "checkpoint_count": 6,
                 "lane": "PRECHECK",
             },
         }

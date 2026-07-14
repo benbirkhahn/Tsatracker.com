@@ -350,6 +350,203 @@ AIRPORT_DECISION_MAPS = {
             },
         ],
     },
+    "JAX": {
+        "decision_mode": "terminal_checkpoint",
+        "has_published_hours": True,
+        "all_checkpoints_reach_all_gates": True,
+        "routing_note": (
+            "JAX uses a single central checkpoint in the main terminal building. "
+            "The PreCheck and Premier/Special Needs lanes close around 7:00 p.m., so late departures use Standard screening."
+        ),
+        "map": {
+            "center": [30.4941, -81.6879],
+            "bounds": [[30.4902, -81.6946], [30.4994, -81.6810]],
+            "overview_zoom": 14.75,
+            "detail_zoom": 16.25,
+            "location_accuracy": "checkpoint_area_overview",
+            "tile_url": USGS_IMAGERY_URL,
+            "tile_attribution": USGS_IMAGERY_ATTRIBUTION,
+        },
+        "source": {
+            "label": "Official JAX Live Wait Times",
+            "url": "https://www.flyjax.com/content.aspx?id=3583",
+            "verified_on": "2026-07-13",
+        },
+        "terminals": [
+            {
+                "id": "main",
+                "marker_code": "JAX",
+                "marker_label": "Main Terminal",
+                "marker_offset": [0, 0],
+                "label": "Main Checkpoint",
+                "summary": "Central terminal checkpoint",
+                "anchor": [30.4941, -81.6879],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "jax-main",
+                        "label": "Main Checkpoint",
+                        "aliases": ["Standard", "Priority Lane", "TSA Pre"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "4:00 a.m. - 7:00 p.m.",
+                        "note": "JAX central checkpoint. PreCheck and special-needs lanes close around 7:00 p.m.",
+                    }
+                ],
+            }
+        ],
+    },
+    "SEA": {
+        "decision_mode": "terminal_checkpoint",
+        "has_published_hours": True,
+        "all_checkpoints_reach_all_gates": True,
+        "routing_note": (
+            "SEA states that all gates are accessible from any security checkpoint. "
+            "Choose the checkpoint that matches your lane type and published hours."
+        ),
+        "map": {
+            "center": [47.4502, -122.3088],
+            "bounds": [[47.4408, -122.3248], [47.4592, -122.2922]],
+            "overview_zoom": 13.75,
+            "detail_zoom": 15.25,
+            "location_accuracy": "checkpoint_area_overview",
+            "tile_url": USGS_IMAGERY_URL,
+            "tile_attribution": USGS_IMAGERY_ATTRIBUTION,
+        },
+        "source": {
+            "label": "Official SEA Security Dashboard",
+            "url": "https://www.portseattle.org/Security",
+            "verified_on": "2026-07-13",
+        },
+        "terminals": [
+            {
+                "id": "checkpoint-1",
+                "marker_code": "C1",
+                "marker_label": "Checkpoint 1",
+                "marker_offset": [-16, 8],
+                "label": "Checkpoint 1",
+                "summary": "A & S gates",
+                "anchor": [47.4489, -122.3128],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "sea-checkpoint-1",
+                        "label": "Checkpoint 1",
+                        "aliases": ["Checkpoint 1"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "4:00 a.m. - 8:00 p.m.",
+                        "note": "Closest to A and S gates; general screening, TSA PreCheck, and CLEAR options.",
+                    }
+                ],
+            },
+            {
+                "id": "checkpoint-2",
+                "marker_code": "C2",
+                "marker_label": "Checkpoint 2",
+                "marker_offset": [16, 8],
+                "label": "Checkpoint 2",
+                "summary": "A & S gates",
+                "anchor": [47.4484, -122.3100],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "sea-checkpoint-2",
+                        "label": "Checkpoint 2",
+                        "aliases": ["Checkpoint 2"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "4:00 a.m. - 4:00 p.m.",
+                        "note": "Closest to A and S gates; general screening plus SEA Spot Saver during published hours.",
+                    }
+                ],
+            },
+            {
+                "id": "checkpoint-3",
+                "marker_code": "C3",
+                "marker_label": "Checkpoint 3",
+                "marker_offset": [0, -18],
+                "label": "Checkpoint 3",
+                "summary": "A & S gates",
+                "anchor": [47.4480, -122.3067],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "sea-checkpoint-3",
+                        "label": "Checkpoint 3",
+                        "aliases": ["Checkpoint 3"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "4:00 a.m. - 11:30 p.m.",
+                        "note": "Central option with general screening, TSA PreCheck, Touchless ID, and premium-lane options.",
+                    }
+                ],
+            },
+            {
+                "id": "checkpoint-4",
+                "marker_code": "C4",
+                "marker_label": "Checkpoint 4",
+                "marker_offset": [0, 0],
+                "label": "Checkpoint 4",
+                "summary": "Central Terminal",
+                "anchor": [47.4497, -122.3019],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "sea-checkpoint-4",
+                        "label": "Checkpoint 4",
+                        "aliases": ["Checkpoint 4"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "Open 24 hours",
+                        "note": "Closest to the Central Terminal plus B and C gates; general, premium, family, SEA Spot Saver, and CLEAR options.",
+                    }
+                ],
+            },
+            {
+                "id": "checkpoint-5",
+                "marker_code": "C5",
+                "marker_label": "Checkpoint 5",
+                "marker_offset": [-16, -8],
+                "label": "Checkpoint 5",
+                "summary": "C, D, and N gates",
+                "anchor": [47.4451, -122.3084],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "sea-checkpoint-5",
+                        "label": "Checkpoint 5",
+                        "aliases": ["Checkpoint 5"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "4:00 a.m. - 8:00 p.m.",
+                        "note": "Closest to C, D, and N gates; TSA PreCheck-focused.",
+                    }
+                ],
+            },
+            {
+                "id": "checkpoint-6",
+                "marker_code": "C6",
+                "marker_label": "Checkpoint 6",
+                "marker_offset": [16, -8],
+                "label": "Checkpoint 6",
+                "summary": "C, D, and N gates",
+                "anchor": [47.4445, -122.3058],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "sea-checkpoint-6",
+                        "label": "Checkpoint 6",
+                        "aliases": ["Checkpoint 6"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "4:00 a.m. - 10:00 p.m.",
+                        "note": "Closest to C, D, and N gates; general, premium, PreCheck, Touchless ID, and CLEAR options.",
+                    }
+                ],
+            },
+        ],
+    },
     "DCA": {
         "decision_mode": "terminal_checkpoint",
         "has_published_hours": False,

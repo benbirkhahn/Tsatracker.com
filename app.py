@@ -862,7 +862,9 @@ def _arrival_normalized_lane_type(row: Dict) -> str:
         return "PRECHECK"
     if re.search(r"\bclear\b", checkpoint):
         return "CLEAR"
-    if re.search(r"\b(?:priority|premium|spot saver|visitor pass)\b", checkpoint):
+    if re.search(r"\bpriority lane\b", checkpoint):
+        return "STANDARD"
+    if re.search(r"\b(?:priority|premium|spot saver|visitor pass|premier|special needs|military in uniform)\b", checkpoint):
         return "PRIORITY"
     return "STANDARD"
 
@@ -2959,11 +2961,13 @@ def fetch_jax_rows() -> List[Dict]:
         if raw_label.lower() in ("military in uniform", "premier", "special needs"):
             raw_label = "Priority Lane"
         wait_minutes = _parse_jax_wait_minutes(raw_time)
+        lane_type = "PRECHECK" if re.search(r"\btsa pre\b", raw_label, re.I) else "STANDARD"
         rows.append(
             {
                 "airport_code": "JAX",
                 "checkpoint": raw_label,
                 "wait_minutes": wait_minutes,
+                "lane_type": lane_type,
                 "source": url,
                 "captured_at": stamp,
             }
