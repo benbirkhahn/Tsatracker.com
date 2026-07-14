@@ -64,7 +64,7 @@ ADSENSE_SLOT_MULTIPLEX = os.getenv(
 ).strip()
 ENABLE_INTERNAL_GRAPH = os.getenv("ENABLE_INTERNAL_GRAPH", "false").lower() == "true"
 DEFAULT_AIRPORT_ARRIVAL_MODE_CODES = (
-    "ATL,BOS,CLT,DCA,DFW,EWR,JAX,JFK,LAS,LAX,LGA,MCO,MIA,ORD,PHL,SEA,SFO"
+    "ATL,BOS,BWI,CLT,DCA,DFW,DTW,EWR,JAX,JFK,LAS,LAX,LGA,MCO,MIA,ORD,PHL,SEA,SFO"
 )
 AIRPORT_ARRIVAL_MODE_CODES = {
     code.strip().upper()
@@ -271,6 +271,7 @@ UA = {"User-Agent": "Mozilla/5.0 (tsa-live-site/1.0)"}
 LIVE_AIRPORTS = {
     "PHL": {"name": "Philadelphia International (PHL)", "mode": "LIVE_PUBLIC", "city": "Philadelphia"},
     "BOS": {"name": "Boston Logan International Airport (BOS)", "mode": "LIVE_PUBLIC", "city": "Boston"},
+    "BWI": {"name": "Baltimore/Washington International (BWI)", "mode": "LIVE_PUBLIC", "city": "Baltimore"},
     "ATL": {"name": "Hartsfield-Jackson Atlanta International (ATL)", "mode": "LIVE_PUBLIC", "city": "Atlanta"},
     "MIA": {"name": "Miami International (MIA)", "mode": "LIVE_KEY_REQUIRED", "city": "Miami"},
     "ORD": {"name": "Chicago O'Hare International (ORD)", "mode": "LIVE_PUBLIC", "city": "Chicago"},
@@ -278,6 +279,7 @@ LIVE_AIRPORTS = {
     "MCO": {"name": "Orlando International (MCO)", "mode": "LIVE_KEY_REQUIRED", "city": "Orlando"},
     "JAX": {"name": "Jacksonville International (JAX)", "mode": "LIVE_PUBLIC", "city": "Jacksonville"},
     "DFW": {"name": "Dallas/Fort Worth International (DFW)", "mode": "LIVE_KEY_EMBEDDED", "city": "Dallas"},
+    "DTW": {"name": "Detroit Metropolitan (DTW)", "mode": "LIVE_PUBLIC", "city": "Detroit"},
     "LAX": {"name": "Los Angeles International (LAX)", "mode": "LIVE_PUBLIC", "city": "Los Angeles"},
     "JFK": {"name": "John F. Kennedy International (JFK)", "mode": "LIVE_PUBLIC", "city": "New York"},
     "EWR": {"name": "Newark Liberty International (EWR)", "mode": "LIVE_PUBLIC", "city": "Newark"},
@@ -294,9 +296,11 @@ LIVE_AIRPORTS = {
 AIRPORT_MAP_COORDINATES = {
     "ATL": {"lat": 33.6407, "lng": -84.4277},
     "BOS": {"lat": 42.3656, "lng": -71.0096},
+    "BWI": {"lat": 39.1747196, "lng": -76.6707551},
     "CLT": {"lat": 35.2140, "lng": -80.9431},
     "DCA": {"lat": 38.8512, "lng": -77.0402},
     "DFW": {"lat": 32.8998, "lng": -97.0403},
+    "DTW": {"lat": 42.2056991, "lng": -83.3529754},
     "EWR": {"lat": 40.6895, "lng": -74.1745},
     "JAX": {"lat": 30.4941, "lng": -81.6879},
     "JFK": {"lat": 40.6413, "lng": -73.7781},
@@ -314,6 +318,7 @@ AIRPORT_MAP_COORDINATES = {
 AIRPORT_PROFILE_THEMES = {
     "PHL": {"accent": "#f97316", "secondary": "#38bdf8", "label": "Terminal maze"},
     "BOS": {"accent": "#22c55e", "secondary": "#60a5fa", "label": "Checkpoint split"},
+    "BWI": {"accent": "#1d4ed8", "secondary": "#f97316", "label": "Four checkpoint zones"},
     "ATL": {"accent": "#facc15", "secondary": "#fb7185", "label": "High-volume hub"},
     "MIA": {"accent": "#2dd4bf", "secondary": "#fb7185", "label": "International banks"},
     "ORD": {"accent": "#60a5fa", "secondary": "#f59e0b", "label": "Terminal strategy"},
@@ -321,6 +326,7 @@ AIRPORT_PROFILE_THEMES = {
     "MCO": {"accent": "#fb7185", "secondary": "#facc15", "label": "Family travel waves"},
     "JAX": {"accent": "#34d399", "secondary": "#93c5fd", "label": "Compact airport"},
     "DFW": {"accent": "#f59e0b", "secondary": "#22d3ee", "label": "Skylink advantage"},
+    "DTW": {"accent": "#fb7185", "secondary": "#38bdf8", "label": "Two-terminal split"},
     "LAX": {"accent": "#38bdf8", "secondary": "#fb7185", "label": "Terminal routing"},
     "JFK": {"accent": "#818cf8", "secondary": "#f472b6", "label": "Terminal-specific"},
     "EWR": {"accent": "#f97316", "secondary": "#a3e635", "label": "NYC alternate"},
@@ -334,6 +340,7 @@ AIRPORT_PROFILE_THEMES = {
 AIRPORT_TIME_ZONES = {
     "ATL": "America/New_York",
     "BOS": "America/New_York",
+    "BWI": "America/New_York",
     "CLT": "America/New_York",
     "DCA": "America/New_York",
     "EWR": "America/New_York",
@@ -344,6 +351,7 @@ AIRPORT_TIME_ZONES = {
     "MIA": "America/New_York",
     "ORD": "America/Chicago",
     "DFW": "America/Chicago",
+    "DTW": "America/Detroit",
     "LAS": "America/Los_Angeles",
     "LAX": "America/Los_Angeles",
     "SEA": "America/Los_Angeles",
@@ -376,6 +384,26 @@ AIRPORT_PAGE_GUIDES = {
             {"label": "Official PHL Wait Times", "url": "https://www.phl.org/"},
             {"label": "PHL Interactive Maps", "url": "https://maps.phl.org/"},
             {"label": "Terminal Connection Guide", "url": "https://www.ifly.com/airports/philadelphia-international-airport/terminal-map"},
+        ],
+    },
+    "BWI": {
+        "tips": [
+            "BWI publishes live waits on its homepage, and the fastest option can change across A, B, C, and D/E.",
+            "General, Priority, TSA Pre, and Clear are all shown separately, so compare the lane that matches your membership rather than using one blended airport average.",
+            "Checkpoint B is open 24 hours and gives access to Concourses A, B, and C, while D/E is the separate long-haul side.",
+        ],
+        "notes": [
+            "BWI Thurgood Marshall Airport shows continuously updated security wait times on the homepage widget.",
+            "Checkpoint A and C open at 4:00 a.m. and close at 8:00 p.m.; Checkpoint B and D/E are open 24 hours.",
+            "The security page says checkpoint operating hours and PreCheck availability can change.",
+        ],
+        "terminal_notes": [
+            "Checkpoint A serves the A side, Checkpoint B serves the central A/B/C side, Checkpoint C serves the C side, and D/E serves the D and E side.",
+            "The D/E checkpoint is the only one dedicated to the D/E concourses.",
+        ],
+        "links": [
+            {"label": "BWI homepage security widget", "url": "https://bwiairport.com/"},
+            {"label": "BWI security page", "url": "https://bwiairport.com/flying-with-us/security-tsa-guidelines/"},
         ],
     },
     "BOS": {
@@ -537,6 +565,26 @@ AIRPORT_PAGE_GUIDES = {
             {"label": "Official DFW Live Wait Map", "url": "https://www.dfwairport.com/security/"},
             {"label": "DFW Interactive Map", "url": "https://www.dfwairport.com/map/"},
             {"label": "DFW Terminal Guide", "url": "https://dallasfortworthairport-dfw.com/wait-times/"},
+        ],
+    },
+    "DTW": {
+        "tips": [
+            "DTW publishes separate live waits for McNamara and Evans, so use your airline assignment before choosing a terminal.",
+            "McNamara and Evans are separate terminal systems; the faster line in one terminal does not help if your airline is in the other.",
+            "The public widget is a simple two-row feed, so the terminal-level wait is the key comparison signal.",
+        ],
+        "notes": [
+            "Detroit Metro's live wait-time widget reports terminal-level waits for McNamara and Evans rather than a single airport-wide line.",
+            "The airport's terminal names are the operational decision point; compare them before you drive to the terminal.",
+            "DTW's public proxy returns live JSON directly from the airport site without auth.",
+        ],
+        "terminal_notes": [
+            "McNamara handles a large portion of the airport's traffic; Evans is the other published security checkpoint group.",
+            "Because the feed is terminal-level, there is no need to split by lane in the current rollout.",
+        ],
+        "links": [
+            {"label": "DTW Security Wait Times", "url": "https://www.metroairport.com/"},
+            {"label": "DTW Terminal Maps", "url": "https://www.metroairport.com/terminals/maps/campus-map"},
         ],
     },
     "DEN": {
@@ -987,7 +1035,7 @@ def build_generic_airport_arrival_config(
 
 
 AIRPORT_FACTORS = {
-    "ATL": 1.25, "BOS": 1.05, "CLT": 1.0, "DEN": 1.15, "DFW": 1.2, "DTW": 0.95,
+    "ATL": 1.25, "BOS": 1.05, "BWI": 1.0, "CLT": 1.0, "DEN": 1.15, "DFW": 1.2, "DTW": 0.95,
     "EWR": 1.2, "FLL": 0.9, "HNL": 0.85, "IAH": 1.1, "JFK": 1.35, "LAS": 1.15,
     "LAX": 1.4, "LGA": 1.25, "MCO": 1.1, "MDW": 0.9, "MIA": 1.25, "MSP": 1.0,
     "ORD": 1.3, "PHL": 1.1, "PHX": 1.0, "SEA": 1.1, "SFO": 1.25, "SLC": 0.9,
@@ -1011,24 +1059,6 @@ PIPELINE_AIRPORTS = [
         # internal: fly2houston.com/iah/security renders wait times dynamically (JS/AJAX).
         # Public checkpoint endpoint found at api.houstonairports.mobi, but the bundled API version is currently rejected.
         # See airport_research/pipeline/IAH.md for full investigation log.
-    },
-    {
-        "code": "BWI",
-        "name": "Baltimore/Washington International (BWI)",
-        "status": "IN_RESEARCH",
-        "public_note": "Live integration coming soon.",
-        # internal: bwiairport.com/at-bwi/airport-security renders wait times dynamically.
-        # No public JSON API found. Requires headless browser or XHR interception.
-        # See airport_research/pipeline/BWI.md for full investigation log.
-    },
-    {
-        "code": "DTW",
-        "name": "Detroit Metropolitan (DTW)",
-        "status": "IN_RESEARCH",
-        "public_note": "Live integration coming soon.",
-        # internal: metroairport.com/at-the-airport/security renders wait times dynamically.
-        # No public JSON API found. Requires headless browser or XHR interception.
-        # See airport_research/pipeline/DTW.md for full investigation log.
     },
     {
         "code": "IAD",
@@ -1061,15 +1091,17 @@ LEGACY_PAGE_REDIRECTS = {
 app = Flask(__name__)
 LANE_TYPE_LABELS = {
     "STANDARD": "Standard",
+    "PRIORITY": "Priority",
     "PRECHECK": "PreCheck",
     "CLEAR": "CLEAR",
     "CLEAR_PRECHECK": "CLEAR + PreCheck",
 }
 LANE_TYPE_SORT_ORDER = {
     "STANDARD": 0,
-    "PRECHECK": 1,
-    "CLEAR": 2,
-    "CLEAR_PRECHECK": 3,
+    "PRIORITY": 1,
+    "PRECHECK": 2,
+    "CLEAR": 3,
+    "CLEAR_PRECHECK": 4,
 }
 _mia_cache = {"key": None, "endpoint": None, "fetched_at": None}
 _clt_cache = {
@@ -1496,6 +1528,14 @@ AIRPORT_ARRIVAL_MODE_HISTORY_HOURS = 24
 AIRPORT_ARRIVAL_MODE_LANES = ("STANDARD", "PRECHECK")
 
 
+def airport_arrival_mode_lane_types(code: str) -> tuple:
+    config = AIRPORT_DECISION_MAPS.get(code) or {}
+    lane_types = config.get("lane_types")
+    if lane_types:
+        return tuple(lane_types)
+    return AIRPORT_ARRIVAL_MODE_LANES
+
+
 def _arrival_checkpoint_aliases(config: Dict) -> Dict[str, str]:
     aliases: Dict[str, str] = {}
     for terminal in config.get("terminals", []):
@@ -1617,6 +1657,7 @@ def build_airport_arrival_mode(
     generated_at = generated_at.astimezone(APP_TZ)
     aliases = _arrival_checkpoint_aliases(config)
     trend_rows = history_rows if history_rows is not None else (rows or [])
+    lane_types = airport_arrival_mode_lane_types(code)
 
     current_by_lane: Dict[tuple, Dict] = {}
     # History supplies a last-known row when latest_snapshot's 15-minute cutoff
@@ -1626,7 +1667,7 @@ def build_airport_arrival_mode(
         if not checkpoint_id:
             continue
         lane_type = _arrival_normalized_lane_type(row)
-        if lane_type not in AIRPORT_ARRIVAL_MODE_LANES:
+        if lane_type not in lane_types:
             continue
         wait = _arrival_wait_minutes(row.get("wait_minutes"))
         captured = _arrival_datetime(row.get("captured_at"))
@@ -1651,7 +1692,7 @@ def build_airport_arrival_mode(
             published_only = bool(checkpoint.get("published_only"))
             lanes = []
             lane_waits = {}
-            for lane_type in AIRPORT_ARRIVAL_MODE_LANES:
+            for lane_type in lane_types:
                 current = current_by_lane.get((checkpoint["id"], lane_type))
                 freshness = "published_only" if published_only else "no_current_reading"
                 wait_minutes = None
@@ -1760,7 +1801,7 @@ def build_airport_arrival_mode(
         "map": map_config,
         "source": source,
         "source_status": source_status,
-        "lane_types": list(AIRPORT_ARRIVAL_MODE_LANES),
+        "lane_types": list(lane_types),
         "terminals": terminals,
         "fastest_fresh_reading": fastest,
         "unmatched_readings": sorted(unmatched_readings, key=_lane_display_sort_key),
@@ -2505,6 +2546,8 @@ def normalize_lane_type(raw: str) -> str:
         return "CLEAR_PRECHECK"
     if "clear" in s:
         return "CLEAR"
+    if "priority" in s:
+        return "PRIORITY"
     if "pre" in s or "tsa pre" in s or "precheck" in s:
         return "PRECHECK"
     return "STANDARD"
@@ -3127,6 +3170,107 @@ def fetch_dca_rows() -> List[Dict]:
     return rows
 
 
+def fetch_bwi_rows() -> List[Dict]:
+    """Scrape BWI's live homepage security widget."""
+    url = "https://bwiairport.com/"
+    resp = requests.get(
+        url,
+        headers={
+            **UA,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Encoding": "br",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-User": "?1",
+            "Upgrade-Insecure-Requests": "1",
+        },
+        timeout=20,
+    )
+    resp.raise_for_status()
+    html = resp.content.decode("utf-8", "replace")
+    table_match = re.search(
+        r'<div class="hud_item hud_item_3 hud_item_security js-security"[^>]*>.*?<table class="hud_security_table">(.*?)</table>',
+        html,
+        re.S | re.I,
+    )
+    if not table_match:
+        raise RuntimeError("BWI: security wait table not found")
+
+    stamp = utc_now().isoformat()
+    rows: List[Dict] = []
+    for row_html in re.findall(r"<tr[^>]*>(.*?)</tr>", table_match.group(1), re.S | re.I):
+        cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", row_html, re.S | re.I)
+        if len(cells) < 5:
+            continue
+
+        def _clean(cell: str) -> str:
+            return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", cell)).strip()
+
+        checkpoint = _clean(cells[0]).replace(" *", "").replace("*", "").strip()
+        if not checkpoint:
+            continue
+        for lane_label, lane_type, raw_wait in (
+            ("General", "STANDARD", cells[1]),
+            ("Priority", "PRIORITY", cells[2]),
+            ("TSA Pre", "PRECHECK", cells[3]),
+            ("Clear", "CLEAR", cells[4]),
+        ):
+            wait_minutes = parse_wait_range(_clean(raw_wait))
+            if wait_minutes is None:
+                continue
+            rows.append(
+                {
+                    "airport_code": "BWI",
+                    "checkpoint": checkpoint,
+                    "wait_minutes": wait_minutes,
+                    "lane_type": lane_type,
+                    "source": url,
+                    "captured_at": stamp,
+                    "lane_label": lane_label,
+                }
+            )
+
+    if not rows:
+        raise RuntimeError("BWI: no checkpoint rows parsed from homepage widget")
+    return rows
+
+
+def fetch_dtw_rows() -> List[Dict]:
+    """DTW terminal-level wait times from the public SkyFii proxy."""
+    url = "https://proxy.metroairport.com/SkyFiiTSAProxy.ashx"
+    resp = requests.get(url, headers={**UA, "Accept": "application/json"}, timeout=20)
+    resp.raise_for_status()
+    items = resp.json()
+    if not isinstance(items, list) or not items:
+        raise RuntimeError("DTW: empty wait-time response")
+    stamp = utc_now().isoformat()
+    rows: List[Dict] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("Name", "")).strip()
+        if not name:
+            continue
+        checkpoint = name if name.lower().endswith("terminal") else f"{name} Terminal"
+        rows.append(
+            {
+                "airport_code": "DTW",
+                "checkpoint": checkpoint,
+                "wait_minutes": float(item.get("WaitTime") or 0),
+                "lane_type": "STANDARD",
+                "source": url,
+                "captured_at": stamp,
+            }
+        )
+    if not rows:
+        raise RuntimeError("DTW: no checkpoint rows parsed from JSON")
+    return rows
+
+
 _PANYNJ_GQL = "https://www.jfkairport.com/api/graphql"
 _PANYNJ_LZ = LZString()
 _PANYNJ_QUERY = (
@@ -3737,6 +3881,8 @@ def collect_once() -> Dict:
         ("SEA", fetch_sea_rows),
         ("SFO", fetch_sfo_rows),
         ("DCA", fetch_dca_rows),
+        ("BWI", fetch_bwi_rows),
+        ("DTW", fetch_dtw_rows),
         ("DEN", fetch_den_rows),
         ("ATL", fetch_atl_rows),
     ]
@@ -4545,9 +4691,14 @@ def when_should_i_leave_page():
     requested_lane = _lane_type_key(request.args.get("lane")) if request.args.get("lane") else ""
     selected_airport = requested_airport if requested_airport in LIVE_AIRPORTS else ""
     selected_checkpoint = ""
+    selected_lane_types = (
+        airport_arrival_mode_lane_types(selected_airport)
+        if selected_airport in AIRPORT_ARRIVAL_MODE_CODES
+        else AIRPORT_ARRIVAL_MODE_LANES
+    )
     selected_lane = (
         requested_lane
-        if selected_airport and requested_lane in AIRPORT_ARRIVAL_MODE_LANES
+        if selected_airport and requested_lane in selected_lane_types
         else ""
     )
 

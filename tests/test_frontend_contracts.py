@@ -1601,6 +1601,95 @@ class FrontendContractTests(unittest.TestCase):
         self.assertEqual([row["lane_type"] for row in rows], ["STANDARD", "PRECHECK"])
         self.assertEqual([row["wait_minutes"] for row in rows], [7.0, 2.0])
 
+    def test_dtw_collector_uses_public_json_proxy(self):
+        module = self.app_module
+
+        class Response:
+            def __init__(self, payload):
+                self.payload = payload
+                self.status_code = 200
+
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return self.payload
+
+        payload = [
+            {"Name": "McNamara", "WaitTime": 6},
+            {"Name": "Evans", "WaitTime": 7},
+        ]
+        captured = {}
+
+        def fake_get(url, headers=None, timeout=None):
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["timeout"] = timeout
+            return Response(payload)
+
+        with patch.object(module.requests, "get", side_effect=fake_get):
+            rows = module.fetch_dtw_rows()
+
+        self.assertEqual(captured["url"], "https://proxy.metroairport.com/SkyFiiTSAProxy.ashx")
+        self.assertEqual(captured["headers"]["Accept"], "application/json")
+        self.assertEqual([row["checkpoint"] for row in rows], ["McNamara Terminal", "Evans Terminal"])
+        self.assertEqual([row["wait_minutes"] for row in rows], [6.0, 7.0])
+        self.assertTrue(all(row["lane_type"] == "STANDARD" for row in rows))
+
+    def test_bwi_collector_uses_live_homepage_widget(self):
+        module = self.app_module
+
+        class Response:
+            def __init__(self, html):
+                self.content = html.encode("utf-8")
+                self.status_code = 200
+
+            def raise_for_status(self):
+                return None
+
+        html = """
+        <div class="hud_item hud_item_3 hud_item_security js-security" data-file="/themes/custom/bwi/cache/wait-times.json">
+          <header class="hud_header">
+            <h2 class="hud_title">Security Wait Times</h2>
+            <h3 class="hud_time hud_time_lg">as of <time class="js-security-update">1:36 am</time></h3>
+          </header>
+          <table class="hud_security_table">
+            <tbody>
+              <tr class="hud_security_table_row_A">
+                <td>Checkpoint A</td><td>9 min</td><td>4 min</td><td>Closed</td><td>Closed</td>
+              </tr>
+              <tr class="hud_security_table_row_B">
+                <td>Checkpoint B</td><td>1 min</td><td>1 min</td><td>4 min</td><td>1 min</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        """
+        captured = {}
+
+        def fake_get(url, headers=None, timeout=None):
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["timeout"] = timeout
+            return Response(html)
+
+        with patch.object(module.requests, "get", side_effect=fake_get):
+            rows = module.fetch_bwi_rows()
+
+        self.assertEqual(captured["url"], "https://bwiairport.com/")
+        self.assertEqual(captured["headers"]["Accept-Encoding"], "br")
+        self.assertEqual(
+            [(row["checkpoint"], row["lane_type"], row["wait_minutes"]) for row in rows],
+            [
+                ("Checkpoint A", "STANDARD", 9.0),
+                ("Checkpoint A", "PRIORITY", 4.0),
+                ("Checkpoint B", "STANDARD", 1.0),
+                ("Checkpoint B", "PRIORITY", 1.0),
+                ("Checkpoint B", "PRECHECK", 4.0),
+                ("Checkpoint B", "CLEAR", 1.0),
+            ],
+        )
+
     def test_mia_and_lax_arrival_modes_distinguish_live_and_published_context(self):
         now = datetime(2026, 7, 13, 20, 0, tzinfo=timezone.utc)
         rows_by_code = {
@@ -1769,6 +1858,46 @@ class FrontendContractTests(unittest.TestCase):
                     "captured_at": now.isoformat(),
                 }
             ],
+            "BWI": [
+                {
+                    "checkpoint": "Checkpoint A",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 9,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Checkpoint B",
+                    "lane_type": "PRIORITY",
+                    "wait_minutes": 1,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Checkpoint C",
+                    "lane_type": "PRECHECK",
+                    "wait_minutes": 4,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Checkpoint D/E",
+                    "lane_type": "CLEAR",
+                    "wait_minutes": 7,
+                    "captured_at": now.isoformat(),
+                },
+            ],
+            "DTW": [
+                {
+                    "checkpoint": "McNamara Terminal",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 6,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Evans Terminal",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 7,
+                    "captured_at": now.isoformat(),
+                },
+            ],
             "PHL": [
                 {
                     "checkpoint": "D/E",
@@ -1933,6 +2062,8 @@ class FrontendContractTests(unittest.TestCase):
                 "BOS",
                 "ORD",
                 "DFW",
+                "BWI",
+                "DTW",
                 "PHL",
                 "MIA",
                 "LAX",
@@ -1949,6 +2080,8 @@ class FrontendContractTests(unittest.TestCase):
                 ("BOS", 4, 7, "bos-checkpoint-4-gates-b23-40"),
                 ("ORD", 4, 8, "ord-terminal-3-checkpoint-7a"),
                 ("DFW", 5, 15, "dfw-c20"),
+                ("BWI", 4, 4, "bwi-b"),
+                ("DTW", 2, 2, "dtw-mcnamara"),
                 ("PHL", 6, 6, "phl-d-e"),
                 ("MIA", 3, 11, "mia-2"),
                 ("LAX", 8, 8, "lax-tbit"),

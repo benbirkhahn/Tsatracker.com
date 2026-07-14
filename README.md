@@ -9,6 +9,8 @@ The following airports have verified, official data feeds currently integrated:
 
 | Code | Airport Name | Data Source |
 | :--- | :--- | :--- |
+| **ATL** | Atlanta Hartsfield-Jackson | Official Wait Times API |
+| **BOS** | Boston Logan | Zensors / Massport Integration |
 | **PHL** | Philadelphia International | Official Metrics API |
 | **MIA** | Miami International | Rotating API Key (Auto-refreshing) |
 | **ORD** | Chicago O'Hare | Official Wait Times API |
@@ -16,11 +18,16 @@ The following airports have verified, official data feeds currently integrated:
 | **MCO** | Orlando International | `api.goaa.aero` Integration |
 | **JAX** | Jacksonville International | HTML Table Scrape |
 | **DFW** | Dallas/Fort Worth | `api.dfwairport.mobi` Integration |
+| **DCA** | Reagan National | Public JSON endpoint |
+| **BWI** | Baltimore/Washington International | Homepage Security Widget |
+| **DTW** | Detroit Metropolitan | Public JSON proxy |
 | **LAX** | Los Angeles International | HTML Table Scrape |
 | **JFK** | John F. Kennedy International | PANYNJ GraphQL API |
 | **EWR** | Newark Liberty International | PANYNJ GraphQL API |
 | **LGA** | LaGuardia Airport | PANYNJ GraphQL API |
+| **LAS** | Harry Reid International | Zensors widget |
 | **SEA** | Seattle-Tacoma International | Drupal JSON API |
+| **SFO** | San Francisco International | HTML Table Scrape |
 
 ---
 
@@ -191,6 +198,6 @@ python3 scripts/gsc_automation.py --auth-mode adc --property sc-domain:tsatracke
 
 ## 🔬 Pipeline
 Airports currently under research for future integration:
-- **ATL**, **DEN**, **IAH**, **BWI**, **DTW**, **IAD**, **DCA**.
+- **DEN**, **IAH**, **IAD**.
 
 Detailed research logs for these can be found in `airport_research/pipeline/`.

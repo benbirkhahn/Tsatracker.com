@@ -844,6 +844,176 @@ AIRPORT_DECISION_MAPS = {
             },
         ],
     },
+    "BWI": {
+        "decision_mode": "terminal_checkpoint",
+        "has_published_hours": True,
+        "all_checkpoints_reach_all_gates": False,
+        "lane_types": ["STANDARD", "PRIORITY", "PRECHECK", "CLEAR"],
+        "routing_note": (
+            "BWI publishes live waits for four checkpoint areas on the homepage. "
+            "Choose the checkpoint and lane that match your concourse before you leave."
+        ),
+        "map": {
+            "center": [39.1747196, -76.6707551],
+            "bounds": [[39.1703, -76.6769], [39.1809, -76.6620]],
+            "overview_zoom": 14.2,
+            "detail_zoom": 16.2,
+            "location_accuracy": "checkpoint_area_overview",
+            "tile_url": USGS_IMAGERY_URL,
+            "tile_attribution": USGS_IMAGERY_ATTRIBUTION,
+        },
+        "source": {
+            "label": "Official BWI homepage security widget",
+            "url": "https://bwiairport.com/",
+            "verified_on": "2026-07-14",
+        },
+        "terminals": [
+            {
+                "id": "a",
+                "marker_code": "A",
+                "label": "Checkpoint A",
+                "summary": "Checkpoint A",
+                "anchor": [39.1769, -76.6739],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "bwi-a",
+                        "label": "Checkpoint A",
+                        "aliases": ["Checkpoint A"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "4:00 a.m. - 8:00 p.m.",
+                        "note": "Live BWI homepage wait-time checkpoint for the A side.",
+                    }
+                ],
+            },
+            {
+                "id": "b",
+                "marker_code": "B",
+                "label": "Checkpoint B",
+                "summary": "Checkpoint B",
+                "anchor": [39.1768, -76.6718],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "bwi-b",
+                        "label": "Checkpoint B",
+                        "aliases": ["Checkpoint B"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "Open 24 hours",
+                        "note": "Live BWI homepage wait-time checkpoint for the central concourses.",
+                    }
+                ],
+            },
+            {
+                "id": "c",
+                "marker_code": "C",
+                "label": "Checkpoint C",
+                "summary": "Checkpoint C",
+                "anchor": [39.1761, -76.6696],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "bwi-c",
+                        "label": "Checkpoint C",
+                        "aliases": ["Checkpoint C"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "4:00 a.m. - 8:00 p.m.",
+                        "note": "Live BWI homepage wait-time checkpoint for the C side.",
+                    }
+                ],
+            },
+            {
+                "id": "de",
+                "marker_code": "D/E",
+                "label": "Checkpoint D/E",
+                "summary": "Checkpoint D/E",
+                "anchor": [39.1739, -76.6662],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "bwi-de",
+                        "label": "Checkpoint D/E",
+                        "aliases": ["Checkpoint D/E", "Checkpoint D/E*"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "Open 24 hours",
+                        "note": "Live BWI homepage wait-time checkpoint for Concourses D and E.",
+                    }
+                ],
+            },
+        ],
+    },
+    "DTW": {
+        "decision_mode": "terminal_checkpoint",
+        "has_published_hours": False,
+        "routing_note": (
+            "DTW publishes separate live waits for McNamara and Evans. Choose "
+            "the terminal that matches your airline before you leave."
+        ),
+        "map": {
+            "center": [42.2170, -83.3509],
+            "bounds": [[42.2046, -83.3628], [42.2290, -83.3432]],
+            "overview_zoom": 13.8,
+            "detail_zoom": 16,
+            "location_accuracy": "terminal_building_overview",
+            "tile_url": USGS_IMAGERY_URL,
+            "tile_attribution": USGS_IMAGERY_ATTRIBUTION,
+        },
+        "source": {
+            "label": "Official DTW security wait times",
+            "url": "https://www.metroairport.com/",
+            "verified_on": "2026-07-14",
+        },
+        "terminals": [
+            {
+                "id": "mcnamara",
+                "marker_code": "MCN",
+                "marker_label": "McNamara",
+                "label": "McNamara Terminal",
+                "summary": "McNamara terminal wait time",
+                "anchor": [42.2087129, -83.3553797],
+                "location_accuracy": "terminal_curb_anchor",
+                "checkpoints": [
+                    {
+                        "id": "dtw-mcnamara",
+                        "label": "McNamara Terminal",
+                        "aliases": ["McNamara Terminal", "Metro Airport McNamara Terminal"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "",
+                        "note": "McNamara terminal wait time from the public DTW widget.",
+                    }
+                ],
+            },
+            {
+                "id": "evans",
+                "marker_code": "EVN",
+                "marker_label": "Evans",
+                "label": "Evans Terminal",
+                "summary": "Evans terminal wait time",
+                "anchor": [42.2262159, -83.3464256],
+                "location_accuracy": "terminal_curb_anchor",
+                "checkpoints": [
+                    {
+                        "id": "dtw-evans",
+                        "label": "Evans Terminal",
+                        "aliases": [
+                            "Evans Terminal",
+                            "North Terminal",
+                            "Metro Airport North Terminal",
+                        ],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "",
+                        "note": "Evans terminal wait time from the public DTW widget.",
+                    }
+                ],
+            },
+        ],
+    },
     "SFO": {
         "decision_mode": "terminal_checkpoint",
         "has_published_hours": False,

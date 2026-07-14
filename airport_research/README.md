@@ -15,6 +15,10 @@ Reference for every airport we've investigated — how we get live TSA wait data
 | MCO | Orlando International | ✅ Live | Static key (env / bundle) |
 | JAX | Jacksonville International | ✅ Live | Public |
 | DFW | Dallas/Fort Worth | ✅ Live | Static key (embedded in bundle) |
+| BOS | Boston Logan | ✅ Live | Public |
+| ATL | Hartsfield-Jackson Atlanta | ✅ Live | Public |
+| BWI | Baltimore/Washington International | ✅ Live | Homepage security widget |
+| DTW | Detroit Metro | ✅ Live | Public JSON proxy |
 | LAX | Los Angeles International | ✅ Live | Public (HTML table scrape) |
 | JFK | John F. Kennedy International | ✅ Live | Public (GraphQL, PANYNJ) |
 | EWR | Newark Liberty International | ✅ Live | Public (Azure API, api-key) |
@@ -22,10 +26,9 @@ Reference for every airport we've investigated — how we get live TSA wait data
 | LAS | Harry Reid International | ✅ Live | Public widget (Zensors) |
 | SEA | Seattle-Tacoma International | ✅ Live | Public (Drupal JSON API, portseattle.org) |
 | SFO | San Francisco International | ✅ Live | Public HTML table scrape |
-| ATL | Hartsfield-Jackson Atlanta | 🔬 Research | Cloudflare-blocked (all paths) |
 | DEN | Denver International | 🔬 Research | 403 Forbidden on direct probe |
 | IAH | Houston Intercontinental | 🔬 Research | Public checkpoint endpoint found, but current API version is rejected |
-| DTW | Detroit Metro | 🔬 Research | Live data confirmed via TTT; metroairport.com Drupal endpoint not yet found |
+| IAD | Washington Dulles | 🔬 Research | Wait times rendered dynamically; no public JSON API confirmed |
 | DCA | Reagan National | ✅ Live | Public JSON endpoint at `/security-wait-times` |
 
 ---

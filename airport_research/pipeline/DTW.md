@@ -1,8 +1,10 @@
 # DTW — Detroit Metropolitan Airport
 
-**Status:** 🔬 In Research  
-**Pipeline status:** `IN_RESEARCH`  
-**Last investigated:** 2026-03-23  
+**Status:** ✅ Live
+**Pipeline status:** `LIVE`
+**Last investigated:** 2026-07-14
+
+See `airport_research/live/DTW.md` for the live collector details.
 
 ---
 
