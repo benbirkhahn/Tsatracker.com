@@ -853,8 +853,10 @@ AIRPORT_DECISION_MAPS = {
             "DEN uses East and West Security on Level 6. Both checkpoints feed the same concourse train, so compare the current lane with the checkpoint closest to your arrival side."
         ),
         "map": {
-            "center": [39.8561, -104.6737],
-            "bounds": [[39.8510, -104.6804], [39.8615, -104.6660]],
+            # Keep the Jeppesen Terminal in the overview: East and West
+            # Security are on Level 6 there, south of Concourse A/B/C.
+            "center": [39.8535, -104.6737],
+            "bounds": [[39.8472, -104.6804], [39.8615, -104.6660]],
             "overview_zoom": 14.25,
             "detail_zoom": 16.25,
             "location_accuracy": "checkpoint_area_overview",
@@ -873,7 +875,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_label": "West Security",
                 "label": "West Security",
                 "summary": "West checkpoint on Level 6",
-                "anchor": [39.8554, -104.6760],
+                # Northwest end of Jeppesen Terminal, not a gate concourse.
+                "anchor": [39.8512, -104.67455],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
@@ -897,7 +900,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_label": "East Security",
                 "label": "East Security",
                 "summary": "East checkpoint on Level 6",
-                "anchor": [39.8568, -104.6710],
+                # Northeast end of Jeppesen Terminal, directly opposite West.
+                "anchor": [39.8512, -104.67305],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {

@@ -1799,6 +1799,21 @@ class FrontendContractTests(unittest.TestCase):
         self.assertEqual(rows[0]["checkpoint"], "TBIT")
         self.assertEqual(rows[0]["wait_minutes"], 0.0)
 
+    def test_den_security_anchors_are_in_jeppesen_terminal(self):
+        model = self.app_module.build_airport_arrival_mode(
+            "DEN", rows=[], history_rows=[], now=datetime.now(timezone.utc)
+        )
+
+        self.assertEqual(model["map"]["center"], [39.8535, -104.6737])
+        self.assertEqual(model["map"]["bounds"][0], [39.8472, -104.6804])
+        self.assertEqual(
+            {terminal["id"]: terminal["anchor"] for terminal in model["terminals"]},
+            {
+                "west": [39.8512, -104.67455],
+                "east": [39.8512, -104.67305],
+            },
+        )
+
     def test_terminal_checkpoint_airports_render_without_las_gate_controls(self):
         now = datetime.now(timezone.utc)
         rows_by_code = {
