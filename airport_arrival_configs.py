@@ -1569,7 +1569,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_label": "Terminal B",
                 "label": "Terminal B",
                 "summary": "Three gate-range checkpoint readings",
-                "anchor": [40.6902858, -74.1761701],
+                # Terminal B checkpoint area within the terminal complex.
+                "anchor": [40.6925, -74.1768],
                 "location_accuracy": "terminal_building_centroid",
                 "checkpoints": [
                     {
@@ -1607,7 +1608,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_label": "Terminal C",
                 "label": "Terminal C",
                 "summary": "Terminal C checkpoint",
-                "anchor": [40.6960980, -74.1764498],
+                # Terminal C checkpoint area, west of the AirTrain platform.
+                "anchor": [40.6961, -74.1785],
                 "location_accuracy": "terminal_building_centroid",
                 "checkpoints": [
                     {
