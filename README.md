@@ -19,8 +19,11 @@ The following airports have verified, official data feeds currently integrated:
 | **JAX** | Jacksonville International | HTML Table Scrape |
 | **DFW** | Dallas/Fort Worth | `api.dfwairport.mobi` Integration |
 | **DCA** | Reagan National | Public JSON endpoint |
+| **DEN** | Denver International | Airport API middleware |
 | **BWI** | Baltimore/Washington International | Homepage Security Widget |
 | **DTW** | Detroit Metropolitan | Public JSON proxy |
+| **IAD** | Washington Dulles | Official security page |
+| **IAH** | George Bush Intercontinental | Official security page |
 | **LAX** | Los Angeles International | HTML Table Scrape |
 | **JFK** | John F. Kennedy International | PANYNJ GraphQL API |
 | **EWR** | Newark Liberty International | PANYNJ GraphQL API |
@@ -197,7 +200,7 @@ python3 scripts/gsc_automation.py --auth-mode adc --property sc-domain:tsatracke
 ---
 
 ## 🔬 Pipeline
-Airports currently under research for future integration:
+Airports still under research for live data integration:
 - **DEN**, **IAH**, **IAD**.
 
 Detailed research logs for these can be found in `airport_research/pipeline/`.

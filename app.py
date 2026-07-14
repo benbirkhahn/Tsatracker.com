@@ -64,7 +64,7 @@ ADSENSE_SLOT_MULTIPLEX = os.getenv(
 ).strip()
 ENABLE_INTERNAL_GRAPH = os.getenv("ENABLE_INTERNAL_GRAPH", "false").lower() == "true"
 DEFAULT_AIRPORT_ARRIVAL_MODE_CODES = (
-    "ATL,BOS,BWI,CLT,DCA,DFW,DTW,EWR,JAX,JFK,LAS,LAX,LGA,MCO,MIA,ORD,PHL,SEA,SFO"
+    "ATL,BOS,BWI,CLT,DCA,DEN,DFW,DTW,EWR,IAD,IAH,JAX,JFK,LAS,LAX,LGA,MCO,MIA,ORD,PHL,SEA,SFO"
 )
 AIRPORT_ARRIVAL_MODE_CODES = {
     code.strip().upper()
@@ -278,6 +278,9 @@ LIVE_AIRPORTS = {
     "CLT": {"name": "Charlotte Douglas International (CLT)", "mode": "LIVE_KEY_REQUIRED", "city": "Charlotte"},
     "MCO": {"name": "Orlando International (MCO)", "mode": "LIVE_KEY_REQUIRED", "city": "Orlando"},
     "JAX": {"name": "Jacksonville International (JAX)", "mode": "LIVE_PUBLIC", "city": "Jacksonville"},
+    "DEN": {"name": "Denver International (DEN)", "mode": "LIVE_PUBLIC", "city": "Denver"},
+    "IAD": {"name": "Washington Dulles International (IAD)", "mode": "LIVE_PUBLIC", "city": "Washington"},
+    "IAH": {"name": "George Bush Intercontinental (IAH)", "mode": "LIVE_PUBLIC", "city": "Houston"},
     "DFW": {"name": "Dallas/Fort Worth International (DFW)", "mode": "LIVE_KEY_EMBEDDED", "city": "Dallas"},
     "DTW": {"name": "Detroit Metropolitan (DTW)", "mode": "LIVE_PUBLIC", "city": "Detroit"},
     "LAX": {"name": "Los Angeles International (LAX)", "mode": "LIVE_PUBLIC", "city": "Los Angeles"},
@@ -299,9 +302,12 @@ AIRPORT_MAP_COORDINATES = {
     "BWI": {"lat": 39.1747196, "lng": -76.6707551},
     "CLT": {"lat": 35.2140, "lng": -80.9431},
     "DCA": {"lat": 38.8512, "lng": -77.0402},
+    "DEN": {"lat": 39.8561, "lng": -104.6737},
     "DFW": {"lat": 32.8998, "lng": -97.0403},
     "DTW": {"lat": 42.2056991, "lng": -83.3529754},
     "EWR": {"lat": 40.6895, "lng": -74.1745},
+    "IAD": {"lat": 38.9531, "lng": -77.4565},
+    "IAH": {"lat": 29.9902, "lng": -95.3368},
     "JAX": {"lat": 30.4941, "lng": -81.6879},
     "JFK": {"lat": 40.6413, "lng": -73.7781},
     "LAS": {"lat": 36.0840, "lng": -115.1537},
@@ -335,6 +341,9 @@ AIRPORT_PROFILE_THEMES = {
     "SEA": {"accent": "#2dd4bf", "secondary": "#60a5fa", "label": "Pacific hub"},
     "SFO": {"accent": "#a3e635", "secondary": "#38bdf8", "label": "Bay Area flow"},
     "DCA": {"accent": "#93c5fd", "secondary": "#f87171", "label": "Business shuttle"},
+    "DEN": {"accent": "#22c55e", "secondary": "#60a5fa", "label": "Two checkpoints"},
+    "IAD": {"accent": "#38bdf8", "secondary": "#f59e0b", "label": "Checkpoint split"},
+    "IAH": {"accent": "#f472b6", "secondary": "#a78bfa", "label": "Terminal spread"},
 }
 
 AIRPORT_TIME_ZONES = {
@@ -343,7 +352,10 @@ AIRPORT_TIME_ZONES = {
     "BWI": "America/New_York",
     "CLT": "America/New_York",
     "DCA": "America/New_York",
+    "DEN": "America/Denver",
     "EWR": "America/New_York",
+    "IAD": "America/New_York",
+    "IAH": "America/Chicago",
     "JAX": "America/New_York",
     "JFK": "America/New_York",
     "LGA": "America/New_York",
@@ -1040,6 +1052,7 @@ AIRPORT_FACTORS = {
     "LAX": 1.4, "LGA": 1.25, "MCO": 1.1, "MDW": 0.9, "MIA": 1.25, "MSP": 1.0,
     "ORD": 1.3, "PHL": 1.1, "PHX": 1.0, "SEA": 1.1, "SFO": 1.25, "SLC": 0.9,
     "DCA": 1.0,
+    "IAD": 1.0,
     "TPA": 0.9, "JAX": 0.9,
 }
 
@@ -2546,7 +2559,7 @@ def normalize_lane_type(raw: str) -> str:
         return "CLEAR_PRECHECK"
     if "clear" in s:
         return "CLEAR"
-    if "priority" in s:
+    if "priority" in s or "reserve" in s or "restricted" in s or "premium" in s or "premier" in s:
         return "PRIORITY"
     if "pre" in s or "tsa pre" in s or "precheck" in s:
         return "PRECHECK"

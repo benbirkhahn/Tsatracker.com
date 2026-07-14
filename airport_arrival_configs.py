@@ -844,6 +844,337 @@ AIRPORT_DECISION_MAPS = {
             },
         ],
     },
+    "DEN": {
+        "decision_mode": "terminal_checkpoint",
+        "has_published_hours": True,
+        "all_checkpoints_reach_all_gates": True,
+        "lane_types": ["STANDARD", "PRECHECK", "CLEAR"],
+        "routing_note": (
+            "DEN uses East and West Security on Level 6. Both checkpoints feed the same concourse train, so compare the current lane with the checkpoint closest to your arrival side."
+        ),
+        "map": {
+            "center": [39.8561, -104.6737],
+            "bounds": [[39.8510, -104.6804], [39.8615, -104.6660]],
+            "overview_zoom": 14.25,
+            "detail_zoom": 16.25,
+            "location_accuracy": "checkpoint_area_overview",
+            "tile_url": USGS_IMAGERY_URL,
+            "tile_attribution": USGS_IMAGERY_ATTRIBUTION,
+        },
+        "source": {
+            "label": "Official DEN security wait times",
+            "url": "https://www.flydenver.com/security/",
+            "verified_on": "2026-07-14",
+        },
+        "terminals": [
+            {
+                "id": "west",
+                "marker_code": "WEST",
+                "marker_label": "West Security",
+                "label": "West Security",
+                "summary": "West checkpoint on Level 6",
+                "anchor": [39.8554, -104.6760],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "den-west",
+                        "label": "West Security",
+                        "aliases": [
+                            "West Security",
+                            "West Security Checkpoint",
+                            "West Security (Level 6)",
+                        ],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "3:00 a.m. - 1:00 a.m.",
+                        "note": "West Security checkpoint on Level 6 of Jeppesen Terminal.",
+                    }
+                ],
+            },
+            {
+                "id": "east",
+                "marker_code": "EAST",
+                "marker_label": "East Security",
+                "label": "East Security",
+                "summary": "East checkpoint on Level 6",
+                "anchor": [39.8568, -104.6710],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "den-east",
+                        "label": "East Security",
+                        "aliases": [
+                            "East Security",
+                            "East Security Checkpoint",
+                            "East Security (Level 6)",
+                        ],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "3:00 a.m. - 1:00 a.m.",
+                        "note": "East Security checkpoint on Level 6 of Jeppesen Terminal.",
+                    }
+                ],
+            },
+        ],
+    },
+    "IAD": {
+        "decision_mode": "terminal_checkpoint",
+        "has_published_hours": True,
+        "all_checkpoints_reach_all_gates": True,
+        "lane_types": ["STANDARD", "PRECHECK"],
+        "routing_note": (
+            "IAD keeps the security choice in the main terminal. East, West, and TSA PreCheck are published separately, so choose the checkpoint that matches the lane you want to use."
+        ),
+        "map": {
+            "center": [38.9531, -77.4565],
+            "bounds": [[38.9480, -77.4625], [38.9586, -77.4415]],
+            "overview_zoom": 14.25,
+            "detail_zoom": 16.25,
+            "location_accuracy": "checkpoint_area_overview",
+            "tile_url": USGS_IMAGERY_URL,
+            "tile_attribution": USGS_IMAGERY_ATTRIBUTION,
+        },
+        "source": {
+            "label": "Official IAD security information",
+            "url": "https://www.flydulles.com/travel-information/security-information",
+            "verified_on": "2026-07-14",
+        },
+        "terminals": [
+            {
+                "id": "east",
+                "marker_code": "EAST",
+                "marker_label": "East Checkpoint",
+                "label": "East Checkpoint",
+                "summary": "East checkpoint",
+                "anchor": [38.9537, -77.4490],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "iad-east",
+                        "label": "East Checkpoint",
+                        "aliases": [
+                            "East Checkpoint",
+                            "East Security Checkpoint",
+                            "Terminal East",
+                        ],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "Open 24 hours",
+                        "note": "East checkpoint on the IAD main terminal side.",
+                    }
+                ],
+            },
+            {
+                "id": "west",
+                "marker_code": "WEST",
+                "marker_label": "West Checkpoint",
+                "label": "West Checkpoint",
+                "summary": "West checkpoint",
+                "anchor": [38.9522, -77.4467],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "iad-west",
+                        "label": "West Checkpoint",
+                        "aliases": [
+                            "West Checkpoint",
+                            "West Security Checkpoint",
+                            "Terminal West",
+                        ],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "4:45 a.m. - 9:00 p.m.",
+                        "note": "West checkpoint on the IAD main terminal side.",
+                    }
+                ],
+            },
+            {
+                "id": "precheck",
+                "marker_code": "PRE",
+                "marker_label": "TSA PreCheck",
+                "label": "TSA PreCheck",
+                "summary": "TSA PreCheck lane",
+                "anchor": [38.9529, -77.4480],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "iad-precheck",
+                        "label": "TSA PreCheck",
+                        "aliases": [
+                            "TSA PreCheck",
+                            "TSA Pre✓",
+                            "PreCheck",
+                        ],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "4:00 a.m. - 9:00 p.m.",
+                        "note": "Published TSA PreCheck hours on the IAD security page.",
+                    }
+                ],
+            },
+        ],
+    },
+    "IAH": {
+        "decision_mode": "terminal_checkpoint",
+        "has_published_hours": True,
+        "all_checkpoints_reach_all_gates": False,
+        "lane_types": ["STANDARD", "PRECHECK", "CLEAR"],
+        "routing_note": (
+            "IAH publishes checkpoint hours by terminal. A and C split into north and south security areas, so use the terminal on your boarding pass before comparing lanes."
+        ),
+        "map": {
+            "center": [29.9902, -95.3368],
+            "bounds": [[29.9831, -95.3492], [29.9978, -95.3245]],
+            "overview_zoom": 13.8,
+            "detail_zoom": 15.8,
+            "location_accuracy": "terminal_building_overview",
+            "tile_url": USGS_IMAGERY_URL,
+            "tile_attribution": USGS_IMAGERY_ATTRIBUTION,
+        },
+        "source": {
+            "label": "Official IAH security page",
+            "url": "https://www.fly2houston.com/iah/security",
+            "verified_on": "2026-07-14",
+        },
+        "terminals": [
+            {
+                "id": "terminal-a",
+                "marker_code": "A",
+                "marker_label": "Terminal A",
+                "label": "Terminal A",
+                "summary": "A North and A South checkpoints",
+                "anchor": [29.9849, -95.3408],
+                "location_accuracy": "terminal_building_centroid",
+                "checkpoints": [
+                    {
+                        "id": "iah-terminal-a-north",
+                        "label": "Terminal A North",
+                        "aliases": [
+                            "Terminal A North",
+                            "Terminal A North (Standard)",
+                            "Terminal A North (TSA PreCheck)",
+                            "Terminal A North (CLEAR)",
+                        ],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "3:30 a.m. - 7:30 p.m.",
+                        "note": "Published hours for Terminal A North on the official IAH security page.",
+                    },
+                    {
+                        "id": "iah-terminal-a-south",
+                        "label": "Terminal A South",
+                        "aliases": [
+                            "Terminal A South",
+                            "Terminal A South (Standard)",
+                            "Terminal A South (TSA PreCheck)",
+                        ],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "3:30 a.m. - 12:00 a.m.",
+                        "note": "Published hours for Terminal A South on the official IAH security page.",
+                    },
+                ],
+            },
+            {
+                "id": "terminal-b",
+                "marker_code": "B",
+                "marker_label": "Terminal B",
+                "label": "Terminal B",
+                "summary": "Terminal B checkpoint",
+                "anchor": [29.9891, -95.3466],
+                "location_accuracy": "terminal_building_centroid",
+                "checkpoints": [
+                    {
+                        "id": "iah-terminal-b",
+                        "label": "Terminal B",
+                        "aliases": ["Terminal B", "Terminal B (Standard)"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "Closed",
+                        "note": "Published status on the official IAH security page.",
+                    }
+                ],
+            },
+            {
+                "id": "terminal-c",
+                "marker_code": "C",
+                "marker_label": "Terminal C",
+                "label": "Terminal C",
+                "summary": "C North and C South checkpoints",
+                "anchor": [29.9899, -95.3361],
+                "location_accuracy": "terminal_building_centroid",
+                "checkpoints": [
+                    {
+                        "id": "iah-terminal-c-north",
+                        "label": "Terminal C North",
+                        "aliases": [
+                            "Terminal C North",
+                            "Terminal C North (Standard)",
+                            "Terminal C North (TSA PreCheck)",
+                            "Terminal C North (CLEAR)",
+                        ],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "4:00 a.m. - 10:00 p.m.",
+                        "note": "Published hours for Terminal C North on the official IAH security page.",
+                    },
+                    {
+                        "id": "iah-terminal-c-south",
+                        "label": "Terminal C South",
+                        "aliases": [
+                            "Terminal C South",
+                            "Terminal C South (Standard)",
+                            "Terminal C South (TSA PreCheck)",
+                        ],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "4:00 a.m. - 7:30 p.m.",
+                        "note": "Published hours for Terminal C South on the official IAH security page.",
+                    },
+                ],
+            },
+            {
+                "id": "terminal-d",
+                "marker_code": "D",
+                "marker_label": "Terminal D",
+                "label": "Terminal D",
+                "summary": "Terminal D checkpoint",
+                "anchor": [29.9930, -95.3450],
+                "location_accuracy": "terminal_building_centroid",
+                "checkpoints": [
+                    {
+                        "id": "iah-terminal-d",
+                        "label": "Terminal D",
+                        "aliases": ["Terminal D", "Terminal D (Standard)"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "4:00 a.m. - 12:30 a.m.",
+                        "note": "Published hours for Terminal D on the official IAH security page.",
+                    }
+                ],
+            },
+            {
+                "id": "terminal-e",
+                "marker_code": "E",
+                "marker_label": "Terminal E",
+                "label": "Terminal E",
+                "summary": "Terminal E checkpoint",
+                "anchor": [29.9846, -95.3385],
+                "location_accuracy": "terminal_building_centroid",
+                "checkpoints": [
+                    {
+                        "id": "iah-terminal-e",
+                        "label": "Terminal E",
+                        "aliases": ["Terminal E", "Terminal E (Standard)", "Terminal E (CLEAR)"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "4:00 a.m. - 12:00 a.m.",
+                        "note": "Published hours for Terminal E on the official IAH security page.",
+                    }
+                ],
+            },
+        ],
+    },
     "BWI": {
         "decision_mode": "terminal_checkpoint",
         "has_published_hours": True,
