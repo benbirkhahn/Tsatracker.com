@@ -321,4 +321,171 @@ AIRPORT_DECISION_MAPS = {
             },
         ],
     },
+    "EWR": {
+        "decision_mode": "terminal_checkpoint",
+        "has_published_hours": False,
+        "routing_note": (
+            "Choose the terminal on your boarding pass. Terminal B publishes "
+            "three separate gate-range readings, so compare the range closest "
+            "to your departure gate."
+        ),
+        "map": {
+            "center": [40.6901, -74.1802],
+            "bounds": [[40.6800, -74.1910], [40.6990, -74.1710]],
+            "overview_zoom": 14.25,
+            "detail_zoom": 16.25,
+            "location_accuracy": "terminal_building_overview",
+            "tile_url": USGS_IMAGERY_URL,
+            "tile_attribution": USGS_IMAGERY_ATTRIBUTION,
+        },
+        "source": {
+            "label": "Official EWR terminal guide",
+            "url": "https://www.newarkairport.com/explore-ewr/terminals",
+            "verified_on": "2026-07-13",
+        },
+        "terminals": [
+            {
+                "id": "terminal-a",
+                "marker_code": "A",
+                "marker_label": "Terminal A",
+                "label": "Terminal A",
+                "summary": "Terminal A checkpoint",
+                "anchor": [40.6839579, -74.1861871],
+                "location_accuracy": "terminal_building_centroid",
+                "checkpoints": [
+                    {
+                        "id": "ewr-terminal-a",
+                        "label": "Terminal A",
+                        "aliases": ["Terminal A"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "",
+                        "note": "Published Terminal A checkpoint reading.",
+                    }
+                ],
+            },
+            {
+                "id": "terminal-b",
+                "marker_code": "B",
+                "marker_label": "Terminal B",
+                "label": "Terminal B",
+                "summary": "Three gate-range checkpoint readings",
+                "anchor": [40.6902858, -74.1761701],
+                "location_accuracy": "terminal_building_centroid",
+                "checkpoints": [
+                    {
+                        "id": "ewr-terminal-b-40-49",
+                        "label": "Gates 40-49",
+                        "aliases": ["Terminal B (40-49)"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "",
+                        "note": "Terminal B checkpoint reading for gates 40-49.",
+                    },
+                    {
+                        "id": "ewr-terminal-b-51-57",
+                        "label": "Gates 51-57",
+                        "aliases": ["Terminal B (51-57)"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "",
+                        "note": "Terminal B checkpoint reading for gates 51-57.",
+                    },
+                    {
+                        "id": "ewr-terminal-b-60-68",
+                        "label": "Gates 60-68",
+                        "aliases": ["Terminal B (60-68)"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "",
+                        "note": "Terminal B checkpoint reading for gates 60-68.",
+                    },
+                ],
+            },
+            {
+                "id": "terminal-c",
+                "marker_code": "C",
+                "marker_label": "Terminal C",
+                "label": "Terminal C",
+                "summary": "Terminal C checkpoint",
+                "anchor": [40.6960980, -74.1764498],
+                "location_accuracy": "terminal_building_centroid",
+                "checkpoints": [
+                    {
+                        "id": "ewr-terminal-c",
+                        "label": "Terminal C",
+                        "aliases": ["Terminal C"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "",
+                        "note": "Published Terminal C checkpoint reading.",
+                    }
+                ],
+            },
+        ],
+    },
+    "LGA": {
+        "decision_mode": "terminal_checkpoint",
+        "has_published_hours": False,
+        "routing_note": (
+            "Choose Terminal B or Terminal C from your boarding pass. Each "
+            "terminal has its own published checkpoint reading."
+        ),
+        "map": {
+            "center": [40.7715, -73.8680],
+            "bounds": [[40.7655, -73.8775], [40.7775, -73.8580]],
+            "overview_zoom": 15,
+            "detail_zoom": 16.5,
+            "location_accuracy": "terminal_building_overview",
+            "tile_url": USGS_IMAGERY_URL,
+            "tile_attribution": USGS_IMAGERY_ATTRIBUTION,
+        },
+        "source": {
+            "label": "Official LGA airport maps",
+            "url": "https://www.laguardiaairport.com/at-airport/airport-maps",
+            "verified_on": "2026-07-13",
+        },
+        "terminals": [
+            {
+                "id": "terminal-b",
+                "marker_code": "B",
+                "marker_label": "Terminal B",
+                "label": "Terminal B",
+                "summary": "Terminal B checkpoint",
+                "anchor": [40.7729776, -73.8720645],
+                "location_accuracy": "terminal_building_centroid",
+                "checkpoints": [
+                    {
+                        "id": "lga-terminal-b",
+                        "label": "Terminal B",
+                        "aliases": ["Terminal B"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "",
+                        "note": "Published Terminal B checkpoint reading.",
+                    }
+                ],
+            },
+            {
+                "id": "terminal-c",
+                "marker_code": "C",
+                "marker_label": "Terminal C",
+                "label": "Terminal C",
+                "summary": "Terminal C checkpoint",
+                "anchor": [40.7700148, -73.8629674],
+                "location_accuracy": "terminal_building_centroid",
+                "checkpoints": [
+                    {
+                        "id": "lga-terminal-c",
+                        "label": "Terminal C",
+                        "aliases": ["Terminal C"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "",
+                        "note": "Published Terminal C checkpoint reading.",
+                    }
+                ],
+            },
+        ],
+    },
 }

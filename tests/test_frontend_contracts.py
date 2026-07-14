@@ -1057,7 +1057,100 @@ class FrontendContractTests(unittest.TestCase):
             ["Estimated Wait"],
         )
 
-    def test_dca_and_sfo_render_terminal_controls_without_las_gate_controls(self):
+    def test_ewr_and_lga_arrival_modes_preserve_terminal_checkpoint_ids(self):
+        now = datetime(2026, 7, 13, 20, 0, tzinfo=timezone.utc)
+        rows_by_code = {
+            "EWR": [
+                {
+                    "checkpoint": label,
+                    "lane_type": "STANDARD",
+                    "wait_minutes": index,
+                    "captured_at": (now - timedelta(minutes=2)).isoformat(),
+                }
+                for index, label in enumerate(
+                    (
+                        "Terminal A",
+                        "Terminal B (40-49)",
+                        "Terminal B (51-57)",
+                        "Terminal B (60-68)",
+                        "Terminal C",
+                    )
+                )
+            ],
+            "LGA": [
+                {
+                    "checkpoint": label,
+                    "lane_type": "STANDARD",
+                    "wait_minutes": index,
+                    "captured_at": (now - timedelta(minutes=2)).isoformat(),
+                }
+                for index, label in enumerate(("Terminal B", "Terminal C"))
+            ],
+        }
+        expected = {
+            "EWR": {
+                "terminal_ids": ["terminal-a", "terminal-b", "terminal-c"],
+                "checkpoint_ids": [
+                    "ewr-terminal-a",
+                    "ewr-terminal-b-40-49",
+                    "ewr-terminal-b-51-57",
+                    "ewr-terminal-b-60-68",
+                    "ewr-terminal-c",
+                ],
+            },
+            "LGA": {
+                "terminal_ids": ["terminal-b", "terminal-c"],
+                "checkpoint_ids": ["lga-terminal-b", "lga-terminal-c"],
+            },
+        }
+
+        for code in ("EWR", "LGA"):
+            with self.subTest(code=code):
+                model = self.app_module.build_airport_arrival_mode(
+                    code,
+                    rows=rows_by_code[code],
+                    history_rows=rows_by_code[code],
+                    now=now,
+                )
+                self.assertEqual(model["decision_mode"], "terminal_checkpoint")
+                self.assertFalse(model["has_published_hours"])
+                self.assertEqual(
+                    model["map"]["location_accuracy"],
+                    "terminal_building_overview",
+                )
+                self.assertEqual(
+                    [terminal["id"] for terminal in model["terminals"]],
+                    expected[code]["terminal_ids"],
+                )
+                self.assertTrue(
+                    all(
+                        terminal["location_accuracy"]
+                        == "terminal_building_centroid"
+                        for terminal in model["terminals"]
+                    )
+                )
+                checkpoints = [
+                    checkpoint
+                    for terminal in model["terminals"]
+                    for checkpoint in terminal["checkpoints"]
+                ]
+                self.assertEqual(
+                    [checkpoint["id"] for checkpoint in checkpoints],
+                    expected[code]["checkpoint_ids"],
+                )
+                self.assertEqual(model["unmatched_readings"], [])
+
+        ewr = self.app_module.build_airport_arrival_mode(
+            "EWR", rows=rows_by_code["EWR"], history_rows=[], now=now
+        )
+        terminal_b = next(
+            terminal
+            for terminal in ewr["terminals"]
+            if terminal["id"] == "terminal-b"
+        )
+        self.assertEqual(len(terminal_b["checkpoints"]), 3)
+
+    def test_terminal_checkpoint_airports_render_without_las_gate_controls(self):
         now = datetime.now(timezone.utc)
         rows_by_code = {
             "DCA": [
@@ -1076,14 +1169,32 @@ class FrontendContractTests(unittest.TestCase):
                     "captured_at": now.isoformat(),
                 }
             ],
+            "EWR": [
+                {
+                    "checkpoint": "Terminal B (40-49)",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 4,
+                    "captured_at": now.isoformat(),
+                }
+            ],
+            "LGA": [
+                {
+                    "checkpoint": "Terminal C",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 3,
+                    "captured_at": now.isoformat(),
+                }
+            ],
         }
         module = self.app_module
         original_codes = module.AIRPORT_ARRIVAL_MODE_CODES
         try:
-            module.AIRPORT_ARRIVAL_MODE_CODES = {"DCA", "SFO"}
+            module.AIRPORT_ARRIVAL_MODE_CODES = {"DCA", "SFO", "EWR", "LGA"}
             for code, marker_count, checkpoint_count, checkpoint_id in (
                 ("DCA", 3, 3, "dca-t1"),
                 ("SFO", 5, 6, "sfo-checkpoint-b"),
+                ("EWR", 3, 5, "ewr-terminal-b-40-49"),
+                ("LGA", 2, 2, "lga-terminal-c"),
             ):
                 with self.subTest(code=code), patch.object(
                     module, "latest_for_code", return_value=rows_by_code[code]
