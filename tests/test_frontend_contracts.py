@@ -916,9 +916,12 @@ class FrontendContractTests(unittest.TestCase):
                 "captured_at": now.isoformat(),
             },
         ]
-        model = self.app_module.build_airport_arrival_mode(
-            "JFK", rows=rows, history_rows=rows, now=now
-        )
+        module = self.app_module
+        with patch.dict(module.AIRPORT_DECISION_MAPS, {"JFK": None}, clear=False):
+            model = module.build_airport_arrival_mode(
+                "JFK", rows=rows, history_rows=rows, now=now
+            )
+        self.assertIsNotNone(model)
 
         self.assertEqual(model["decision_mode"], "checkpoint_only")
         self.assertFalse(model["has_published_hours"])
@@ -1724,6 +1727,76 @@ class FrontendContractTests(unittest.TestCase):
                     "captured_at": now.isoformat(),
                 }
             ],
+            "JFK": [
+                {
+                    "checkpoint": "Terminal 1",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 9,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Terminal 4",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 7,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Terminal 5",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 8,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Terminal 7",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 6,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Terminal 8",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 5,
+                    "captured_at": now.isoformat(),
+                },
+            ],
+            "MCO": [
+                {
+                    "checkpoint": "West Standard",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 4,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "West PreCheck",
+                    "lane_type": "PRECHECK",
+                    "wait_minutes": 1,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "South Standard",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 3,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "South PreCheck",
+                    "lane_type": "PRECHECK",
+                    "wait_minutes": 1,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "East Standard",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 5,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "East PreCheck",
+                    "lane_type": "PRECHECK",
+                    "wait_minutes": 2,
+                    "captured_at": now.isoformat(),
+                },
+            ],
             "JAX": [
                 {
                     "checkpoint": "Main Checkpoint",
@@ -1797,6 +1870,8 @@ class FrontendContractTests(unittest.TestCase):
                 "PHL",
                 "MIA",
                 "LAX",
+                "JFK",
+                "MCO",
                 "JAX",
                 "SEA",
             }
@@ -1811,6 +1886,8 @@ class FrontendContractTests(unittest.TestCase):
                 ("PHL", 6, 6, "phl-d-e"),
                 ("MIA", 3, 11, "mia-2"),
                 ("LAX", 8, 8, "lax-tbit"),
+                ("JFK", 5, 5, "jfk-terminal-4"),
+                ("MCO", 3, 3, "mco-west"),
                 ("JAX", 1, 1, "jax-main"),
                 ("SEA", 6, 6, "sea-checkpoint-6"),
             ):
@@ -1876,9 +1953,12 @@ class FrontendContractTests(unittest.TestCase):
             {"checkpoint": "Terminal 4 General", "lane_type": "STANDARD", "wait_minutes": 12, "captured_at": (now - timedelta(minutes=2)).isoformat()},
             {"checkpoint": "Terminal 4 TSA PreCheck", "lane_type": "STANDARD", "wait_minutes": 3, "captured_at": (now - timedelta(minutes=2)).isoformat()},
         ]
-        model = self.app_module.build_airport_arrival_mode(
-            "JFK", rows=rows, history_rows=history_rows, now=now
-        )
+        module = self.app_module
+        with patch.dict(module.AIRPORT_DECISION_MAPS, {"JFK": None}, clear=False):
+            model = module.build_airport_arrival_mode(
+                "JFK", rows=rows, history_rows=history_rows, now=now
+            )
+        self.assertIsNotNone(model)
         lanes = {
             lane["lane_type"]: lane
             for lane in model["terminals"][0]["checkpoints"][0]["lanes"]
@@ -2277,6 +2357,76 @@ class FrontendContractTests(unittest.TestCase):
                     "captured_at": now.isoformat(),
                 },
             ],
+            "JFK": [
+                {
+                    "checkpoint": "Terminal 1",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 9,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Terminal 4",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 7,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Terminal 5",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 8,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Terminal 7",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 6,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Terminal 8",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 5,
+                    "captured_at": now.isoformat(),
+                },
+            ],
+            "MCO": [
+                {
+                    "checkpoint": "West Standard",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 4,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "West PreCheck",
+                    "lane_type": "PRECHECK",
+                    "wait_minutes": 1,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "South Standard",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 3,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "South PreCheck",
+                    "lane_type": "PRECHECK",
+                    "wait_minutes": 1,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "East Standard",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 5,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "East PreCheck",
+                    "lane_type": "PRECHECK",
+                    "wait_minutes": 2,
+                    "captured_at": now.isoformat(),
+                },
+            ],
             "JAX": [
                 {
                     "checkpoint": "Main Checkpoint",
@@ -2348,6 +2498,18 @@ class FrontendContractTests(unittest.TestCase):
                 "marker_count": 3,
                 "checkpoint_count": 3,
                 "lane": "PRECHECK",
+            },
+            "JFK": {
+                "checkpoint_id": "jfk-terminal-4",
+                "marker_count": 5,
+                "checkpoint_count": 5,
+                "lane": "STANDARD",
+            },
+            "MCO": {
+                "checkpoint_id": "mco-west",
+                "marker_count": 3,
+                "checkpoint_count": 3,
+                "lane": "STANDARD",
             },
             "JAX": {
                 "checkpoint_id": "jax-main",

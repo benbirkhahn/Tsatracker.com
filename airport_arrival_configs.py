@@ -396,6 +396,222 @@ AIRPORT_DECISION_MAPS = {
             }
         ],
     },
+    "JFK": {
+        "decision_mode": "terminal_checkpoint",
+        "has_published_hours": False,
+        "all_checkpoints_reach_all_gates": False,
+        "routing_note": (
+            "JFK behaves like separate mini-airports. Terminal choice matters, and changing terminals means leaving security and reclearing at the new terminal."
+        ),
+        "map": {
+            "center": [40.6413, -73.7781],
+            "bounds": [[40.6267, -73.7958], [40.6565, -73.7582]],
+            "overview_zoom": 13.75,
+            "detail_zoom": 15.5,
+            "location_accuracy": "checkpoint_area_overview",
+            "tile_url": USGS_IMAGERY_URL,
+            "tile_attribution": USGS_IMAGERY_ATTRIBUTION,
+        },
+        "source": {
+            "label": "Official JFK terminal wait times",
+            "url": "https://www.jfkairport.com/to-and-from/security-wait-times",
+            "verified_on": "2026-07-14",
+        },
+        "terminals": [
+            {
+                "id": "terminal-1",
+                "marker_code": "T1",
+                "marker_label": "Terminal 1",
+                "marker_offset": [-18, 8],
+                "label": "Terminal 1",
+                "summary": "Terminal 1 departures",
+                "anchor": [40.6431, -73.7821],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "jfk-terminal-1",
+                        "label": "Terminal 1",
+                        "aliases": ["Terminal 1", "T1", "Terminal 1 (General TSA)", "Terminal 1 (TSA Pre✓)"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "",
+                        "note": "Terminal 1 wait-time checkpoint from the official terminal page.",
+                    }
+                ],
+            },
+            {
+                "id": "terminal-4",
+                "marker_code": "T4",
+                "marker_label": "Terminal 4",
+                "marker_offset": [16, -8],
+                "label": "Terminal 4",
+                "summary": "Terminal 4 departures",
+                "anchor": [40.6447, -73.7823],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "jfk-terminal-4",
+                        "label": "Terminal 4",
+                        "aliases": ["Terminal 4", "T4", "Terminal 4 (General TSA)", "Terminal 4 (TSA Pre✓)", "Terminal 4 (Visitor Customs)"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "",
+                        "note": "Terminal 4 wait-time checkpoint from the official terminal page.",
+                    }
+                ],
+            },
+            {
+                "id": "terminal-5",
+                "marker_code": "T5",
+                "marker_label": "Terminal 5",
+                "marker_offset": [-20, -8],
+                "label": "Terminal 5",
+                "summary": "Terminal 5 departures",
+                "anchor": [40.6450, -73.7884],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "jfk-terminal-5",
+                        "label": "Terminal 5",
+                        "aliases": ["Terminal 5", "T5", "Terminal 5 (General TSA)", "Terminal 5 (TSA Pre✓)"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "",
+                        "note": "Terminal 5 wait-time checkpoint from the official terminal page.",
+                    }
+                ],
+            },
+            {
+                "id": "terminal-7",
+                "marker_code": "T7",
+                "marker_label": "Terminal 7",
+                "marker_offset": [18, 8],
+                "label": "Terminal 7",
+                "summary": "Terminal 7 departures",
+                "anchor": [40.6442, -73.7908],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "jfk-terminal-7",
+                        "label": "Terminal 7",
+                        "aliases": ["Terminal 7", "T7", "Terminal 7 (General TSA)", "Terminal 7 (TSA Pre✓)"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "",
+                        "note": "Terminal 7 wait-time checkpoint from the official terminal page.",
+                    }
+                ],
+            },
+            {
+                "id": "terminal-8",
+                "marker_code": "T8",
+                "marker_label": "Terminal 8",
+                "marker_offset": [0, -16],
+                "label": "Terminal 8",
+                "summary": "Terminal 8 departures",
+                "anchor": [40.6461, -73.7789],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "jfk-terminal-8",
+                        "label": "Terminal 8",
+                        "aliases": ["Terminal 8", "T8", "Terminal 8 (General TSA)", "Terminal 8 (TSA Pre✓)"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "",
+                        "note": "Terminal 8 wait-time checkpoint from the official terminal page.",
+                    }
+                ],
+            },
+        ],
+    },
+    "MCO": {
+        "decision_mode": "terminal_checkpoint",
+        "has_published_hours": False,
+        "all_checkpoints_reach_all_gates": False,
+        "routing_note": (
+            "MCO publishes separate east, west, and south security checkpoints. Match the checkpoint to your departure side rather than using a single airport-wide line."
+        ),
+        "map": {
+            "center": [28.4312, -81.3081],
+            "bounds": [[28.4232, -81.3190], [28.4398, -81.2962]],
+            "overview_zoom": 14.0,
+            "detail_zoom": 15.7,
+            "location_accuracy": "checkpoint_area_overview",
+            "tile_url": USGS_IMAGERY_URL,
+            "tile_attribution": USGS_IMAGERY_ATTRIBUTION,
+        },
+        "source": {
+            "label": "Official MCO security wait times",
+            "url": "https://flymco.com/security/",
+            "verified_on": "2026-07-14",
+        },
+        "terminals": [
+            {
+                "id": "west",
+                "marker_code": "WEST",
+                "marker_label": "West",
+                "marker_offset": [-18, 8],
+                "label": "West Security",
+                "summary": "West security checkpoint",
+                "anchor": [28.4328, -81.3104],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "mco-west",
+                        "label": "West Security",
+                        "aliases": ["West Standard", "West PreCheck", "West Security"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "",
+                        "note": "West checkpoint from the official MCO wait-time feed.",
+                    }
+                ],
+            },
+            {
+                "id": "south",
+                "marker_code": "SOUTH",
+                "marker_label": "South",
+                "marker_offset": [0, -18],
+                "label": "South Security",
+                "summary": "South security checkpoint",
+                "anchor": [28.4288, -81.3078],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "mco-south",
+                        "label": "South Security",
+                        "aliases": ["South Standard", "South PreCheck", "South Security"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "",
+                        "note": "South checkpoint from the official MCO wait-time feed.",
+                    }
+                ],
+            },
+            {
+                "id": "east",
+                "marker_code": "EAST",
+                "marker_label": "East",
+                "marker_offset": [18, 8],
+                "label": "East Security",
+                "summary": "East security checkpoint",
+                "anchor": [28.4316, -81.3028],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "mco-east",
+                        "label": "East Security",
+                        "aliases": ["East Standard", "East PreCheck", "East Security"],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "",
+                        "note": "East checkpoint from the official MCO wait-time feed.",
+                    }
+                ],
+            },
+        ],
+    },
     "SEA": {
         "decision_mode": "terminal_checkpoint",
         "has_published_hours": True,
