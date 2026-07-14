@@ -1150,6 +1150,151 @@ class FrontendContractTests(unittest.TestCase):
         )
         self.assertEqual(len(terminal_b["checkpoints"]), 3)
 
+    def test_bos_and_ord_arrival_modes_preserve_terminal_checkpoint_ids(self):
+        now = datetime(2026, 7, 13, 20, 0, tzinfo=timezone.utc)
+        rows_by_code = {
+            "BOS": [
+                {
+                    "checkpoint": label,
+                    "lane_type": "PRECHECK" if "PreCheck" in label else "STANDARD",
+                    "wait_minutes": index,
+                    "captured_at": (now - timedelta(minutes=2)).isoformat(),
+                }
+                for index, label in enumerate(
+                    (
+                        "Checkpoint 1: A Gates",
+                        "Checkpoint 2: A Gates PreCheck Only",
+                        "Checkpoint 3: Gates B1 - B22",
+                        "Checkpoint 4: Gates B23 - 40",
+                        "Checkpoint 5: Terminal C",
+                        "Checkpoint 6: All E Gates",
+                        "Checkpoint 7: All E Gates",
+                    )
+                )
+            ],
+            "ORD": [
+                {
+                    "checkpoint": label,
+                    "lane_type": "STANDARD",
+                    "wait_minutes": index,
+                    "captured_at": (now - timedelta(minutes=2)).isoformat(),
+                }
+                for index, label in enumerate(
+                    (
+                        "Terminal 1 — Economy",
+                        "Terminal 2 — Checkpoint 5 General",
+                        "Terminal 3 — Checkpoint 6",
+                        "Terminal 3 — Checkpoint 7 General",
+                        "Terminal 3 — Checkpoint 7A",
+                        "Terminal 3 — Checkpoint 8 General",
+                        "Terminal 3 — Checkpoint 9",
+                        "Terminal 5 — Checkpoint 10",
+                    )
+                )
+            ],
+        }
+        expected = {
+            "BOS": {
+                "terminal_ids": [
+                    "terminal-a",
+                    "terminal-b",
+                    "terminal-c",
+                    "terminal-e",
+                ],
+                "checkpoint_ids": [
+                    "bos-checkpoint-1-a-gates",
+                    "bos-checkpoint-2-a-gates-precheck-only",
+                    "bos-checkpoint-3-gates-b1-b22",
+                    "bos-checkpoint-4-gates-b23-40",
+                    "bos-checkpoint-5-terminal-c",
+                    "bos-checkpoint-6-all-e-gates",
+                    "bos-checkpoint-7-all-e-gates",
+                ],
+            },
+            "ORD": {
+                "terminal_ids": [
+                    "terminal-1",
+                    "terminal-2",
+                    "terminal-3",
+                    "terminal-5",
+                ],
+                "checkpoint_ids": [
+                    "ord-terminal-1",
+                    "ord-terminal-2-checkpoint-5",
+                    "ord-terminal-3-checkpoint-6",
+                    "ord-terminal-3-checkpoint-7",
+                    "ord-terminal-3-checkpoint-7a",
+                    "ord-terminal-3-checkpoint-8",
+                    "ord-terminal-3-checkpoint-9",
+                    "ord-terminal-5-checkpoint-10",
+                ],
+            },
+        }
+
+        for code in ("BOS", "ORD"):
+            with self.subTest(code=code):
+                model = self.app_module.build_airport_arrival_mode(
+                    code,
+                    rows=rows_by_code[code],
+                    history_rows=rows_by_code[code],
+                    now=now,
+                )
+                self.assertEqual(model["decision_mode"], "terminal_checkpoint")
+                self.assertFalse(model["has_published_hours"])
+                self.assertEqual(
+                    model["map"]["location_accuracy"],
+                    "terminal_building_overview",
+                )
+                self.assertEqual(
+                    [terminal["id"] for terminal in model["terminals"]],
+                    expected[code]["terminal_ids"],
+                )
+                self.assertTrue(
+                    all(
+                        terminal["location_accuracy"]
+                        in {
+                            "terminal_building_centroid",
+                            "terminal_building_overview_anchor",
+                        }
+                        for terminal in model["terminals"]
+                    )
+                )
+                checkpoints = [
+                    checkpoint
+                    for terminal in model["terminals"]
+                    for checkpoint in terminal["checkpoints"]
+                ]
+                self.assertEqual(
+                    [checkpoint["id"] for checkpoint in checkpoints],
+                    expected[code]["checkpoint_ids"],
+                )
+                self.assertEqual(model["unmatched_readings"], [])
+
+        ord_model = self.app_module.build_airport_arrival_mode(
+            "ORD",
+            rows=[
+                {
+                    "checkpoint": "Terminal 2 — Checkpoint 5 General",
+                    "wait_minutes": 4,
+                    "captured_at": (now - timedelta(minutes=2)).isoformat(),
+                },
+                {
+                    "checkpoint": "Terminal 2 — Checkpoint 5 TSA PreCheck",
+                    "wait_minutes": 1,
+                    "captured_at": (now - timedelta(minutes=2)).isoformat(),
+                },
+            ],
+            history_rows=[],
+            now=now,
+        )
+        checkpoint_five = next(
+            checkpoint
+            for terminal in ord_model["terminals"]
+            for checkpoint in terminal["checkpoints"]
+            if checkpoint["id"] == "ord-terminal-2-checkpoint-5"
+        )
+        self.assertEqual(checkpoint_five["lane_waits"], {"STANDARD": 4.0, "PRECHECK": 1.0})
+
     def test_terminal_checkpoint_airports_render_without_las_gate_controls(self):
         now = datetime.now(timezone.utc)
         rows_by_code = {
@@ -1185,16 +1330,41 @@ class FrontendContractTests(unittest.TestCase):
                     "captured_at": now.isoformat(),
                 }
             ],
+            "BOS": [
+                {
+                    "checkpoint": "Checkpoint 4: Gates B23 - 40",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 5,
+                    "captured_at": now.isoformat(),
+                }
+            ],
+            "ORD": [
+                {
+                    "checkpoint": "Terminal 3 — Checkpoint 7A",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 7,
+                    "captured_at": now.isoformat(),
+                }
+            ],
         }
         module = self.app_module
         original_codes = module.AIRPORT_ARRIVAL_MODE_CODES
         try:
-            module.AIRPORT_ARRIVAL_MODE_CODES = {"DCA", "SFO", "EWR", "LGA"}
+            module.AIRPORT_ARRIVAL_MODE_CODES = {
+                "DCA",
+                "SFO",
+                "EWR",
+                "LGA",
+                "BOS",
+                "ORD",
+            }
             for code, marker_count, checkpoint_count, checkpoint_id in (
                 ("DCA", 3, 3, "dca-t1"),
                 ("SFO", 5, 6, "sfo-checkpoint-b"),
                 ("EWR", 3, 5, "ewr-terminal-b-40-49"),
                 ("LGA", 2, 2, "lga-terminal-c"),
+                ("BOS", 4, 7, "bos-checkpoint-4-gates-b23-40"),
+                ("ORD", 4, 8, "ord-terminal-3-checkpoint-7a"),
             ):
                 with self.subTest(code=code), patch.object(
                     module, "latest_for_code", return_value=rows_by_code[code]

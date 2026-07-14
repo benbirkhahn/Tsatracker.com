@@ -461,12 +461,12 @@ AIRPORT_PAGE_GUIDES = {
         "tips": [
             "ORD travelers should confirm the exact departure terminal before choosing security because Terminals 1, 2, 3, and 5 each run their own checkpoint workflow.",
             "If you are flying international out of Terminal 5, treat that as its own security workflow rather than an extension of the domestic-terminal experience.",
-            "ORD does not publish the same kind of official live checkpoint table as some airports, so use the airport map, airline app, and TSA resources together before leaving.",
+            "ORD publishes checkpoint reference hours and a separate live wait feed. Use the terminal map, current reading, and airline app together before leaving.",
         ],
         "notes": [
             "The official FlyChicago map is the strongest source for matching your terminal and gate area to the correct checkpoint.",
             "Terminals 1, 2, and 3 handle most domestic traffic, while Terminal 5 is the major international workflow.",
-            "Because ORD's official TSA page does not publish detailed checkpoint hours or live waits, same-day travelers should not assume every checkpoint is operating identically.",
+            "ORD's official TSA page publishes reference hours, but those hours can change with airport operations and may conflict with a live feed row. Arrival Mode does not infer open or closed from a missing reading.",
         ],
         "terminal_notes": [
             "Terminal 1 is the major United terminal and has its own security entry points shown on the official ORD map.",
