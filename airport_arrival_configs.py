@@ -656,7 +656,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_offset": [-16, 8],
                 "label": "Checkpoint 1",
                 "summary": "A & S gates",
-                "anchor": [47.4489, -122.3128],
+                # South end of the Main Terminal's Gina Marie Lindsey Arrivals Hall.
+                "anchor": [47.4399, -122.3008],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
@@ -677,7 +678,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_offset": [16, 8],
                 "label": "Checkpoint 2",
                 "summary": "A & S gates",
-                "anchor": [47.4484, -122.3100],
+                # South ticketing area, immediately north of Checkpoint 1.
+                "anchor": [47.4413, -122.3010],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
@@ -698,7 +700,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_offset": [0, -18],
                 "label": "Checkpoint 3",
                 "summary": "A & S gates",
-                "anchor": [47.4480, -122.3067],
+                # South-central Main Terminal ticketing area.
+                "anchor": [47.4424, -122.3011],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
@@ -719,7 +722,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_offset": [0, 0],
                 "label": "Checkpoint 4",
                 "summary": "Central Terminal",
-                "anchor": [47.4497, -122.3019],
+                # Central Terminal checkpoint area.
+                "anchor": [47.4435, -122.3013],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
@@ -740,7 +744,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_offset": [-16, -8],
                 "label": "Checkpoint 5",
                 "summary": "C, D, and N gates",
-                "anchor": [47.4451, -122.3084],
+                # North-central Main Terminal ticketing area.
+                "anchor": [47.4446, -122.3014],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
@@ -761,7 +766,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_offset": [16, -8],
                 "label": "Checkpoint 6",
                 "summary": "C, D, and N gates",
-                "anchor": [47.4445, -122.3058],
+                # North end of the Main Terminal checkpoint sequence.
+                "anchor": [47.4456, -122.3017],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
