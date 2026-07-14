@@ -284,7 +284,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_offset": [-16, 10],
                 "label": "Checkpoint 1",
                 "summary": "B-side checkpoint",
-                "anchor": [35.2162, -80.9466],
+                # West side of CLT's single passenger terminal, near Concourses A/B.
+                "anchor": [35.2206, -80.9448],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
@@ -309,7 +310,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_offset": [0, -14],
                 "label": "Checkpoint 2",
                 "summary": "Main PreCheck checkpoint",
-                "anchor": [35.2140, -80.9431],
+                # Central terminal frontage; CLT's dedicated Main PreCheck location.
+                "anchor": [35.2206, -80.9433],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {
@@ -335,7 +337,8 @@ AIRPORT_DECISION_MAPS = {
                 "marker_offset": [16, 10],
                 "label": "Checkpoint 3",
                 "summary": "D/E-side checkpoint",
-                "anchor": [35.2120, -80.9390],
+                # East side of the passenger terminal, near Concourses D/E.
+                "anchor": [35.2206, -80.9418],
                 "location_accuracy": "checkpoint_area_anchor",
                 "checkpoints": [
                     {

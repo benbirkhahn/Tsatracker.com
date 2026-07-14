@@ -1050,6 +1050,14 @@ class FrontendContractTests(unittest.TestCase):
             [terminal["id"] for terminal in model["terminals"]],
             ["checkpoint-1", "checkpoint-2", "checkpoint-3"],
         )
+        self.assertEqual(
+            {terminal["id"]: terminal["anchor"] for terminal in model["terminals"]},
+            {
+                "checkpoint-1": [35.2206, -80.9448],
+                "checkpoint-2": [35.2206, -80.9433],
+                "checkpoint-3": [35.2206, -80.9418],
+            },
+        )
         checkpoints = {
             checkpoint["id"]: checkpoint
             for terminal in model["terminals"]
