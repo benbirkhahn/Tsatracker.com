@@ -99,6 +99,257 @@ AIRPORT_DECISION_MAPS = {
             },
         ],
     },
+    "ATL": {
+        "decision_mode": "terminal_checkpoint",
+        "has_published_hours": True,
+        "all_checkpoints_reach_all_gates": True,
+        "routing_note": (
+            "All concourses and aircraft gates are accessible from any security checkpoint. "
+            "ATL publishes separate live readings for Main, North, Lower North, South, and International Main."
+        ),
+        "map": {
+            "center": [33.6407, -84.4277],
+            "bounds": [[33.6265, -84.4535], [33.6528, -84.4020]],
+            "overview_zoom": 13.75,
+            "detail_zoom": 15.5,
+            "location_accuracy": "checkpoint_area_overview",
+            "tile_url": USGS_IMAGERY_URL,
+            "tile_attribution": USGS_IMAGERY_ATTRIBUTION,
+        },
+        "source": {
+            "label": "Official ATL live wait times",
+            "url": "https://dev.atl.com/atlsync/security-wait-times/",
+            "verified_on": "2026-07-13",
+        },
+        "terminals": [
+            {
+                "id": "main",
+                "marker_code": "MAIN",
+                "marker_label": "Domestic Main",
+                "marker_offset": [0, 18],
+                "label": "Main Checkpoint",
+                "summary": "Domestic Terminal Main",
+                "anchor": [33.6419, -84.4315],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "atl-main",
+                        "label": "Main Checkpoint",
+                        "aliases": [
+                            "Main Checkpoint",
+                            "Main Security Checkpoint",
+                            "Domestic Terminal Main",
+                        ],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "24 hours",
+                        "note": "Main domestic checkpoint on the official ATL live dashboard.",
+                    }
+                ],
+            },
+            {
+                "id": "north",
+                "marker_code": "NORTH",
+                "marker_label": "Domestic North",
+                "marker_offset": [-18, -10],
+                "label": "North Checkpoint",
+                "summary": "Domestic Terminal North",
+                "anchor": [33.6445, -84.4350],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "atl-north",
+                        "label": "North Checkpoint",
+                        "aliases": [
+                            "North Checkpoint",
+                            "North Security Checkpoint",
+                            "Domestic Terminal North",
+                        ],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "4:00 a.m. - 9:00 p.m.",
+                        "note": "North domestic checkpoint on the official ATL live dashboard.",
+                    }
+                ],
+            },
+            {
+                "id": "lower-north",
+                "marker_code": "LOWER N",
+                "marker_label": "Lower North",
+                "marker_offset": [18, -10],
+                "label": "Lower North Checkpoint",
+                "summary": "Domestic Terminal Lower North",
+                "anchor": [33.6394, -84.4344],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "atl-lower-north",
+                        "label": "Lower North Checkpoint",
+                        "aliases": [
+                            "Lower North Checkpoint",
+                            "Lower North Security Checkpoint",
+                            "Domestic Terminal Lower North",
+                        ],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "3:30 a.m. - 9:00 p.m.",
+                        "note": "Lower North domestic checkpoint on the official ATL live dashboard.",
+                    }
+                ],
+            },
+            {
+                "id": "south",
+                "marker_code": "SOUTH",
+                "marker_label": "Domestic South",
+                "marker_offset": [18, 14],
+                "label": "South Checkpoint",
+                "summary": "Domestic Terminal South",
+                "anchor": [33.6368, -84.4286],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "atl-south",
+                        "label": "South Checkpoint",
+                        "aliases": [
+                            "South Checkpoint",
+                            "South Security Checkpoint",
+                            "Domestic Terminal South",
+                        ],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "4:00 a.m. - 9:00 p.m.",
+                        "note": "South domestic checkpoint on the official ATL live dashboard.",
+                    }
+                ],
+            },
+            {
+                "id": "international-main",
+                "marker_code": "INTL",
+                "marker_label": "International Main",
+                "marker_offset": [-20, 0],
+                "label": "International Main Checkpoint",
+                "summary": "International Terminal Departures",
+                "anchor": [33.6410, -84.4148],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "atl-international-main",
+                        "label": "International Main Checkpoint",
+                        "aliases": [
+                            "International Main Checkpoint",
+                            "International Terminal Departures",
+                            "International Main",
+                        ],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "4:30 a.m. - 12:00 a.m.; PreCheck 7:00-10:00 a.m. and 2:00-7:00 p.m.",
+                        "note": "International checkpoint on the official ATL live dashboard.",
+                    }
+                ],
+            },
+        ],
+    },
+    "CLT": {
+        "decision_mode": "terminal_checkpoint",
+        "has_published_hours": True,
+        "all_checkpoints_reach_all_gates": True,
+        "routing_note": (
+            "All concourses and aircraft gates are accessible from any security checkpoint. "
+            "Checkpoint 2 is the primary hub for dedicated Main PreCheck lanes."
+        ),
+        "map": {
+            "center": [35.2140, -80.9431],
+            "bounds": [[35.2075, -80.9525], [35.2205, -80.9325]],
+            "overview_zoom": 14.25,
+            "detail_zoom": 16,
+            "location_accuracy": "checkpoint_area_overview",
+            "tile_url": USGS_IMAGERY_URL,
+            "tile_attribution": USGS_IMAGERY_ATTRIBUTION,
+        },
+        "source": {
+            "label": "Official CLT Security Dashboard",
+            "url": "https://www.cltairport.com/airport-info/security/",
+            "verified_on": "2026-07-13",
+        },
+        "terminals": [
+            {
+                "id": "checkpoint-1",
+                "marker_code": "C1",
+                "marker_label": "Checkpoint 1",
+                "marker_offset": [-16, 10],
+                "label": "Checkpoint 1",
+                "summary": "B-side checkpoint",
+                "anchor": [35.2162, -80.9466],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "clt-checkpoint-1",
+                        "label": "Checkpoint 1",
+                        "aliases": [
+                            "Checkpoint 1",
+                            "Checkpoint 1 (Standard)",
+                            "Checkpoint 1 (main)",
+                        ],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "3:45 a.m. - 8 p.m.",
+                        "note": "Standard, special-assistance, and family screening at Checkpoint 1.",
+                    }
+                ],
+            },
+            {
+                "id": "checkpoint-2",
+                "marker_code": "C2",
+                "marker_label": "Checkpoint 2",
+                "marker_offset": [0, -14],
+                "label": "Checkpoint 2",
+                "summary": "Main PreCheck checkpoint",
+                "anchor": [35.2140, -80.9431],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "clt-checkpoint-2",
+                        "label": "Checkpoint 2",
+                        "aliases": [
+                            "Checkpoint 2",
+                            "Checkpoint 2 (Standard)",
+                            "Checkpoint 2 (PreCheck)",
+                            "Checkpoint 2 (main)",
+                        ],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "Standard/Special Assistance 7 p.m. - 11 p.m.; Main PreCheck 3:45 a.m. - 11 p.m.; Employee 8 p.m. - 11 p.m.",
+                        "note": "Checkpoint 2 is the main PreCheck checkpoint at CLT.",
+                    }
+                ],
+            },
+            {
+                "id": "checkpoint-3",
+                "marker_code": "C3",
+                "marker_label": "Checkpoint 3",
+                "marker_offset": [16, 10],
+                "label": "Checkpoint 3",
+                "summary": "D/E-side checkpoint",
+                "anchor": [35.2120, -80.9390],
+                "location_accuracy": "checkpoint_area_anchor",
+                "checkpoints": [
+                    {
+                        "id": "clt-checkpoint-3",
+                        "label": "Checkpoint 3",
+                        "aliases": [
+                            "Checkpoint 3",
+                            "Checkpoint 3 (Standard)",
+                            "Checkpoint 3 (main)",
+                        ],
+                        "primary_for": [],
+                        "alternate_for": [],
+                        "hours": "3:45 a.m. - 8 p.m.",
+                        "note": "Standard, special-assistance, and employee screening at Checkpoint 3.",
+                    }
+                ],
+            },
+        ],
+    },
     "DCA": {
         "decision_mode": "terminal_checkpoint",
         "has_published_hours": False,

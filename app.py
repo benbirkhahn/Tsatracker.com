@@ -435,7 +435,7 @@ AIRPORT_PAGE_GUIDES = {
             "ATL's official security guidance calls out 5-9 AM and the days around holidays or long weekends as the busiest security periods.",
         ],
         "notes": [
-            "Passengers can access all concourses and gates from any ATL checkpoint, which makes checkpoint choice unusually valuable when one domestic line is materially shorter.",
+            "All concourses and aircraft gates are accessible from any ATL checkpoint, so the best choice is usually the shortest live line that matches your lane.",
             "ATL recommends arriving at least two hours before domestic departures and three hours before international departures.",
             "During busy periods, ATL specifically recommends adding buffer for parking, rental-car drop-off, airline check-in, and security screening.",
         ],
@@ -444,7 +444,7 @@ AIRPORT_PAGE_GUIDES = {
             "Domestic North is listed for standard and priority screening from 4:00 AM to 9:00 PM.",
             "Domestic Lower North is listed for standard screening and CLEAR Standard from 3:30 AM to 9:00 PM.",
             "Domestic South is listed for TSA PreCheck, PreCheck Touchless ID, and CLEAR with PreCheck from 4:00 AM to 9:00 PM.",
-            "International Terminal Departures is listed for standard screening from 4:30 AM to midnight, with PreCheck windows in the morning and afternoon.",
+            "International Terminal Departures is listed for standard screening from 4:30 AM to midnight, with PreCheck windows from 7:00-10:00 AM and 2:00-7:00 PM.",
         ],
         "airline_notes": [
             "Delta's ATL hub volume makes domestic checkpoint choice important, but all concourses are reachable after any checkpoint.",
@@ -612,16 +612,17 @@ AIRPORT_PAGE_GUIDES = {
         "tips": [
             "CLT uses three independent checkpoints (1, 2, and 3). Checkpoint 2 is the primary hub for dedicated TSA PreCheck lanes.",
             "Charlotte supports TSA PreCheck 'Touchless ID' for eligible American Airlines AAdvantage members—look for designated scanners to skip the standard document check.",
-            "The airport layout is a single terminal with five concourses (A-E), but security checkpoints are NOT interconnected post-security in a way that allows easy walking between all areas.",
+            "The airport layout is a single terminal with five concourses (A-E), and the official security page says all concourses and gates remain accessible from any checkpoint.",
         ],
         "notes": [
-            "Always enter through the checkpoint closest to your gate: Checkpoint 1 for Concourse B, Checkpoint 2 for C, and Checkpoint 3 for D/E.",
+            "All concourses and aircraft gates are accessible from any CLT checkpoint, so the decision is mostly about queue time and lane type.",
             "CLT is a massive American Airlines hub. Security volume is driven by 'banked' connection cycles (5-8 AM and late afternoon) rather than just local traffic.",
-            "There is no CLEAR at CLT, so PreCheck and Touchless ID are your only speed-up options.",
+            "Checkpoint 2 carries the dedicated Main PreCheck line and usually has the widest published operating window.",
         ],
         "terminal_notes": [
-            "Checkpoint 2 is your best bet for PreCheck. Checkpoint 1 is typically the most direct route for Concourses A and B.",
-            "The 'Atrium' serves as the central ticketing hub for all airlines, but your security choice should be dictated by your concourse, not your check-in desk.",
+            "Checkpoint 1 publishes standard, special-assistance, and family screening from 3:45 a.m. to 8 p.m.",
+            "Checkpoint 2 publishes a standard/special-assistance line from 7 p.m. to 11 p.m., a Main PreCheck line from 3:45 a.m. to 11 p.m., and an employee line from 8 p.m. to 11 p.m.",
+            "Checkpoint 3 publishes standard/special-assistance and employee screening from 3:45 a.m. to 8 p.m.",
         ],
         "airline_notes": [
             "American Airlines dominates CLT across almost all concourses; check your specific gate on the CLT app before choosing a checkpoint.",
@@ -2477,14 +2478,16 @@ def fetch_clt_rows() -> List[Dict]:
             continue
         wait_minutes = max(0.0, float(wait_seconds) / 60.0)
         checkpoint_name = str(rec.get("name", "Checkpoint")).strip() or "Checkpoint"
-        lane = str(rec.get("lane", "")).strip()
-        if lane:
-            checkpoint_name = f"{checkpoint_name} ({lane})"
+        attributes = rec.get("attributes") or {}
+        lane_type = "PRECHECK" if attributes.get("preCheck") else "STANDARD"
+        lane_label = "PreCheck" if lane_type == "PRECHECK" else "Standard"
+        checkpoint_name = f"{checkpoint_name} ({lane_label})"
         rows.append(
             {
                 "airport_code": "CLT",
                 "checkpoint": checkpoint_name,
                 "wait_minutes": wait_minutes,
+                "lane_type": lane_type,
                 "source": endpoint,
                 "captured_at": stamp,
             }

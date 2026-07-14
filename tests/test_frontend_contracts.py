@@ -891,19 +891,19 @@ class FrontendContractTests(unittest.TestCase):
         now = datetime(2026, 7, 10, 20, 0, tzinfo=timezone.utc)
         rows = [
             {
-                "checkpoint": "A East General",
+                "checkpoint": "Main General",
                 "lane_type": "STANDARD",
                 "wait_minutes": 0,
                 "captured_at": (now - timedelta(minutes=2)).isoformat(),
             },
             {
-                "checkpoint": "A East TSA PreCheck",
+                "checkpoint": "Main TSA PreCheck",
                 "lane_type": "STANDARD",
                 "wait_minutes": 4,
                 "captured_at": (now - timedelta(minutes=3)).isoformat(),
             },
             {
-                "checkpoint": "A East Priority",
+                "checkpoint": "Main Priority",
                 "lane_type": "STANDARD",
                 "wait_minutes": 1,
                 "captured_at": (now - timedelta(minutes=1)).isoformat(),
@@ -916,7 +916,7 @@ class FrontendContractTests(unittest.TestCase):
             },
         ]
         model = self.app_module.build_airport_arrival_mode(
-            "ATL", rows=rows, history_rows=rows, now=now
+            "JAX", rows=rows, history_rows=rows, now=now
         )
 
         self.assertEqual(model["decision_mode"], "checkpoint_only")
@@ -929,14 +929,127 @@ class FrontendContractTests(unittest.TestCase):
             "airport_overview_anchor",
         )
         checkpoints = model["terminals"][0]["checkpoints"]
-        self.assertEqual([checkpoint["id"] for checkpoint in checkpoints], ["atl-a-east"])
+        self.assertEqual([checkpoint["id"] for checkpoint in checkpoints], ["jax-main"])
         lanes = {lane["lane_type"]: lane for lane in checkpoints[0]["lanes"]}
         self.assertEqual(lanes["STANDARD"]["wait_minutes"], 0)
         self.assertEqual(lanes["PRECHECK"]["wait_minutes"], 4)
         self.assertEqual(
             {row["checkpoint"] for row in model["unmatched_readings"]},
-            {"A East Priority", "Estimated Wait"},
+            {"Main Priority", "Estimated Wait"},
         )
+
+    def test_atl_arrival_mode_maps_five_reviewed_checkpoint_areas(self):
+        now = datetime(2026, 7, 13, 20, 0, tzinfo=timezone.utc)
+        rows = [
+            {
+                "checkpoint": label,
+                "lane_type": "STANDARD",
+                "wait_minutes": index,
+                "captured_at": (now - timedelta(minutes=2)).isoformat(),
+            }
+            for index, label in enumerate(
+                (
+                    "Main Checkpoint",
+                    "North Checkpoint",
+                    "Lower North Checkpoint",
+                    "South Checkpoint",
+                    "International Main Checkpoint",
+                )
+            )
+        ]
+        model = self.app_module.build_airport_arrival_mode(
+            "ATL", rows=rows, history_rows=rows, now=now
+        )
+
+        self.assertEqual(model["decision_mode"], "terminal_checkpoint")
+        self.assertTrue(model["has_published_hours"])
+        self.assertTrue(model["all_checkpoints_reach_all_gates"])
+        self.assertIn("All concourses and aircraft gates are accessible", model["routing_note"])
+        self.assertEqual(model["map"]["location_accuracy"], "checkpoint_area_overview")
+        self.assertEqual(
+            [terminal["id"] for terminal in model["terminals"]],
+            ["main", "north", "lower-north", "south", "international-main"],
+        )
+        self.assertTrue(
+            all(
+                terminal["location_accuracy"] == "checkpoint_area_anchor"
+                for terminal in model["terminals"]
+            )
+        )
+        checkpoints = [
+            checkpoint
+            for terminal in model["terminals"]
+            for checkpoint in terminal["checkpoints"]
+        ]
+        self.assertEqual(
+            [checkpoint["id"] for checkpoint in checkpoints],
+            [
+                "atl-main",
+                "atl-north",
+                "atl-lower-north",
+                "atl-south",
+                "atl-international-main",
+            ],
+        )
+        self.assertEqual(checkpoints[0]["hours"], "24 hours")
+        self.assertEqual(model["fastest_fresh_reading"]["checkpoint_id"], "atl-main")
+        self.assertEqual(model["unmatched_readings"], [])
+
+    def test_clt_arrival_mode_maps_three_reviewed_checkpoint_areas(self):
+        now = datetime(2026, 7, 13, 20, 0, tzinfo=timezone.utc)
+        rows = [
+            {
+                "checkpoint": "Checkpoint 1 (Standard)",
+                "lane_type": "STANDARD",
+                "wait_minutes": 5,
+                "captured_at": (now - timedelta(minutes=2)).isoformat(),
+            },
+            {
+                "checkpoint": "Checkpoint 2 (Standard)",
+                "lane_type": "STANDARD",
+                "wait_minutes": 4,
+                "captured_at": (now - timedelta(minutes=2)).isoformat(),
+            },
+            {
+                "checkpoint": "Checkpoint 2 (PreCheck)",
+                "lane_type": "PRECHECK",
+                "wait_minutes": 1,
+                "captured_at": (now - timedelta(minutes=2)).isoformat(),
+            },
+            {
+                "checkpoint": "Checkpoint 3 (Standard)",
+                "lane_type": "STANDARD",
+                "wait_minutes": 7,
+                "captured_at": (now - timedelta(minutes=2)).isoformat(),
+            },
+        ]
+        model = self.app_module.build_airport_arrival_mode(
+            "CLT", rows=rows, history_rows=rows, now=now
+        )
+
+        self.assertEqual(model["decision_mode"], "terminal_checkpoint")
+        self.assertTrue(model["has_published_hours"])
+        self.assertTrue(model["all_checkpoints_reach_all_gates"])
+        self.assertIn("All concourses and aircraft gates are accessible", model["routing_note"])
+        self.assertEqual(model["map"]["location_accuracy"], "checkpoint_area_overview")
+        self.assertEqual(
+            [terminal["id"] for terminal in model["terminals"]],
+            ["checkpoint-1", "checkpoint-2", "checkpoint-3"],
+        )
+        checkpoints = {
+            checkpoint["id"]: checkpoint
+            for terminal in model["terminals"]
+            for checkpoint in terminal["checkpoints"]
+        }
+        self.assertEqual(
+            set(checkpoints),
+            {"clt-checkpoint-1", "clt-checkpoint-2", "clt-checkpoint-3"},
+        )
+        self.assertEqual(checkpoints["clt-checkpoint-1"]["hours"], "3:45 a.m. - 8 p.m.")
+        self.assertIn("Main PreCheck", checkpoints["clt-checkpoint-2"]["hours"])
+        self.assertEqual(checkpoints["clt-checkpoint-2"]["lane_waits"], {"STANDARD": 4.0, "PRECHECK": 1.0})
+        self.assertEqual(model["fastest_fresh_reading"]["checkpoint_id"], "clt-checkpoint-2")
+        self.assertEqual(model["unmatched_readings"], [])
 
     def test_dca_arrival_mode_maps_three_reviewed_checkpoint_areas(self):
         now = datetime(2026, 7, 13, 20, 0, tzinfo=timezone.utc)
@@ -1701,7 +1814,7 @@ class FrontendContractTests(unittest.TestCase):
             {"checkpoint": "A East TSA PreCheck", "lane_type": "STANDARD", "wait_minutes": 3, "captured_at": (now - timedelta(minutes=2)).isoformat()},
         ]
         model = self.app_module.build_airport_arrival_mode(
-            "ATL", rows=rows, history_rows=history_rows, now=now
+            "JAX", rows=rows, history_rows=history_rows, now=now
         )
         lanes = {
             lane["lane_type"]: lane
@@ -2042,65 +2155,140 @@ class FrontendContractTests(unittest.TestCase):
 
     def test_arrival_mode_rollout_renders_generic_pages_api_and_calculator_links(self):
         now = self.app_module.utc_now()
-        rows = [
-            {
-                "checkpoint": "A East General",
-                "lane_type": "STANDARD",
-                "wait_minutes": 7,
-                "captured_at": now.isoformat(),
+        rows_by_code = {
+            "ATL": [
+                {
+                    "checkpoint": "Main Checkpoint",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 7,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "North Checkpoint",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 3,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Lower North Checkpoint",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 5,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "South Checkpoint",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 4,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "International Main Checkpoint",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 6,
+                    "captured_at": now.isoformat(),
+                },
+            ],
+            "CLT": [
+                {
+                    "checkpoint": "Checkpoint 1 (Standard)",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 6,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Checkpoint 2 (Standard)",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 8,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Checkpoint 2 (PreCheck)",
+                    "lane_type": "PRECHECK",
+                    "wait_minutes": 2,
+                    "captured_at": now.isoformat(),
+                },
+                {
+                    "checkpoint": "Checkpoint 3 (Standard)",
+                    "lane_type": "STANDARD",
+                    "wait_minutes": 9,
+                    "captured_at": now.isoformat(),
+                },
+            ],
+        }
+        expectations = {
+            "ATL": {
+                "checkpoint_id": "atl-main",
+                "marker_count": 5,
+                "checkpoint_count": 5,
+                "lane": "STANDARD",
             },
-            {
-                "checkpoint": "A East TSA PreCheck",
-                "lane_type": "STANDARD",
-                "wait_minutes": 3,
-                "captured_at": now.isoformat(),
+            "CLT": {
+                "checkpoint_id": "clt-checkpoint-2",
+                "marker_count": 3,
+                "checkpoint_count": 3,
+                "lane": "PRECHECK",
             },
-        ]
+        }
         module = self.app_module
         original_codes = module.AIRPORT_ARRIVAL_MODE_CODES
         try:
             module.AIRPORT_ARRIVAL_MODE_CODES = set(module.LIVE_AIRPORTS)
-            with patch.object(module, "latest_for_code", return_value=rows), patch.object(
-                module, "history_for_airport", return_value=rows
-            ):
-                html, document = self.get_html(self.airport_routes["ATL"])
-                api_response = self.client.get(
-                    "/api/airport-arrival-mode?airport=ATL"
+            for code, expectation in expectations.items():
+                with self.subTest(code=code), patch.object(
+                    module, "latest_for_code", return_value=rows_by_code[code]
+                ), patch.object(
+                    module, "history_for_airport", return_value=rows_by_code[code]
+                ):
+                    html, document = self.get_html(self.airport_routes[code])
+                    api_response = self.client.get(
+                        f"/api/airport-arrival-mode?airport={code}"
+                    )
+                    calculator_html, _ = self.get_html(
+                        f"/when-should-i-leave?airport={code}"
+                        f"&checkpoint={expectation['checkpoint_id']}&lane={expectation['lane']}"
+                    )
+
+                arrivals = [
+                    attrs for tag, attrs in document.elements
+                    if tag == "section" and "data-airport-arrival-mode" in attrs
+                ]
+                self.assertEqual(len(arrivals), 1)
+                self.assertEqual(arrivals[0].get("data-airport-code"), code)
+                self.assertEqual(document.h1_count, 1)
+                self.assertIn("Satellite airport view", html)
+                self.assertIn("Choose a terminal area and screening lane.", html)
+                self.assertNotIn("Check-in terminal", html)
+                self.assertNotIn("Gate on your boarding pass", html)
+                self.assertIn("Screening lane", html)
+                self.assertIn("tracker.css?v=20260713-5", html)
+                self.assertIn("airport-decision-map.js?v=20260713-5", html)
+
+                marker_buttons = [
+                    attrs
+                    for tag, attrs in document.elements
+                    if tag == "button" and "data-arrival-terminal-marker" in attrs
+                ]
+                checkpoint_buttons = [
+                    attrs
+                    for tag, attrs in document.elements
+                    if tag == "button" and "data-arrival-checkpoint-choice" in attrs
+                ]
+                self.assertEqual(len(marker_buttons), expectation["marker_count"])
+                self.assertEqual(len(checkpoint_buttons), expectation["checkpoint_count"])
+
+                self.assertEqual(api_response.status_code, 200)
+                payload = api_response.get_json()
+                self.assertEqual(payload["airport"]["code"], code)
+                self.assertEqual(payload["decision_mode"], "terminal_checkpoint")
+
+                match = re.search(
+                    r"var CALCULATOR_SELECTION = (\{.*?\});", calculator_html, re.DOTALL
                 )
-                calculator_html, _ = self.get_html(
-                    "/when-should-i-leave?airport=ATL&checkpoint=atl-a-east&lane=PRECHECK"
+                self.assertIsNotNone(match)
+                self.assertEqual(
+                    json.loads(match.group(1)),
+                    {"airport": code, "checkpoint": expectation["checkpoint_id"], "lane": expectation["lane"]},
                 )
-
-            arrivals = [
-                attrs for tag, attrs in document.elements
-                if tag == "section" and "data-airport-arrival-mode" in attrs
-            ]
-            self.assertEqual(len(arrivals), 1)
-            self.assertEqual(arrivals[0].get("data-airport-code"), "ATL")
-            self.assertEqual(document.h1_count, 1)
-            self.assertIn("Satellite airport view", html)
-            self.assertIn("Explore the airport from above", html)
-            self.assertNotIn("Check-in terminal", html)
-            self.assertNotIn("Gate on your boarding pass", html)
-            self.assertIn("Screening lane", html)
-            self.assertIn("atl-a-east", html)
-            self.assertIn("tracker.css?v=20260713-5", html)
-            self.assertIn("airport-decision-map.js?v=20260713-5", html)
-
-            self.assertEqual(api_response.status_code, 200)
-            payload = api_response.get_json()
-            self.assertEqual(payload["airport"]["code"], "ATL")
-            self.assertEqual(payload["decision_mode"], "checkpoint_only")
-            self.assertEqual(payload["terminals"][0]["marker_code"], "ATL")
-
-            match = re.search(
-                r"var CALCULATOR_SELECTION = (\{.*?\});", calculator_html, re.DOTALL
-            )
-            self.assertIsNotNone(match)
-            self.assertEqual(
-                json.loads(match.group(1)),
-                {"airport": "ATL", "checkpoint": "atl-a-east", "lane": "PRECHECK"},
-            )
         finally:
             module.AIRPORT_ARRIVAL_MODE_CODES = original_codes
 
