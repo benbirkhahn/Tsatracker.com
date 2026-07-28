@@ -77,8 +77,13 @@ AIRPORT_ARRIVAL_MODE_CODES = {
 # Emerald Ad Network (Performance ads)
 EMERALD_ID = os.getenv("EMERALD_ID", "519508").strip()
 EMERALD_TAG = os.getenv("EMERALD_TAG", "1").strip()
-ENABLE_ANALYTICS = os.getenv("ENABLE_ANALYTICS", "false").lower() == "true"
-GA_MEASUREMENT_ID = os.getenv("GA_MEASUREMENT_ID", "").strip()
+# Production collection is consent-gated in templates/_ga_head.html. Keep local
+# development off by default while ensuring Render has a working configuration.
+_analytics_default_enabled = "true" if os.getenv("RENDER") == "true" else "false"
+ENABLE_ANALYTICS = os.getenv("ENABLE_ANALYTICS", _analytics_default_enabled).lower() == "true"
+GA_MEASUREMENT_ID = os.getenv(
+    "GA_MEASUREMENT_ID", "G-9MN7W14PC1" if ENABLE_ANALYTICS else ""
+).strip()
 SKIMLINKS_SCRIPT_URL = os.getenv("SKIMLINKS_SCRIPT_URL", "").strip()
 
 

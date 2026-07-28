@@ -181,6 +181,17 @@ def get_adc_access_token(scopes: list[str]) -> str:
     return token
 
 
+def get_adc_quota_project() -> str | None:
+    """Return the quota project attached to local ADC, when one is configured."""
+    try:
+        google_auth, _, _ = _load_google_auth()
+        credentials, _ = google_auth.default()
+        quota_project = getattr(credentials, "quota_project_id", None)
+        return str(quota_project) if quota_project else None
+    except Exception:
+        return None
+
+
 def resolve_auth_mode(
     auth_mode: str,
     service_account_file: str | None,
@@ -237,14 +248,18 @@ def build_headers(
     quota_project: str | None,
     scopes: list[str],
 ) -> dict[str, str]:
+    resolved_mode = resolve_auth_mode(auth_mode, service_account_file, oauth_client_file)
+    resolved_quota_project = quota_project
+    if not resolved_quota_project and resolved_mode == "adc":
+        resolved_quota_project = get_adc_quota_project()
     headers = {
         "Authorization": (
             f"Bearer {get_access_token(auth_mode, service_account_file, oauth_client_file, oauth_token_file, oauth_port, scopes)}"
         ),
         "Content-Type": "application/json",
     }
-    if quota_project:
-        headers["X-Goog-User-Project"] = quota_project
+    if resolved_quota_project:
+        headers["X-Goog-User-Project"] = resolved_quota_project
     return headers
 
 

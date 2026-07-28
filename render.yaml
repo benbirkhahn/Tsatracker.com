@@ -17,6 +17,10 @@ services:
         value: "true"
       - key: POLL_SECONDS
         value: "120"
+      - key: ENABLE_ANALYTICS
+        value: "true"
+      - key: GA_MEASUREMENT_ID
+        value: G-9MN7W14PC1
       - key: AIRPORT_ARRIVAL_MODE_CODES
         value: "ATL,BOS,CLT,DCA,DFW,EWR,JAX,JFK,LAS,LAX,LGA,MCO,MIA,ORD,PHL,SEA,SFO"
       - key: SUPABASE_SAMPLE_MINUTES

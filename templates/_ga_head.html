@@ -1,10 +1,49 @@
 {% if monetization.ga_id %}
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id={{ monetization.ga_id }}"></script>
+<aside id="analytics-consent" class="analytics-consent" role="dialog" aria-label="Analytics preferences" hidden>
+  <p>We use optional analytics to understand aggregate site usage. <a href="/privacy">Learn more</a>.</p>
+  <div class="analytics-consent-actions">
+    <button type="button" id="analytics-decline">No thanks</button>
+    <button type="button" id="analytics-accept">Accept analytics</button>
+  </div>
+</aside>
 <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag("js", new Date());
-  gtag("config", "{{ monetization.ga_id }}");
+  (() => {
+    const initialize = () => {
+      const measurementId = "{{ monetization.ga_id }}";
+      const preferenceKey = "tsaTrackerAnalyticsConsent";
+      const consent = document.getElementById("analytics-consent");
+      const loadAnalytics = () => {
+        if (window.__tsaAnalyticsLoaded) return;
+        window.__tsaAnalyticsLoaded = true;
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function(){ window.dataLayer.push(arguments); };
+        gtag("js", new Date());
+        gtag("consent", "default", { analytics_storage: "granted" });
+        gtag("config", measurementId);
+        const script = document.createElement("script");
+        script.async = true;
+        script.src = "https://www.googletagmanager.com/gtag/js?id=" + measurementId;
+        document.head.appendChild(script);
+      };
+      const setPreference = (value) => {
+        localStorage.setItem(preferenceKey, value);
+        if (consent) consent.hidden = true;
+        if (value === "granted") loadAnalytics();
+      };
+      const preference = localStorage.getItem(preferenceKey);
+      if (preference === "granted") {
+        loadAnalytics();
+      } else if (preference !== "denied" && consent) {
+        consent.hidden = false;
+        document.getElementById("analytics-accept").addEventListener("click", () => setPreference("granted"));
+        document.getElementById("analytics-decline").addEventListener("click", () => setPreference("denied"));
+      }
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initialize);
+    } else {
+      initialize();
+    }
+  })();
 </script>
 {% endif %}

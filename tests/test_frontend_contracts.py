@@ -3038,7 +3038,7 @@ class FrontendContractTests(unittest.TestCase):
                 self.assertNotIn("Gate on your boarding pass", html)
                 self.assertIn("Screening lane", html)
                 self.assertIn("tracker.css?v=20260713-5", html)
-                self.assertIn("airport-decision-map.js?v=20260713-5", html)
+                self.assertIn("airport-decision-map.js?v=20260719-1", html)
 
                 marker_buttons = [
                     attrs
@@ -3243,8 +3243,10 @@ class FrontendContractTests(unittest.TestCase):
             module.ENABLE_ANALYTICS = True
             module.GA_MEASUREMENT_ID = "G-TEST123"
             html, _ = self.get_html("/")
-            self.assertIn("googletagmanager.com/gtag/js?id=G-TEST123", html)
-            self.assertIn('gtag("config", "G-TEST123")', html)
+            self.assertIn('const measurementId = "G-TEST123"', html)
+            self.assertIn('script.src = "https://www.googletagmanager.com/gtag/js?id=" + measurementId', html)
+            self.assertIn('gtag("config", measurementId)', html)
+            self.assertIn('id="analytics-consent"', html)
         finally:
             module.ENABLE_ANALYTICS = original_enabled
             module.GA_MEASUREMENT_ID = original_measurement_id
