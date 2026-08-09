@@ -4072,6 +4072,35 @@ def latest_for_code(airport_code: str) -> List[Dict]:
     return latest_snapshot().get(airport_code, [])
 
 
+def community_wait_for_code(code: str, minutes: int = 30, min_reports: int = 2) -> Optional[Dict]:
+    """Free crowd-sourced fallback. When an airport has no live feed, use recent
+    traveler-reported numeric waits (median, robust to outliers) as the current
+    wait instead of a flat historical estimate. Returns None if there aren't
+    enough recent numeric reports to trust. This is the unbreakable, owned data
+    layer: no airport can lock it."""
+    try:
+        cutoff = (utc_now() - timedelta(minutes=minutes)).isoformat()
+        conn = sqlite3.connect(DB_PATH)
+        rows = conn.execute(
+            """
+            SELECT current_wait, reported_at FROM user_reports
+            WHERE airport_code = ? AND reported_at >= ? AND current_wait IS NOT NULL
+            ORDER BY reported_at DESC
+            """,
+            (code, cutoff),
+        ).fetchall()
+        conn.close()
+    except Exception as exc:
+        logger.warning("community_wait_for_code failed for %s: %s", code, exc)
+        return None
+    vals = sorted(clamp_wait_minutes(float(r[0])) for r in rows if r[0] is not None)
+    if len(vals) < min_reports:
+        return None
+    n = len(vals)
+    median = vals[n // 2] if n % 2 else (vals[n // 2 - 1] + vals[n // 2]) / 2
+    return {"wait": round(float(median), 1), "count": n, "last_reported_at": rows[0][1]}
+
+
 def normalized_current_wait_for_code(code: str) -> Dict:
     rows = latest_for_code(code)
     # JFK's public Port Authority endpoint is fast and does not require a key.
@@ -4104,6 +4133,24 @@ def normalized_current_wait_for_code(code: str) -> Dict:
                 "timestamp": latest_ts,
             },
             "hourlyForecast": normalize_hourly_forecast(code, standard),
+        }
+
+    # No live feed (down or locked, e.g. ATL/LAX). Before falling back to a flat
+    # historical estimate, use recent traveler reports if we have enough of them.
+    crowd = community_wait_for_code(code)
+    if crowd:
+        return {
+            "available": True,
+            "sourceType": "community",
+            "sourceReason": "crowd_reported",
+            "currentWait": {
+                "standard": crowd["wait"],
+                "standardDescription": wait_description(crowd["wait"]),
+                "userReported": crowd["count"],
+                "precheck": False,
+                "timestamp": crowd["last_reported_at"],
+            },
+            "hourlyForecast": normalize_hourly_forecast(code, crowd["wait"]),
         }
 
     now = utc_now()

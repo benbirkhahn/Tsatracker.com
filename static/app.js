@@ -1133,6 +1133,7 @@ async function loadHistory(airportCode) {
 // Source status label
 function sourceStatusLabel(sourceType) {
   if (sourceType === "live_direct") return ["✓ Live airport data", "is-live"];
+  if (sourceType === "community") return ["◆ Community reported", "is-fallback"];
   if (sourceType === "estimated_fallback") return ["~ Estimated (live data not yet available)", "is-fallback"];
   return ["", "is-unknown"];
 }
@@ -1141,11 +1142,12 @@ function renderSelectionSummary(payload) {
   const el = document.getElementById("selection-summary");
   if (!el || !payload || !payload.currentWait) return;
   const live = payload.sourceType === "live_direct";
+  const community = payload.sourceType === "community";
   el.style.display = "";
   el.innerHTML = `
-    <div class="selection-summary-label">${live ? "Current checkpoint average" : "Current airport estimate"}</div>
+    <div class="selection-summary-label">${live ? "Current checkpoint average" : community ? "Community-reported wait" : "Current airport estimate"}</div>
     <div class="selection-summary-value">${payload.currentWait.standardDescription || ""}</div>
-    <div class="selection-summary-meta">${live ? "Refreshed from official airport checkpoint data" : "Planning estimate while live checkpoint data is unavailable"}</div>
+    <div class="selection-summary-meta">${live ? "Refreshed from official airport checkpoint data" : community ? "Reported by travelers in the last 30 minutes" : "Planning estimate while live checkpoint data is unavailable"}</div>
   `;
 }
 
@@ -1156,10 +1158,11 @@ function renderHeaderSourceState(payload) {
   const liveText = document.getElementById("header-live-text");
   if (!badge || !badgeText || !indicator || !liveText || !payload) return;
   const live = payload.sourceType === "live_direct";
+  const community = payload.sourceType === "community";
   badge.classList.toggle("is-fallback", !live);
   indicator.classList.toggle("is-fallback", !live);
-  badgeText.textContent = live ? "Live" : "Estimated";
-  liveText.textContent = live ? "LIVE" : "EST";
+  badgeText.textContent = live ? "Live" : community ? "Community" : "Estimated";
+  liveText.textContent = live ? "LIVE" : community ? "CROWD" : "EST";
 }
 
 function renderAirportNotice(payload) {
