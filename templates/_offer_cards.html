@@ -1,0 +1,83 @@
+{# Contextual affiliate offer cards. Rendered where travel intent is highest
+   (airport pages + leave-time calculator). Cards self-skip when a URL is absent.
+   Clicks are logged to /api/log-click so get_best_offer_id() can rank them. #}
+{% set _code = (initial_airport_code if initial_airport_code is defined else (calculator_selection.airport if calculator_selection is defined else '')) or '' %}
+<section class="tt-of" aria-label="Travel offers">
+  <div class="tt-of-head">
+    <span class="tt-of-kicker">Planning your trip</span>
+    <span class="tt-of-disc">Some links below are affiliate links. TSA&nbsp;Tracker may earn a commission at no extra cost to you. This never affects the wait-time data.</span>
+  </div>
+  <div class="tt-of-grid">
+    {% if monetization.local_offer %}
+    <a class="tt-of-card tt-of-feature tt-of-cta" href="{{ monetization.local_offer.url }}" target="_blank" rel="sponsored noopener" data-offer-id="LOCAL" data-code="{{ _code }}">
+      <span class="tt-of-badge">Popular here</span>
+      <span class="tt-of-ic" aria-hidden="true">{{ monetization.local_offer.icon }}</span>
+      <span class="tt-of-t">{{ monetization.local_offer.title }}</span>
+      <span class="tt-of-s">{{ monetization.local_offer.sub }}</span>
+      <span class="tt-of-go">Book now &rarr;</span>
+    </a>
+    {% endif %}
+    {% if monetization.parking_url %}
+    <a class="tt-of-card tt-of-cta" href="{{ monetization.parking_url }}" target="_blank" rel="sponsored noopener" data-offer-id="PARKING" data-code="{{ _code }}">
+      <span class="tt-of-ic" aria-hidden="true">&#128664;</span>
+      <span class="tt-of-t">Reserve airport parking</span>
+      <span class="tt-of-s">Lock in a spot and a rate before you drive out.</span>
+      <span class="tt-of-go">Compare parking &rarr;</span>
+    </a>
+    {% endif %}
+    {% if monetization.lyft_url %}
+    <a class="tt-of-card tt-of-cta" href="{{ monetization.lyft_url }}" target="_blank" rel="sponsored noopener" data-offer-id="RIDE" data-code="{{ _code }}">
+      <span class="tt-of-ic" aria-hidden="true">&#128663;</span>
+      <span class="tt-of-t">Book your ride to the airport</span>
+      <span class="tt-of-s">Schedule a pickup so you leave right on time.</span>
+      <span class="tt-of-go">Get a ride &rarr;</span>
+    </a>
+    {% endif %}
+    {% if monetization.lounge_url %}
+    <a class="tt-of-card tt-of-cta" href="{{ monetization.lounge_url }}" target="_blank" rel="sponsored noopener" data-offer-id="LOUNGE" data-code="{{ _code }}">
+      <span class="tt-of-ic" aria-hidden="true">&#128715;</span>
+      <span class="tt-of-t">Wait it out in a lounge</span>
+      <span class="tt-of-s">Somewhere quiet if the line is long today.</span>
+      <span class="tt-of-go">See lounge access &rarr;</span>
+    </a>
+    {% endif %}
+    {% if monetization.card_chase_url %}
+    <a class="tt-of-card tt-of-cta" href="{{ monetization.card_chase_url }}" target="_blank" rel="sponsored noopener" data-offer-id="CARD" data-code="{{ _code }}">
+      <span class="tt-of-ic" aria-hidden="true">&#128179;</span>
+      <span class="tt-of-t">Offset PreCheck with a travel card</span>
+      <span class="tt-of-s">Many travel cards credit the PreCheck or Global Entry fee.</span>
+      <span class="tt-of-go">Compare cards &rarr;</span>
+    </a>
+    {% endif %}
+  </div>
+</section>
+<style>
+.tt-of{margin:24px 0;}
+.tt-of-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin-bottom:12px;}
+.tt-of-kicker{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted,#8a8a99);}
+.tt-of-disc{font-size:.72rem;color:var(--muted,#8a8a99);max-width:60ch;}
+.tt-of-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;}
+.tt-of-card{position:relative;display:flex;flex-direction:column;gap:4px;padding:15px;border-radius:12px;background:var(--surface2,#16161f);border:1px solid var(--border,#2a2a40);text-decoration:none;transition:border-color .15s ease,transform .15s ease;}
+.tt-of-card:hover{border-color:var(--amber,#f59e0b);transform:translateY(-2px);}
+.tt-of-feature{border-color:var(--amber,#f59e0b);}
+.tt-of-badge{position:absolute;top:-9px;left:14px;background:var(--amber,#f59e0b);color:#111827;font-size:.62rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:3px 8px;border-radius:999px;}
+.tt-of-ic{font-size:1.3rem;line-height:1;}
+.tt-of-t{font-weight:700;font-size:.95rem;color:var(--text,#f4f4fa);line-height:1.3;}
+.tt-of-s{font-size:.82rem;line-height:1.5;color:var(--muted,#a6a6b8);}
+.tt-of-go{margin-top:6px;font-size:.82rem;font-weight:700;color:var(--amber,#f59e0b);}
+@media (prefers-reduced-motion:reduce){.tt-of-card{transition:none;}}
+</style>
+<script>
+(function(){
+  var cards=document.querySelectorAll('.tt-of-cta');
+  for(var i=0;i<cards.length;i++){
+    cards[i].addEventListener('click',function(e){
+      try{
+        var body=JSON.stringify({offer_id:this.getAttribute('data-offer-id'),code:this.getAttribute('data-code')||null});
+        if(navigator.sendBeacon){navigator.sendBeacon('/api/log-click',new Blob([body],{type:'application/json'}));}
+        else{fetch('/api/log-click',{method:'POST',headers:{'Content-Type':'application/json'},body:body,keepalive:true});}
+      }catch(err){}
+    });
+  }
+})();
+</script>

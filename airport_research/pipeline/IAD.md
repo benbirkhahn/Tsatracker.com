@@ -1,8 +1,12 @@
 # IAD — Washington Dulles International Airport
 
-**Status:** 🔬 In Research  
-**Pipeline status:** `IN_RESEARCH`  
-**Last investigated:** 2026-03-23  
+**Status:** ✅ Live (resolved 2026-08-09)  
+**Pipeline status:** `LIVE`  
+**Last investigated:** 2026-08-09  
+
+> **RESOLVED:** MWAA runs IAD on the same platform as DCA, so the working endpoint mirrors DCA's:
+> `GET https://www.flydulles.com/security-wait-times` → `response.res` JSON (same shape as flyreagan.com).
+> Earlier passes only probed `api.flydulles.com/*` and missed the `www` path. Implemented in `fetch_iad_rows()`.
 
 ---
 

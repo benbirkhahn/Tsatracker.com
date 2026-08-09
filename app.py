@@ -85,6 +85,10 @@ GA_MEASUREMENT_ID = os.getenv(
     "GA_MEASUREMENT_ID", "G-9MN7W14PC1" if ENABLE_ANALYTICS else ""
 ).strip()
 SKIMLINKS_SCRIPT_URL = os.getenv("SKIMLINKS_SCRIPT_URL", "").strip()
+# Affiliate/offer switches. Previously affiliate links could never turn on because
+# get_monetization_context(enable_affiliate_links=...) was never called with True.
+ENABLE_AFFILIATE_LINKS = os.getenv("ENABLE_AFFILIATE_LINKS", "false").lower() == "true"
+ENABLE_OFFER_CARDS = os.getenv("ENABLE_OFFER_CARDS", "true").lower() == "true"
 
 
 SPONSOR_CTA_URL = os.getenv("SPONSOR_CTA_URL", "mailto:ads@tsatracker.com").strip()
@@ -129,8 +133,12 @@ APP_JS_VERSION = str(int(os.path.getmtime(os.path.join(os.path.dirname(__file__)
 def get_lite_brain_insights() -> List[str]:
     """Reads recent notes from the 'Lite Brain' to identify manual optimization cues."""
     try:
-        # Connect to the external Lite Brain DB
-        lb_conn = sqlite3.connect('/Users/benbirkhahn/lite-brain/smart-clipboard.db')
+        # Connect to the external Lite Brain DB (optional; only when configured and present).
+        # NOTE: previously hardcoded to a local laptop path, which errored every poll in prod.
+        lb_path = os.getenv("LITE_BRAIN_DB", "").strip()
+        if not lb_path or not os.path.exists(lb_path):
+            return []
+        lb_conn = sqlite3.connect(lb_path)
         cur = lb_conn.cursor()
         # Look for snippets containing monetization keywords from the last 24 hours
         cur.execute("SELECT content FROM context_snippets WHERE created_at >= datetime('now', '-1 day')")
@@ -138,7 +146,7 @@ def get_lite_brain_insights() -> List[str]:
         lb_conn.close()
         return [r[0] for r in rows]
     except Exception as e:
-        logger.error("Could not read Lite Brain: %s", e)
+        logger.debug("Lite Brain unavailable: %s", e)
         return []
 
 
@@ -185,7 +193,7 @@ def get_monetization_context(
         "airport",
         "precheck-guide",
     }
-    affiliates_enabled = enable_affiliate_links and bool(SKIMLINKS_SCRIPT_URL)
+    affiliates_enabled = (enable_affiliate_links or ENABLE_AFFILIATE_LINKS) and bool(SKIMLINKS_SCRIPT_URL)
 
     return {
         "enable_adsense": adsense_enabled,
@@ -206,6 +214,7 @@ def get_monetization_context(
         "travelpayouts_id": TRAVELPAYOUTS_ID,
 
         "best_offer_id": best_offer,
+        "show_offer_cards": ENABLE_OFFER_CARDS,
         "smart_learning_active": True,
         "clear_url": os.getenv("CLEAR_AFFILIATE_URL", "https://www.clearme.com/").strip(),
         "precheck_url": os.getenv("PRECHECK_AFFILIATE_URL", "https://www.tsa.gov/precheck").strip(),
@@ -445,7 +454,7 @@ AIRPORT_PAGE_GUIDES = {
         "links": [
             {"label": "Official BOS security wait times", "url": "https://www.massport.com/logan-airport/at-the-airport/security-wait-times"},
             {"label": "Official BOS security information", "url": "https://www.massport.com/logan-airport/at-the-airport/security-information"},
-            {"label": "Official BOS terminal maps", "url": "https://www.massport.com/logan-airport/at-the-airport/terminal-map"},
+            {"label": "Official BOS terminal map", "url": "https://maps.massport.com/logan"},
             {"label": "Official BOS airlines directory", "url": "https://www.massport.com/logan-airport/flights/airlines/"},
         ],
     },
@@ -527,7 +536,7 @@ AIRPORT_PAGE_GUIDES = {
         ],
         "links": [
             {"label": "Official airport site", "url": "https://www.flychicago.com/ohare/home/pages/default.aspx"},
-            {"label": "Official terminal map", "url": "https://www.flychicago.com/ohare/map/pages/default.aspx"},
+            {"label": "Official terminal map", "url": "https://maps.ord.flychicago.com/"},
             {"label": "Official security information", "url": "https://www.flychicago.com/ohare/myflight/security/Pages/TSA.aspx"},
         ],
     },
@@ -619,7 +628,6 @@ AIRPORT_PAGE_GUIDES = {
             "The better checkpoint can shift by departure bank, so compare the airport's live display before leaving.",
         ],
         "links": [
-            {"label": "DEN Reserve", "url": "https://www.flydenver.com/security/den-reserve/"},
             {"label": "Expedited Security Screening Options", "url": "https://www.flydenver.com/security/expedited-security-screening-options/"},
             {"label": "Official DEN security page", "url": "https://www.flydenver.com/security/"},
         ],
@@ -669,9 +677,9 @@ AIRPORT_PAGE_GUIDES = {
             "Concourse C (Gates C1 and up) serves the American Airlines hub traffic, Southwest, and low-cost carriers like Spirit and Allegiant.",
         ],
         "links": [
-            {"label": "Official JAX Live Wait Times", "url": "https://www.flyjax.com/"},
-            {"label": "JAX Interactive Terminal Map", "url": "https://www.flyjax.com/services"},
-            {"label": "JAX Airport Guide", "url": "https://www.flyjacksonville.com"},
+            {"label": "Official JAX Live Wait Times", "url": "https://www.flyjacksonville.com/content.aspx?id=3583"},
+            {"label": "JAX Interactive Terminal Map", "url": "https://www.flyjacksonville.com/content.aspx?id=21"},
+            {"label": "JAX Airport Guide", "url": "https://www.flyjacksonville.com/"},
         ],
     },
     "CLT": {
@@ -696,8 +704,8 @@ AIRPORT_PAGE_GUIDES = {
         ],
         "links": [
             {"label": "Official CLT Security Dashboard", "url": "https://www.cltairport.com/airport-info/security/"},
-            {"label": "CLT Interactive Map", "url": "https://www.cltairport.com/airport-info/terminal-map/"},
-            {"label": "CLT Terminal Guide", "url": "https://upgradedpoints.com/travel/airports/charlotte-douglas-airport-clt/"},
+            {"label": "Official CLT terminal maps", "url": "https://www.cltairport.com/airport-info/website-maps/"},
+            {"label": "CLT travel preparation", "url": "https://www.cltairport.com/airport-info/prepare-for-travel/"},
         ],
     },
     "JFK": {
@@ -709,7 +717,7 @@ AIRPORT_PAGE_GUIDES = {
         "notes": [
             "John F. Kennedy can have very different line conditions across terminals because traffic is distributed unevenly across international and domestic departure waves.",
             "This page is designed to help you decide whether your specific terminal is the issue or whether the whole airport is running hot.",
-            "JFK is in an active redevelopment period, and the airport has an official security wait-times suspension notice. Check the travel impacts page and advisories before you leave.",
+            "JFK's public airport feed currently reports checkpoint waits by terminal. Compare your assigned terminal before leaving, because changing terminals means exiting and reclearing security.",
         ],
         "terminal_notes": [
             "JFK splits departing passengers across Terminals 1, 4, 5, 7, and 8, each with its own screening flow.",
@@ -725,7 +733,7 @@ AIRPORT_PAGE_GUIDES = {
             {"label": "Official terminal map", "url": "https://www.jfkairport.com/explore-jfk/airport-map"},
             {"label": "JFK travel impacts / redevelopment", "url": "https://construction.jfkairport.com/jfk/en/your-travel-impacts.html"},
             {"label": "JFK alerts and advisories", "url": "https://www.jfkairport.com/alerts-advisories"},
-            {"label": "Official live wait times", "url": "https://www.jfkairport.com/to-and-from/security-wait-times"},
+            {"label": "Official live wait times", "url": "https://www.jfkairport.com/"},
         ],
     },
     "EWR": {
@@ -749,8 +757,8 @@ AIRPORT_PAGE_GUIDES = {
         ],
         "links": [
             {"label": "Official EWR site", "url": "https://www.newarkairport.com/"},
-            {"label": "EWR security wait times", "url": "https://www.newarkairport.com/security-wait-times"},
-            {"label": "Official EWR terminal maps", "url": "https://www.newarkairport.com/at-airport/airport-maps"},
+            {"label": "EWR security wait times", "url": "https://www.newarkairport.com/flights/departures"},
+            {"label": "Official EWR terminal maps", "url": "https://www.newarkairport.com/explore-ewr/airport-map"},
         ],
     },
     "LGA": {
@@ -774,10 +782,10 @@ AIRPORT_PAGE_GUIDES = {
         ],
         "links": [
             {"label": "Official LGA site", "url": "https://www.laguardiaairport.com/"},
-            {"label": "LGA security wait times", "url": "https://www.laguardiaairport.com/security-wait-times"},
-            {"label": "LGA travel tips", "url": "https://www.laguardiaairport.com/static/LGA/announcements/pages/family-travel-tips.html"},
-            {"label": "LGA Official Maps", "url": "https://www.laguardiaairport.com/at-airport/airport-maps"},
-            {"label": "LGA Airline-Terminal List", "url": "https://www.laguardiaairport.com/flight/airlines"},
+            {"label": "LGA security wait times", "url": "https://www.laguardiaairport.com/flights/departures"},
+            {"label": "LGA traveler FAQ", "url": "https://www.laguardiaairport.com/frequently-asked-questions"},
+            {"label": "LGA Official Maps", "url": "https://www.laguardiaairport.com/explore-lga/airport-map"},
+            {"label": "LGA Airline-Terminal List", "url": "https://www.laguardiaairport.com/flights/airlines"},
         ],
     },
     "LAS": {
@@ -831,7 +839,7 @@ AIRPORT_PAGE_GUIDES = {
             "South Satellite (Gates S1-S16) handles almost all foreign international arrivals and selected Delta international departures.",
         ],
         "links": [
-            {"label": "Official SEA Spot Saver", "url": "https://www.portseattle.org/sea/spot-saver"},
+            {"label": "Official SEA Spot Saver", "url": "https://www.portseattle.org/SEAspotsaver"},
             {"label": "Official SEA Security Dashboard", "url": "https://www.portseattle.org/Security"},
             {"label": "SEA Interactive Map", "url": "https://exploresea.org/map/"},
         ],
@@ -896,16 +904,7 @@ AIRPORT_PAGE_GUIDES = {
     },
 }
 
-AIRPORT_STATUS_NOTICES = {
-    "JFK": {
-        "title": "Redevelopment and wait-time suspension",
-        "summary": "JFK is in an active redevelopment period, and the airport has published an official security wait-times suspension notice. Use the advisories and travel impacts pages for the current airport status.",
-        "links": [
-            {"label": "JFK travel impacts", "url": "https://construction.jfkairport.com/jfk/en/your-travel-impacts.html"},
-            {"label": "JFK alerts and advisories", "url": "https://www.jfkairport.com/alerts-advisories"},
-        ],
-    },
-}
+AIRPORT_STATUS_NOTICES = {}
 
 
 GENERIC_AIRPORT_MAP_SPANS = {
@@ -3188,6 +3187,117 @@ def fetch_dca_rows() -> List[Dict]:
     return rows
 
 
+def fetch_iad_rows() -> List[Dict]:
+    """Scrape IAD (Dulles) wait times from the MWAA public JSON endpoint.
+
+    IAD and DCA are both operated by MWAA on the same platform, so this mirrors
+    fetch_dca_rows against the Dulles host (verified returning response.res JSON).
+    """
+    url = "https://www.flydulles.com/security-wait-times"
+    resp = requests.get(url, headers=UA, timeout=20)
+    resp.raise_for_status()
+    payload = resp.json()
+    data = payload.get("response", {}) if isinstance(payload, dict) else {}
+    res = data.get("res", {}) if isinstance(data, dict) else {}
+    if not isinstance(res, dict) or not res:
+        raise RuntimeError("IAD: empty security wait response")
+
+    stamp = utc_now().isoformat()
+    rows: List[Dict] = []
+    for rec in res.values():
+        if not isinstance(rec, dict):
+            continue
+        location = str(rec.get("location", "Checkpoint")).strip()
+        # Dulles embeds empty gate parens in the location, e.g. "Terminal 1( )".
+        location = re.sub(r"\(\s*\)", "", location).strip() or "Checkpoint"
+        gates = str(rec.get("gates", "")).strip()
+        gates = re.sub(r"\(\s+", "(", re.sub(r"\s+\)", ")", gates))
+        checkpoint = f"{location} {gates}".strip() if gates else location
+
+        wait_minutes = parse_wait_range(rec.get("waittime"))
+        if wait_minutes is None:
+            continue
+        rows.append(
+            {
+                "airport_code": "IAD",
+                "checkpoint": checkpoint,
+                "wait_minutes": wait_minutes,
+                "lane_type": "STANDARD",
+                "source": url,
+                "captured_at": stamp,
+            }
+        )
+
+        if not rec.get("pre_disabled") and rec.get("pre"):
+            pre_minutes = parse_wait_range(rec.get("pre"))
+            if pre_minutes is not None:
+                rows.append(
+                    {
+                        "airport_code": "IAD",
+                        "checkpoint": checkpoint,
+                        "wait_minutes": pre_minutes,
+                        "lane_type": "PRECHECK",
+                        "source": url,
+                        "captured_at": stamp,
+                    }
+                )
+
+    if not rows:
+        raise RuntimeError("IAD: no checkpoint rows parsed from JSON")
+    return rows
+
+
+def fetch_iah_rows() -> List[Dict]:
+    """IAH (Houston) via the Houston Airports mobi API — same vendor platform as DEN/DFW.
+    Endpoint: https://api.houstonairports.mobi/wait-times/checkpoint/iah
+    Api-Version 120 confirmed working 2026-08 (older versions return 412). Returns
+    [] softly when all checkpoints are closed (overnight) rather than erroring.
+    """
+    url = "https://api.houstonairports.mobi/wait-times/checkpoint/iah"
+    resp = requests.get(
+        url,
+        headers={**UA, "Api-Key": "9ACB3B733BE94B11A03B6E84CA87E895", "Api-Version": "120", "Accept": "application/json"},
+        timeout=20,
+    )
+    resp.raise_for_status()
+    try:
+        body = resp.json()
+    except requests.exceptions.JSONDecodeError:
+        logger.warning("IAH: non-JSON response from upstream. Skipping this cycle.")
+        return []
+    data = body.get("data", {}) if isinstance(body, dict) else {}
+    items = data.get("wait_times", []) if isinstance(data, dict) else []
+    if not items:
+        logger.warning("IAH: empty wait_times in response. Skipping this cycle.")
+        return []
+
+    stamp = utc_now().isoformat()
+    rows: List[Dict] = []
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        if not it.get("isDisplayable", True) or not it.get("isOpen", True):
+            continue
+        name = str(it.get("name", "Checkpoint")).strip()
+        is_pre = "precheck" in name.lower() or "pre-check" in name.lower()
+        # Group Standard/PreCheck under the same physical checkpoint name.
+        checkpoint = re.sub(r"\s*(Standard|Pre[\s-]?Check)\s*$", "", name, flags=re.I).strip() or name
+        wait_seconds = it.get("waitSeconds")
+        if wait_seconds is None:
+            continue
+        rows.append(
+            {
+                "airport_code": "IAH",
+                "checkpoint": checkpoint,
+                "wait_minutes": round(float(wait_seconds) / 60.0, 1),
+                "lane_type": "PRECHECK" if is_pre else "STANDARD",
+                "source": url,
+                "captured_at": stamp,
+            }
+        )
+    return rows
+
+
 def fetch_bwi_rows() -> List[Dict]:
     """Scrape BWI's live homepage security widget."""
     url = "https://bwiairport.com/"
@@ -3902,6 +4012,8 @@ def collect_once() -> Dict:
         ("BWI", fetch_bwi_rows),
         ("DTW", fetch_dtw_rows),
         ("DEN", fetch_den_rows),
+        ("IAD", fetch_iad_rows),
+        ("IAH", fetch_iah_rows),
         ("ATL", fetch_atl_rows),
     ]
 
@@ -3962,6 +4074,17 @@ def latest_for_code(airport_code: str) -> List[Dict]:
 
 def normalized_current_wait_for_code(code: str) -> Dict:
     rows = latest_for_code(code)
+    # JFK's public Port Authority endpoint is fast and does not require a key.
+    # If a deploy starts with an empty local cache, fetch it once on demand so a
+    # traveler does not see an estimate while the scheduled poller warms up.
+    if not rows and code == "JFK":
+        try:
+            fresh_rows = fetch_jfk_rows()
+            if fresh_rows:
+                db_insert_rows(fresh_rows)
+                rows = latest_for_code(code)
+        except Exception as exc:
+            logger.warning("JFK on-demand refresh unavailable: %s", exc)
     if rows:
         active = [r for r in rows if float(r.get("wait_minutes", 0)) > 0]
         sample = active if active else rows
@@ -5225,12 +5348,17 @@ def ads_txt():
 
 @app.route("/healthz")
 def healthz():
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.execute("SELECT 1")
-        conn.close()
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+    # Liveness check: keep this trivial and never touch the DB. Render pings it
+    # frequently; a SQLite query here blocks on the poller's write lock and times
+    # out at Render's 5s limit, causing false "unhealthy" restarts (the flapping).
+    # A deep DB probe stays available at /healthz?deep=1 for manual diagnostics.
+    if request.args.get("deep"):
+        try:
+            conn = sqlite3.connect(DB_PATH, timeout=2)
+            conn.execute("SELECT 1")
+            conn.close()
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
     return jsonify({"ok": True, "generated_at": utc_now().isoformat()})
 
 

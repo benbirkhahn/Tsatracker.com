@@ -1,8 +1,13 @@
 # IAH — George Bush Intercontinental Airport
 
-**Status:** 🔬 In Research  
-**Pipeline status:** `IN_RESEARCH`  
-**Last investigated:** 2026-05-18  
+**Status:** ✅ Live (resolved 2026-08-09)  
+**Pipeline status:** `LIVE`  
+**Last investigated:** 2026-08-09  
+
+> **RESOLVED:** Houston refreshed their client bundle. `GET https://api.houstonairports.mobi/wait-times/checkpoint/iah`
+> now returns 200 with **`Api-Version: 120`** (100/110 → 412 "no longer supported") and
+> `Api-Key: 9ACB3B733BE94B11A03B6E84CA87E895`. Response is `data.wait_times[]` (same shape as DEN/DFW).
+> Implemented in `fetch_iah_rows()` and registered in `collect_once`.
 
 ---
 

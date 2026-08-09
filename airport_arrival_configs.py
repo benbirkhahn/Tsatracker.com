@@ -377,7 +377,7 @@ AIRPORT_DECISION_MAPS = {
         },
         "source": {
             "label": "Official JAX Live Wait Times",
-            "url": "https://www.flyjax.com/content.aspx?id=3583",
+            "url": "https://www.flyjacksonville.com/content.aspx?id=3583",
             "verified_on": "2026-07-13",
         },
         "terminals": [
@@ -423,7 +423,7 @@ AIRPORT_DECISION_MAPS = {
         },
         "source": {
             "label": "Official JFK terminal wait times",
-            "url": "https://www.jfkairport.com/to-and-from/security-wait-times",
+            "url": "https://www.jfkairport.com/",
             "verified_on": "2026-07-14",
         },
         "terminals": [
@@ -1059,7 +1059,7 @@ AIRPORT_DECISION_MAPS = {
         },
         "source": {
             "label": "Official IAH security page",
-            "url": "https://www.fly2houston.com/iah/security",
+            "url": "https://www.fly2houston.com/iah/security/",
             "verified_on": "2026-07-14",
         },
         "terminals": [
@@ -1643,7 +1643,7 @@ AIRPORT_DECISION_MAPS = {
         },
         "source": {
             "label": "Official LGA airport maps",
-            "url": "https://www.laguardiaairport.com/at-airport/airport-maps",
+            "url": "https://www.laguardiaairport.com/explore-lga/airport-map",
             "verified_on": "2026-07-13",
         },
         "terminals": [

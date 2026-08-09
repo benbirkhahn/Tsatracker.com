@@ -196,6 +196,8 @@
   </div>
   {% endif %}
 
+  {% if monetization and monetization.show_offer_cards %}{% include "_offer_cards.html" %}{% endif %}
+
   {% if airport_editorial and airport_editorial.bullets %}
   <section class="detail-section">
     <h2 class="detail-title">{{ initial_airport_code }} playbook</h2>
@@ -504,7 +506,7 @@
 </script>
 {% if airport_arrival_mode %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
-<script src="/static/airport-decision-map.js?v=20260713-5" defer></script>
+<script src="/static/airport-decision-map.js?v=20260719-1" defer></script>
 {% elif airport_decision_map %}
 <script src="/static/airport-decision-map.js?v=20260713-2"></script>
 {% endif %}

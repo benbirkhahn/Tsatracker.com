@@ -584,7 +584,7 @@
     }
   }
 
-  function updateCurrentSummary(checkpointId) {
+  function updateCurrentSummary(checkpointId, isRecommendation) {
     var checkpoint = checkpointById[checkpointId];
     var lane = checkpointLane(checkpointId, selectedLane);
     if (!checkpoint || !lane) {
@@ -593,7 +593,11 @@
     }
     var freshness = laneFreshness(lane, checkpoint);
     var wait = numeric(lane.wait_minutes);
-    if (currentLabel) currentLabel.textContent = checkpoint.label + " · " + laneLabel(lane);
+    if (currentLabel) {
+      currentLabel.textContent = isRecommendation
+        ? "Fastest current option · " + checkpoint.label + " · " + laneLabel(lane)
+        : checkpoint.label + " · " + laneLabel(lane);
+    }
     if (currentWait) {
       currentWait.className = "arrival-current-wait" + (isFreshReading(lane, checkpoint) ? " " + waitTier(wait) : "");
       currentWait.innerHTML = isFreshReading(lane, checkpoint)
@@ -708,7 +712,8 @@
     recommendedCheckpoint = fastest ? fastest.item.dataset.checkpointId : "";
     if (fastest) {
       message = (checkpointOnly ? "Fastest fresh reading: " : terminalCheckpoint ? "Fastest fresh reading in this view: " : "Fastest compatible fresh reading: ") + itemName(fastest.item) + ", " +
-        Math.round(fastest.wait) + " minutes for " + (selectedLane === "PRECHECK" ? "PreCheck." : "standard screening.");
+        Math.round(fastest.wait) + " minute" + (Math.round(fastest.wait) === 1 ? "" : "s") + " for " +
+        (selectedLane === "PRECHECK" ? "PreCheck." : "standard screening.");
     } else if (allowRecommendation && compatible.length) {
       var laneName = selectedLane === "PRECHECK" ? "PreCheck" : "standard";
       message = checkpointOnly
@@ -738,7 +743,7 @@
 
     syncLaneRows();
     var summaryCheckpoint = selectedCheckpoint || recommendedCheckpoint;
-    if (summaryCheckpoint) updateCurrentSummary(summaryCheckpoint); else restoreCurrentSummary();
+    if (summaryCheckpoint) updateCurrentSummary(summaryCheckpoint, !selectedCheckpoint && Boolean(recommendedCheckpoint)); else restoreCurrentSummary();
     var activeCheckpoint = checkpointById[summaryCheckpoint];
     var activeTerminal = activeCheckpoint ? String(activeCheckpoint.terminal_id || "").toLowerCase() : selectedTerminal;
     syncTerminalMarkers(activeTerminal);

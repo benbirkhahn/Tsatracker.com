@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: starter
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --workers 1 --threads 4 --bind 0.0.0.0:$PORT wsgi:app
+    startCommand: gunicorn --workers 1 --threads 8 --timeout 120 --bind 0.0.0.0:$PORT wsgi:app
     healthCheckPath: /healthz
     disk:
       name: tsa-data
@@ -33,3 +33,43 @@ services:
         sync: false
       - key: COLLECT_NOW_TOKEN
         generateValue: true
+      # ----- Monetization: set real values in the Render dashboard, then redeploy -----
+      # Ads only serve once ADSENSE_CLIENT is set AND the AdSense account is approved.
+      - key: ENABLE_ADSENSE
+        value: "true"
+      - key: ADSENSE_CLIENT
+        sync: false            # e.g. ca-pub-3769301792129016
+      - key: ADSENSE_SLOT_DISPLAY
+        sync: false            # ad-unit slot id for home + airport pages
+      - key: ADSENSE_SLOT_MULTIPLEX
+        sync: false            # ad-unit slot id for the PreCheck/CLEAR guide
+      # Contextual affiliate offer cards (parking / ride / lounge / card).
+      - key: ENABLE_OFFER_CARDS
+        value: "true"
+      # Skimlinks auto-affiliation. Set the script URL, then flip this to true.
+      - key: ENABLE_AFFILIATE_LINKS
+        value: "false"
+      - key: SKIMLINKS_SCRIPT_URL
+        sync: false
+      # Tracked affiliate destinations (fall back to plain URLs = $0 until set).
+      - key: TRAVELPAYOUTS_ID
+        sync: false
+      - key: CLEAR_AFFILIATE_URL
+        sync: false
+      - key: PRECHECK_AFFILIATE_URL
+        sync: false
+      - key: PARKING_AFFILIATE_URL
+        sync: false
+      - key: LYFT_AFFILIATE_URL
+        sync: false
+      - key: LOUNGE_AFFILIATE_URL
+        sync: false
+      - key: CARD_CHASE_URL
+        sync: false
+      - key: CARD_CAPITALONE_URL
+        sync: false
+      - key: CARD_AMEX_URL
+        sync: false
+      # Optional local-only optimizer DB; leave unset in production.
+      - key: LITE_BRAIN_DB
+        value: ""

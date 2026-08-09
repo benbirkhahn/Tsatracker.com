@@ -94,6 +94,8 @@
     <a href="/guide/tsa-precheck-clear">Compare PreCheck vs CLEAR →</a>
   </div>
 
+  {% if monetization and monetization.show_offer_cards %}{% include "_offer_cards.html" %}{% endif %}
+
   <section class="calculator-explainer" aria-labelledby="calculator-method-title">
     <div class="section-heading">
       <div>
