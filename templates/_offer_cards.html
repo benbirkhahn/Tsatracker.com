@@ -25,12 +25,12 @@
       <span class="tt-of-go">Compare parking &rarr;</span>
     </a>
     {% endif %}
-    {% if monetization.lyft_url %}
-    <a class="tt-of-card tt-of-cta" href="{{ monetization.lyft_url }}" target="_blank" rel="sponsored noopener" data-offer-id="RIDE" data-code="{{ _code }}">
-      <span class="tt-of-ic" aria-hidden="true">&#128663;</span>
-      <span class="tt-of-t">Book your ride to the airport</span>
-      <span class="tt-of-s">Schedule a pickup so you leave right on time.</span>
-      <span class="tt-of-go">Get a ride &rarr;</span>
+    {% if monetization.klook_url %}
+    <a class="tt-of-card tt-of-cta" href="{{ monetization.klook_url }}" target="_blank" rel="sponsored noopener" data-offer-id="TRANSFER" data-code="{{ _code }}">
+      <span class="tt-of-ic" aria-hidden="true">&#128666;</span>
+      <span class="tt-of-t">Book an airport transfer</span>
+      <span class="tt-of-s">Pre-book a private ride or shuttle so you leave on time.</span>
+      <span class="tt-of-go">See transfers &rarr;</span>
     </a>
     {% endif %}
     {% if monetization.lounge_url %}
@@ -62,8 +62,8 @@
 .tt-of-feature{border-color:var(--amber,#f59e0b);}
 .tt-of-badge{position:absolute;top:-9px;left:14px;background:var(--amber,#f59e0b);color:#111827;font-size:.62rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:3px 8px;border-radius:999px;}
 .tt-of-ic{font-size:1.3rem;line-height:1;}
-.tt-of-t{font-weight:700;font-size:.95rem;color:var(--text,#f4f4fa);line-height:1.3;}
-.tt-of-s{font-size:.82rem;line-height:1.5;color:var(--muted,#a6a6b8);}
+.tt-of-t{font-weight:700;font-size:.98rem;color:#f3f6fb;line-height:1.3;}
+.tt-of-s{font-size:.82rem;line-height:1.5;color:#aeb6c4;}
 .tt-of-go{margin-top:6px;font-size:.82rem;font-weight:700;color:var(--amber,#f59e0b);}
 @media (prefers-reduced-motion:reduce){.tt-of-card{transition:none;}}
 </style>
