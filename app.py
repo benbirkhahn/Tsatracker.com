@@ -5219,6 +5219,77 @@ def api_history():
         }
     )
 
+@app.route("/api/forecast-data")
+def api_forecast_data():
+    """Compact payload for the airport forecast chart + heatmap.
+    Standard/PreCheck hourly averages, a weekday x hour matrix, and 'now'."""
+    code = str(request.args.get("airport") or "").upper()
+    days = max(1, min(request.args.get("days", 30, type=int) or 30, 90))
+    if not re.fullmatch(r"[A-Z]{3}", code) or code not in LIVE_AIRPORTS:
+        return jsonify({"error": "Unknown airport"}), 400
+    tz = ZoneInfo(AIRPORT_TIME_ZONES.get(code, "UTC"))
+    cutoff = (utc_now() - timedelta(days=days)).isoformat()
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT wait_minutes, lane_type, captured_at
+        FROM samples
+        WHERE airport_code = ? AND captured_at >= ?
+        ORDER BY captured_at ASC
+        """,
+        (code, cutoff),
+    )
+    rows = cur.fetchall()
+    conn.close()
+
+    std = [{"sum": 0.0, "n": 0} for _ in range(24)]
+    pre = [{"sum": 0.0, "n": 0} for _ in range(24)]
+    heat = [[{"sum": 0.0, "n": 0} for _ in range(24)] for _ in range(7)]
+    latest = None  # (wait, hour)
+    for wait_minutes, lane_type, captured_at in rows:
+        try:
+            wait = clamp_wait_minutes(float(wait_minutes))
+            captured = datetime.fromisoformat(str(captured_at))
+            if captured.tzinfo is None:
+                captured = captured.replace(tzinfo=timezone.utc)
+            local = captured.astimezone(tz)
+            hour, weekday = local.hour, local.weekday()  # Mon=0
+        except Exception:
+            continue
+        if _lane_type_key(lane_type) == "PRECHECK":
+            pre[hour]["sum"] += wait
+            pre[hour]["n"] += 1
+        else:
+            std[hour]["sum"] += wait
+            std[hour]["n"] += 1
+            heat[weekday][hour]["sum"] += wait
+            heat[weekday][hour]["n"] += 1
+            latest = (wait, hour)
+
+    def avg(bucket):
+        return round(bucket["sum"] / bucket["n"], 1) if bucket["n"] else None
+
+    hours = [
+        {"hour": h, "standard": avg(std[h]), "precheck": avg(pre[h]),
+         "samples": std[h]["n"] + pre[h]["n"]}
+        for h in range(24)
+    ]
+    heatmap = [[avg(heat[d][h]) for h in range(24)] for d in range(7)]
+    now = {"standard": latest[0] if latest else None,
+           "hour": latest[1] if latest else None}
+    return jsonify(
+        {
+            "airport": code,
+            "days": days,
+            "timezone": AIRPORT_TIME_ZONES.get(code, "UTC"),
+            "generated_at": utc_now().isoformat(),
+            "now": now,
+            "hours": hours,
+            "heatmap": heatmap,
+        }
+    )
+
 @app.route("/api/history-24h-average")
 def api_history_24h_average():
     code = request.args.get("airport", "PHL").upper()
