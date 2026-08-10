@@ -902,6 +902,60 @@ AIRPORT_PAGE_GUIDES = {
             {"label": "DCA TSA PreCheck enrollment", "url": "https://ir.clearme.com/news-events/press-releases/detail/112/clear-an-official-tsa-precheck-enrollment-provider"},
         ],
     },
+    "IAD": {
+        "tips": [
+            "Pick your checkpoint by airline: the East checkpoint (the only one open 24 hours) feeds United at Concourses C and D plus the international carriers on Concourse A, while the West checkpoint serves Concourse B (American, Delta, Southwest, Frontier). Both feed the same AeroTrain, so if one line is long you can walk over to the other and lose only a few minutes.",
+            "Use PreCheck or CLEAR to skip the main lines: IAD has a dedicated TSA PreCheck checkpoint located between the East and West checkpoints, and CLEAR kiosks near the West and East checkpoints. Note the dedicated PreCheck lane and the West checkpoint keep limited hours (roughly 4 a.m.-9 p.m.), so on very early or late flights plan to use the 24-hour East checkpoint.",
+            "Build in time for the AeroTrain and, especially, for Concourse D. The underground AeroTrain reaches Concourses A, B and C in under two minutes per hop, but Concourse D is NOT on the train and is still reached only by Dulles's slow elevated 'mobile lounges' - give yourself extra buffer for any United flight leaving from a D gate.",
+            "Avoid the peaks: security is heaviest roughly 5-9 a.m. and 3-7 p.m., when the East checkpoint standard lane can run 25-40 minutes (worst on Friday afternoons). The mid-day 10 a.m.-3 p.m. window is usually only about 10-15 minutes.",
+        ],
+        "notes": [
+            "IAD is built around Eero Saarinen's landmark Main Terminal plus four midfield concourses (A, B, C and D). The underground AeroTrain people mover connects the Main Terminal to Concourses A, B and C, while Concourse D remains reachable only by the historic mobile lounges; an AeroTrain extension to D has been announced by MWAA but is not expected to be built until later this decade.",
+            "All screening happens in the Main Terminal on the Departures/Ticketing level, where there are three checkpoints: East (open 24 hours, with after-hours lanes here), West (limited hours), and a dedicated TSA PreCheck checkpoint between them. After you clear any checkpoint you descend to the AeroTrain for Concourses A/B/C, or take a mobile lounge for Concourse D.",
+            "Dulles is United Airlines' hub for the Washington, D.C. region and a major transatlantic gateway. United operates from Concourses C and D and accounts for the bulk of IAD's flights and dozens of international routes, with United Clubs at both C and D.",
+        ],
+        "terminal_notes": [
+            "Checkpoint-to-concourse: the East checkpoint serves United (Concourses C and D) and the international carriers on Concourse A; the West checkpoint serves Concourse B. Because both connect to the same AeroTrain, a long queue at one checkpoint can be swapped for the other with only about a 3-5 minute walk.",
+            "AeroTrain vs. shuttle: the AeroTrain runs a 'question-mark' route from the Main Terminal - trains head to Concourses A and C in one direction and to B in the other. Concourse D has no train station and depends entirely on the aging mobile lounges, which is IAD's biggest structural weak point until the planned AeroTrain extension is finished.",
+            "Bottlenecks cluster at the East checkpoint during the morning and evening rushes (and Friday afternoons), and at customs for international arrivals - most arriving international passengers must clear the International Arrivals Building and do not ride the AeroTrain.",
+        ],
+        "airline_notes": [
+            "United is the dominant hub carrier, flying from Concourses C and D to most of IAD's domestic destinations and a large international network; its United Clubs and the heaviest connecting traffic are on those two concourses.",
+            "Concourse A is largely international/foreign-flag carriers (for example Air France-KLM, TAP Air Portugal, EgyptAir, Etihad and Virgin Atlantic), while Concourse B mixes American, Delta and low-cost carriers such as Southwest and Frontier with international airlines including British Airways, Lufthansa and Turkish.",
+        ],
+        "links": [
+            {"label": "Official IAD security wait times", "url": "https://www.flydulles.com/security-wait-times"},
+            {"label": "IAD airport & terminal maps (MWAA)", "url": "https://www.flydulles.com/travel-information/airport-and-terminal-maps"},
+            {"label": "Dulles Metrorail (Silver Line) station", "url": "https://www.flydulles.com/metro"},
+        ],
+    },
+    "IAH": {
+        "tips": [
+            "If you are connecting through United's hub, you usually do not need to re-clear security to change terminals: the free Skyway elevated train (the airside people mover formerly branded TerminaLink) runs post-security about every two minutes and links Terminals A, B, C and D/E in roughly four minutes end to end. Only exit to the landside Subway if you must re-check in or reach a different check-in lobby.",
+            "Aim for off-peak windows to shorten your wait. Checkpoints are busiest during United's morning departure bank around 6-9 a.m. and again 4-7 p.m., and Sunday is the heaviest day; lines are lightest before 6 a.m., from about 10 a.m. to noon, and after 8 p.m.",
+            "Use TSA PreCheck or CLEAR to skip the standard lines: PreCheck lanes operate in Terminals A, C (north), D and E, while CLEAR is available in Terminal A (north), Terminal C and Terminal E. Confirm your airline's terminal first, since not every checkpoint offers both and some run reduced hours.",
+            "Plan to arrive about two hours before a domestic flight and three hours before an international departure from Terminal D or E, adding a buffer on Sundays and around holidays when peak waits can climb well past 30 minutes.",
+        ],
+        "notes": [
+            "IAH is built around five terminals - A, B, C, D and E - arranged in a horseshoe, and it is one of United Airlines' largest hubs. United runs domestic flights from Terminals B, C and E and its international flights from Terminal E, while Terminal A handles most other domestic carriers and Terminal D is the primary international gateway.",
+            "Security screening is decentralized rather than in one central hall: each terminal has its own TSA checkpoint, and Terminals A and C each have two (a north and a south checkpoint). Confirm your terminal and gate before choosing where to enter, because clearing the wrong checkpoint can mean a long walk or a train ride to reach your gate.",
+            "Terminal B has been in a multi-year United-led redevelopment, and during the work its check-in has been relocated - United Express regional passengers ticketed out of Terminal B generally check in at Terminal C and reach the regional gates via the airside Skyway. Verify your check-in location with United before you arrive.",
+        ],
+        "terminal_notes": [
+            "Checkpoint layout: Terminal A has North (gates A1-A15) and South (A17-A30) checkpoints; Terminal C has North (C1-C15) and South (C29-C45) checkpoints; Terminals D and E each have a single main checkpoint. Some checkpoints, notably in Terminals A and D, keep reduced hours, so an early-morning or late-night flight may be routed to a different open checkpoint.",
+            "Two different trains connect the terminals and the distinction matters: the Skyway is the elevated, post-security (airside) train linking Terminals A, B, C and D/E, so connecting passengers stay inside security. The Subway is the underground, pre-security (landside) train serving the same terminals plus the Airport Marriott, running roughly 3:15 a.m. to 12:15 a.m. - use it only if you must re-enter security.",
+            "The international operation is the main pinch point: all arriving international passengers clear U.S. customs and immigration in the shared D/E federal inspection hall, and Terminal D's foreign-carrier bank combined with United's Terminal E departures can crowd those checkpoints midday and in the evening. Build in extra time if you are connecting through the D/E complex.",
+        ],
+        "airline_notes": [
+            "United Airlines anchors IAH as a primary hub, operating from Terminals B (United Express regional), C (mainline domestic) and E (domestic and international). United's international flights depart from Terminal E, which connects directly to the Terminal D arrivals facilities.",
+            "Terminal A is home to the non-United domestic carriers - including American, Delta, Alaska, Frontier, JetBlue, Spirit and Volaris - while Terminal D, the Mickey Leland International Terminal, hosts foreign-flag international airlines such as Lufthansa, British Airways, Air France, KLM, Emirates, Qatar Airways, Singapore Airlines and Turkish Airlines.",
+        ],
+        "links": [
+            {"label": "Official IAH security wait times", "url": "https://www.fly2houston.com/iah/security"},
+            {"label": "IAH Skyway & Subway terminal train map", "url": "https://www.fly2houston.com/iah/airport-maps/skyway-and-subway/"},
+            {"label": "IAH ground transportation (bus, rideshare, rental cars)", "url": "https://www.fly2houston.com/iah/ground-transportation/"},
+        ],
+    },
 }
 
 AIRPORT_STATUS_NOTICES = {}
