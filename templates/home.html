@@ -204,6 +204,39 @@
     </div>
   </section>
 
+  <section class="dash-stats" aria-label="Network status at a glance">
+    <div class="dash-lead">
+      <span class="dash-eyebrow">Live network · right now</span>
+      <span class="dash-avg"><b class="dash-avg-num">{{ overall_average|round|int }}</b><span class="dash-avg-unit">min</span><span class="dash-avg-cap">national average wait</span></span>
+    </div>
+    <div class="dash-tiles">
+      <div class="dash-tile">
+        <span class="dt-label">Airports tracked</span>
+        <span class="dt-value">{{ airport_summaries|length }}</span>
+        <span class="dt-sub">{{ live_count }} live feed{{ 's' if live_count != 1 }} · {{ estimated_count }} estimated</span>
+      </div>
+      {% if slowest_airport %}
+      <div class="dash-tile">
+        <span class="dt-label">Busiest now</span>
+        <span class="dt-value">{{ slowest_airport.code }}</span>
+        <span class="dt-sub">{{ slowest_airport.current_wait|round|int }} min standard</span>
+      </div>
+      {% endif %}
+      {% if fastest_airport %}
+      <div class="dash-tile">
+        <span class="dt-label">Calmest now</span>
+        <span class="dt-value">{{ fastest_airport.code }}</span>
+        <span class="dt-sub">{{ fastest_airport.current_wait|round|int }} min · great time to fly</span>
+      </div>
+      {% endif %}
+      <div class="dash-tile">
+        <span class="dt-label">Rising lines</span>
+        <span class="dt-value">{{ airport_summaries|selectattr('trend','equalto','rising')|list|length }}</span>
+        <span class="dt-sub">airports trending up</span>
+      </div>
+    </div>
+  </section>
+
   <section class="content-section" aria-labelledby="live-board-title">
     <div class="section-heading">
       <div>

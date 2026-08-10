@@ -4825,3 +4825,18 @@ html[data-theme="midnight"] .source-card .mode { color:var(--signal); }
 /* board table + app surfaces on dark */
 html[data-theme="midnight"] .airport-board { background: rgba(255,255,255,.025); }
 html[data-theme="midnight"] .airport-row:hover { background: rgba(255,255,255,.06); }
+
+/* Homepage dashboard stat tiles (from the concept) */
+.dash-stats{margin:4px 0 10px}
+.dash-lead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.dash-eyebrow{font-family:var(--mono);text-transform:uppercase;letter-spacing:.2em;font-size:.72rem;color:var(--signal)}
+.dash-avg{display:inline-flex;align-items:baseline;gap:8px}
+.dash-avg-num{font-family:var(--display);font-size:2.4rem;line-height:.9;color:var(--ink)}
+.dash-avg-unit{font-family:var(--mono);color:var(--muted);font-size:.85rem}
+.dash-avg-cap{font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;font-size:.7rem;color:var(--muted)}
+.dash-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:760px){.dash-tiles{grid-template-columns:repeat(2,1fr)}}
+.dash-tile{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;box-shadow:var(--shadow)}
+.dash-tile .dt-label{font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;font-size:.66rem;color:var(--muted)}
+.dash-tile .dt-value{font-family:var(--display);font-size:1.8rem;line-height:1;color:var(--ink)}
+.dash-tile .dt-sub{font-size:.8rem;color:var(--ink-soft)}
