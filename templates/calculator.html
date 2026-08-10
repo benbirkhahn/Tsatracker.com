@@ -37,6 +37,8 @@
       <a href="/when-should-i-leave" aria-current="page">Leave-time tool</a>
       <a href="/guide/tsa-wait-times">Guides</a>
       <a href="/methodology">Methodology</a>
+      <a href="/alerts">Alerts</a>
+      <a href="/pro">Pro</a>
     </nav>
   </div>
 </header>
@@ -87,6 +89,12 @@
       <div class="verdict ok" id="verdict"></div>
       <div class="bk" id="bk"></div>
     </div>
+  </div>
+
+  <div class="timeline-wrap" id="timelineWrap" hidden>
+    <div class="timeline-head"><span>Your trip, to scale</span><span id="timelineCap"></span></div>
+    <div class="timeline" id="timeline" aria-hidden="true"></div>
+    <div class="timeline-legend" id="timelineLegend"></div>
   </div>
 
   <div class="upsell" id="upsell">
@@ -445,6 +453,19 @@ function calc(){
     document.getElementById("bk").innerHTML=rows.map(function(r){
       return '<div class="bk-row"><span>'+r[0]+'</span><span>'+r[1]+' min</span></div>';
     }).join("");
+
+    // Proportional trip timeline (same real numbers as the breakdown above)
+    var segs=[{l:"Drive",m:drive,c:"#5aa0ef"},{l:(pre?"PreCheck":"Security"),m:sec,c:"var(--signal)"}];
+    if(bagT)segs.push({l:"Bag drop",m:bagT,c:"var(--warning)"});
+    segs.push({l:"Walk",m:walk,c:"#8b9bb0"},{l:"Gate buffer",m:buf,c:"#a78bfa"});
+    document.getElementById("timeline").innerHTML=segs.map(function(s){
+      return '<span class="tl-seg" style="flex:'+s.m+' 1 0;background:'+s.c+'" title="'+s.l+' '+s.m+' min"></span>';
+    }).join("");
+    document.getElementById("timelineLegend").innerHTML=segs.map(function(s){
+      return '<span class="tl-key"><i style="background:'+s.c+'"></i>'+s.l+' <b>'+s.m+'m</b></span>';
+    }).join("");
+    document.getElementById("timelineCap").textContent="At the airport ~"+fmt(leaveAt+drive)+" · "+total+" min door-to-gate";
+    document.getElementById("timelineWrap").hidden=false;
 
     var v=document.getElementById("verdict");
     if(!source.live){v.className="verdict warn";v.textContent="Planning range - live source unavailable. Recheck before leaving.";}

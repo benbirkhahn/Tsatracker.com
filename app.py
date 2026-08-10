@@ -1234,6 +1234,8 @@ def add_crawl_control_headers(response):
         response.headers.setdefault("X-Robots-Tag", "noindex")
     if request.path in {"/link-graph", "/wide-link-graph"}:
         response.headers.setdefault("X-Robots-Tag", "noindex, nofollow")
+    if request.path in {"/alerts", "/pro"}:
+        response.headers.setdefault("X-Robots-Tag", "noindex")
     return response
 
 
@@ -2149,6 +2151,30 @@ def compute_airport_trends(window_minutes: int = 30) -> Dict[str, Dict]:
 TREND_ARROWS = {"rising": "↑", "falling": "↓", "steady": "→"}
 
 
+# Coarse US regions for the airport directory filter (client-side chips).
+AIRPORT_REGIONS = {
+    "SEA": "W", "SFO": "W", "LAX": "W", "LAS": "W", "DEN": "W",
+    "ORD": "MW", "DTW": "MW",
+    "DFW": "S", "IAH": "S",
+    "ATL": "SE", "CLT": "SE", "MCO": "SE", "MIA": "SE", "JAX": "SE",
+    "PHL": "NE", "BOS": "NE", "BWI": "NE", "IAD": "NE", "DCA": "NE",
+    "JFK": "NE", "EWR": "NE", "LGA": "NE",
+}
+AIRPORT_REGION_FILTERS = [
+    ("all", "All"), ("W", "West"), ("MW", "Midwest"),
+    ("S", "South"), ("SE", "Southeast"), ("NE", "Northeast"),
+]
+
+
+def _precheck_wait_from_rows(rows: List[Dict]) -> Optional[int]:
+    """Average PreCheck-lane wait from snapshot rows, or None when no PreCheck lane."""
+    pre = [r for r in rows if str(r.get("lane_type") or "STANDARD").upper() == "PRECHECK"]
+    if not pre:
+        return None
+    avg = average_wait_from_rows(pre)
+    return int(round(avg)) if avg and avg > 0 else None
+
+
 def build_airport_overview_context() -> Dict:
     snapshot = latest_snapshot()
     trends = compute_airport_trends()
@@ -2166,6 +2192,7 @@ def build_airport_overview_context() -> Dict:
             source_type = "live_direct"
             checkpoint_count = len({row.get("checkpoint") for row in rows if row.get("checkpoint")})
             source_label = f"{checkpoint_count} checkpoint{'s' if checkpoint_count != 1 else ''}"
+            precheck_wait = _precheck_wait_from_rows(rows)
             live_count += 1
         else:
             payload = normalized_current_wait_for_code(code)
@@ -2174,6 +2201,7 @@ def build_airport_overview_context() -> Dict:
             updated_at = current.get("timestamp", utc_now().isoformat())
             source_type = payload.get("sourceType", "estimated_fallback")
             source_label = "Estimated fallback"
+            precheck_wait = None
             estimated_count += 1
 
         total_wait += current_wait
@@ -2197,6 +2225,8 @@ def build_airport_overview_context() -> Dict:
                 "trend_arrow": TREND_ARROWS.get(trends.get(code, {}).get("direction", "steady"), "→"),
                 "map_lat": map_point.get("lat"),
                 "map_lng": map_point.get("lng"),
+                "precheck_wait": precheck_wait,
+                "region": AIRPORT_REGIONS.get(code, ""),
             }
         )
 
@@ -4891,6 +4921,34 @@ def about_page():
         live_airports=LIVE_AIRPORTS,
         copy_updated_label=editorial_review_date_label("/about"),
         copy_updated_iso=editorial_review_date_iso("/about"),
+    )
+
+
+@app.route("/alerts")
+def alerts_page():
+    seo = build_page_seo(
+        title="Wait-Time Alerts (Coming Soon) | TSA Tracker",
+        description="Push and email alerts for TSA security wait times are on the TSA Tracker roadmap — get notified when your airport's line crosses your threshold or starts rising.",
+        canonical_path="/alerts",
+    )
+    return render_template(
+        "alerts.html",
+        seo=seo,
+        monetization=get_monetization_context(),
+    )
+
+
+@app.route("/pro")
+def pro_page():
+    seo = build_page_seo(
+        title="TSA Tracker Pro & API (Coming Soon)",
+        description="A Pro tier and a public wait-time API are on the TSA Tracker roadmap. The live board, airport pages, and leave-time tool stay free, always.",
+        canonical_path="/pro",
+    )
+    return render_template(
+        "pro.html",
+        seo=seo,
+        monetization=get_monetization_context(),
     )
 
 

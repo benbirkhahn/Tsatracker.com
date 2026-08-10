@@ -39,6 +39,8 @@
       <a href="/best-time-to-get-to-the-airport">Timing</a>
       <a href="/guide/tsa-wait-times">Guides</a>
       <a href="/methodology">Methodology</a>
+      <a href="/alerts">Alerts</a>
+      <a href="/pro">Pro</a>
     </nav>
   </div>
 </header>
@@ -65,34 +67,45 @@
         <p class="section-kicker">Current network</p>
         <h2 class="section-title" id="directory-board-title">All reporting airports</h2>
       </div>
+      <div class="apt-toolbar" role="group" aria-label="Filter airports by region">
+        <button class="apt-chip on" type="button" data-region="all" aria-pressed="true">All</button>
+        <button class="apt-chip" type="button" data-region="W" aria-pressed="false">West</button>
+        <button class="apt-chip" type="button" data-region="MW" aria-pressed="false">Midwest</button>
+        <button class="apt-chip" type="button" data-region="S" aria-pressed="false">South</button>
+        <button class="apt-chip" type="button" data-region="SE" aria-pressed="false">Southeast</button>
+        <button class="apt-chip" type="button" data-region="NE" aria-pressed="false">Northeast</button>
+      </div>
     </div>
 
-    <div class="airport-board">
-      <div class="board-columns" aria-hidden="true">
-        <span>Airport</span>
-        <span>Location</span>
-        <span>Source</span>
-        <span>Wait / trend</span>
-      </div>
-      <div class="board" id="board" aria-live="polite">
-        {% for a in airport_summaries %}
-        <a class="row airport-row{% if a.is_closed %} closed{% endif %}" href="{{ a.href }}"
-           data-code="{{ a.code }}" data-city="{{ a.city|lower }} {{ a.name|lower }}">
-          <span class="airport-code">{{ a.code }}</span>
-          <span class="airport-place">
-            <strong>{{ a.city or a.name }}</strong>
-            <small>{{ a.name }}</small>
-          </span>
-          {% if a.is_live %}<span class="source source-live">{{ a.source_label }}</span>
-          {% else %}<span class="source est">Estimated fallback</span>{% endif %}
-          <span class="airport-wait w-{{ a.tier }}">
-            {% if a.is_closed %}<strong>closed</strong>
-            {% else %}<strong>{{ a.current_wait|round|int }}</strong><small>min</small>{% if a.is_live %}<span aria-label="{{ a.trend }}">{{ a.trend_arrow }}</span>{% endif %}{% endif %}
-          </span>
-        </a>
-        {% endfor %}
-      </div>
+    <div class="apt-grid" id="board" aria-live="polite">
+      {% for a in airport_summaries %}
+      <a class="apt-card{% if a.is_closed %} closed{% endif %}" href="{{ a.href }}"
+         data-code="{{ a.code }}" data-region="{{ a.region }}"
+         data-city="{{ a.city|lower }} {{ a.name|lower }}" data-wait="{{ a.current_wait }}">
+        <div class="apt-card-top">
+          <div class="apt-card-id">
+            <span class="apt-card-code">{{ a.code }}</span>
+            <span class="apt-card-city">{{ a.city or a.name }}</span>
+          </div>
+          {% if a.is_live %}<span class="apt-card-src is-live">Live</span>
+          {% else %}<span class="apt-card-src is-est">Est.</span>{% endif %}
+        </div>
+        <div class="apt-card-mid">
+          {% if a.is_closed %}
+          <span class="apt-card-wait w-dim">closed</span>
+          {% else %}
+          <span class="apt-card-wait w-{{ a.tier }}">{{ a.current_wait|round|int }}</span>
+          <span class="apt-card-unit">min standard{% if a.is_live %} <i class="apt-card-trend" aria-label="{{ a.trend }}">{{ a.trend_arrow }}</i>{% endif %}</span>
+          {% endif %}
+        </div>
+        <div class="apt-card-foot">
+          <span class="apt-card-pre">PreCheck {% if a.precheck_wait is not none %}<b>{{ a.precheck_wait }}m</b>{% else %}<b>&mdash;</b>{% endif %}</span>
+          <span class="apt-card-spark" data-spark aria-hidden="true"></span>
+        </div>
+      </a>
+      {% endfor %}
     </div>
+    <p class="board-note directory-empty" id="directory-empty" hidden>No tracked airport matches that filter.</p>
   </section>
 
   <section class="content-section directory-explainer" aria-labelledby="directory-explainer-title">
@@ -157,20 +170,55 @@
 <script>
 (function(){
   var q=document.getElementById("q");
-  var rows=document.querySelectorAll("#board .row");
+  var grid=document.getElementById("board");
+  if(!grid)return;
+  var cards=Array.prototype.slice.call(grid.querySelectorAll(".apt-card"));
+  var chips=Array.prototype.slice.call(document.querySelectorAll(".apt-chip"));
   var status=document.getElementById("directory-search-status");
-  q.addEventListener("input",function(){
-    var term=q.value.trim().toLowerCase();
-    var count=0;
-    var exactCode=Array.prototype.some.call(rows,function(r){return r.dataset.code.toLowerCase()===term;});
-    rows.forEach(function(r){
-      var code=r.dataset.code.toLowerCase();
-      var hit=!term||(exactCode?code===term:code.indexOf(term)>-1||r.dataset.city.indexOf(term)>-1);
-      r.style.display=hit?"":"none";
-      if(hit)count+=1;
+  var empty=document.getElementById("directory-empty");
+  var region="all";
+  function apply(){
+    var term=(q.value||"").trim().toLowerCase();
+    var exactCode=cards.some(function(c){return c.dataset.code.toLowerCase()===term;});
+    var n=0;
+    cards.forEach(function(c){
+      var code=c.dataset.code.toLowerCase();
+      var mText=!term||(exactCode?code===term:code.indexOf(term)>-1||c.dataset.city.indexOf(term)>-1);
+      var mRegion=region==="all"||c.dataset.region===region;
+      var show=mText&&mRegion;
+      c.style.display=show?"":"none";
+      if(show)n+=1;
     });
-    status.textContent=count+" airport"+(count===1?"":"s")+" shown";
+    if(status)status.textContent=n+" airport"+(n===1?"":"s")+" shown";
+    if(empty)empty.hidden=n>0;
+  }
+  if(q)q.addEventListener("input",apply);
+  chips.forEach(function(ch){
+    ch.addEventListener("click",function(){
+      chips.forEach(function(x){x.classList.remove("on");x.setAttribute("aria-pressed","false");});
+      ch.classList.add("on");ch.setAttribute("aria-pressed","true");
+      region=ch.dataset.region;apply();
+    });
   });
+  // Sparklines from the real 30-day typical-day curve (one cached call).
+  function tierColor(t){return t==="med"?"var(--warning)":(t==="high"||t==="crit")?"var(--danger)":"var(--live)";}
+  function draw(series,color){
+    var w=88,h=26,pad=3,mn=Math.min.apply(null,series),mx=Math.max.apply(null,series),rng=(mx-mn)||1;
+    var pts=series.map(function(v,i){return [pad+i*(w-2*pad)/(series.length-1),h-pad-((v-mn)/rng)*(h-2*pad)];});
+    var line=pts.map(function(p,i){return (i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1);}).join(" ");
+    var last=pts[pts.length-1];
+    return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" style="display:block"><path d="'+line+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="2.5" fill="'+color+'"/></svg>';
+  }
+  fetch("/api/network-history-24h-average?days=30").then(function(r){return r.json();}).then(function(d){
+    var by={};(d.airports||[]).forEach(function(a){by[a.code]=(a.rows||[]).map(function(r){return r.avg_wait;});});
+    cards.forEach(function(c){
+      var s=by[c.dataset.code],slot=c.querySelector("[data-spark]");
+      if(s&&s.length>1&&slot){
+        var t=c.querySelector(".apt-card-wait"),m=t?(t.className.match(/w-(\w+)/)||[]):[];
+        slot.innerHTML=draw(s,tierColor(m[1]||"low"));
+      }
+    });
+  }).catch(function(){});
 })();
 </script>
 <script type="application/ld+json">

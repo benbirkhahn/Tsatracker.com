@@ -4840,3 +4840,67 @@ html[data-theme="midnight"] .airport-row:hover { background: rgba(255,255,255,.0
 .dash-tile .dt-label{font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;font-size:.66rem;color:var(--muted)}
 .dash-tile .dt-value{font-family:var(--display);font-size:1.8rem;line-height:1;color:var(--ink)}
 .dash-tile .dt-sub{font-size:.8rem;color:var(--ink-soft)}
+
+/* Airport directory: region chips + card grid (from the concept) */
+.apt-toolbar{display:flex;flex-wrap:wrap;gap:8px}
+.apt-chip{font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;font-size:.7rem;color:var(--ink-soft);background:var(--white);border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer;transition:color .15s,border-color .15s,background .15s}
+.apt-chip:hover{color:var(--ink);border-color:var(--line-strong)}
+.apt-chip.on{color:#06231d;background:var(--signal);border-color:var(--signal);font-weight:700}
+.apt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.apt-card{display:flex;flex-direction:column;background:var(--white);border:1px solid var(--line);border-radius:16px;padding:16px 17px;text-decoration:none;box-shadow:var(--shadow);transition:transform .15s ease,border-color .15s ease}
+.apt-card:hover{transform:translateY(-3px);border-color:var(--signal)}
+.apt-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.apt-card-id{display:flex;flex-direction:column;gap:2px;min-width:0}
+.apt-card-code{font-family:var(--display);font-weight:700;font-size:1.5rem;line-height:1;letter-spacing:.01em;color:var(--ink)}
+.apt-card-city{font-size:.82rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.apt-card-src{font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;font-size:.6rem;font-weight:700;padding:4px 8px;border-radius:999px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.apt-card-src::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.apt-card-src.is-live{color:var(--live);background:var(--live-soft)}
+.apt-card-src.is-est{color:var(--muted);background:rgba(255,255,255,.05)}
+.apt-card-mid{display:flex;align-items:baseline;gap:8px;margin-top:16px}
+.apt-card-wait{font-family:var(--mono);font-size:2.3rem;line-height:.9;letter-spacing:-.04em;font-weight:700}
+.apt-card-unit{font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;font-size:.66rem;color:var(--muted)}
+.apt-card-trend{font-style:normal;color:var(--ink-soft)}
+.apt-card-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.apt-card-pre{font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;font-size:.66rem;color:var(--muted)}
+.apt-card-pre b{color:var(--ink);font-size:.8rem}
+.apt-card-spark{display:block;width:88px;height:26px;opacity:.9}
+.directory-empty{text-align:center;padding:30px 0}
+@media(max-width:520px){.apt-grid{grid-template-columns:repeat(2,1fr);gap:10px}.apt-card{padding:13px}.apt-card-code{font-size:1.3rem}.apt-card-wait{font-size:2rem}.apt-card-spark{display:none}}
+
+/* Leave-time planner: proportional trip timeline (from the concept) */
+.timeline-wrap{margin:0 0 18px;background:var(--white);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow)}
+.timeline-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;font-size:.66rem;color:var(--muted)}
+.timeline-head span:last-child{color:var(--signal);letter-spacing:.04em}
+.timeline{display:flex;width:100%;height:22px;gap:2px}
+.tl-seg{display:block;min-width:3px;border-radius:3px}
+.timeline-legend{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:12px}
+.tl-key{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;color:var(--ink-soft)}
+.tl-key i{width:11px;height:11px;border-radius:3px;display:inline-block;flex:0 0 auto}
+.tl-key b{color:var(--ink);font-family:var(--mono)}
+
+/* Coming-soon pages: Alerts + Pro/API */
+.soon-badge{display:inline-block;font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;font-size:.66rem;font-weight:700;color:var(--signal);background:var(--live-soft);border:1px solid rgba(52,224,176,.35);border-radius:999px;padding:5px 12px;margin-top:14px}
+.soon-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.soon-cta{display:inline-flex;align-items:center;gap:10px;justify-content:space-between;font-weight:600;font-size:.92rem;color:var(--ink);background:var(--white);border:1px solid var(--line);border-radius:12px;padding:12px 16px;text-decoration:none;transition:border-color .15s,transform .15s}
+.soon-cta:hover{border-color:var(--signal);transform:translateY(-2px)}
+.soon-cta.primary{background:var(--signal);border-color:var(--signal);color:#06231d}
+.soon-cta.full{width:100%;margin-top:14px}
+.soon-preview{display:flex;flex-wrap:wrap;gap:10px}
+.soon-chan{font-family:var(--mono);font-size:.8rem;color:var(--ink);background:var(--white);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+.soon-chan.is-dim{color:var(--muted);border-style:dashed}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:820px){.pricing-grid{grid-template-columns:1fr}}
+.pricing-card{position:relative;display:flex;flex-direction:column;background:var(--white);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:var(--shadow)}
+.pricing-card.featured{border-color:var(--signal)}
+.pricing-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.pricing-head h3{font-family:var(--display);font-size:1.4rem;color:var(--ink);margin:0}
+.pricing-price{font-family:var(--mono);font-size:1.5rem;font-weight:700;color:var(--signal);text-align:right}
+.pricing-price small{display:block;font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.pricing-tag{color:var(--ink-soft);font-size:.9rem;margin:6px 0 14px}
+.pricing-feats{list-style:none;padding:0;margin:0 0 auto;display:flex;flex-direction:column;gap:9px}
+.pricing-feats li{position:relative;padding-left:20px;font-size:.9rem;color:var(--ink-soft);line-height:1.4}
+.pricing-feats li::before{content:"";position:absolute;left:0;top:.5em;width:8px;height:8px;border-radius:2px;background:var(--signal)}
+.soon-badge.card{position:absolute;top:-11px;right:16px;margin:0}
+.api-sketch{background:var(--paper-deep);border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow-x:auto;font-family:var(--mono);font-size:.82rem;line-height:1.7;color:var(--ink-soft);margin:4px 0 12px}
+.api-sketch code{color:var(--ink-soft)}
