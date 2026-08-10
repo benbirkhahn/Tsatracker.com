@@ -4696,3 +4696,132 @@ body.arrival-map-is-expanded {
   border-color: var(--signal);
   background: var(--signal);
 }
+
+/* ============================================================
+   Shared content pages (base.html + .page-prose)
+   Ported legacy content onto the new design system.
+   ============================================================ */
+.site-links a.is-active { color: var(--signal); }
+.site-links a.is-active::after { opacity: 1; }
+
+.page-prose {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 46px 0 64px;
+  color: var(--ink-soft);
+  font-family: var(--sans);
+}
+.page-prose > *:first-child { margin-top: 0; }
+.prose-eyebrow {
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .22em;
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--signal);
+  margin: 0 0 10px;
+}
+.page-prose h1 {
+  font-family: var(--display);
+  text-transform: uppercase;
+  letter-spacing: .01em;
+  line-height: 1.02;
+  font-size: clamp(2.2rem, 4.6vw, 3.2rem);
+  color: var(--ink);
+  margin: 0 0 12px;
+}
+.prose-lead { color: var(--muted); font-size: 1.02rem; margin: 0 0 30px; }
+.page-prose h2 {
+  font-family: var(--display);
+  text-transform: uppercase;
+  letter-spacing: .02em;
+  font-size: 1.35rem;
+  color: var(--ink);
+  margin: 40px 0 12px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.page-prose h3 { font-family: var(--sans); font-weight: 600; font-size: 1.08rem; color: var(--ink); margin: 26px 0 8px; }
+.page-prose p { font-size: 1.02rem; line-height: 1.72; margin: 0 0 16px; }
+.page-prose a { color: var(--signal); text-decoration: none; border-bottom: 1px solid rgba(239,91,53,.35); }
+.page-prose a:hover { border-bottom-color: var(--signal); }
+.page-prose strong { color: var(--ink); font-weight: 600; }
+.page-prose ul.content-list { margin: 8px 0 18px; padding: 0; list-style: none; }
+.page-prose ul.content-list li {
+  position: relative; padding-left: 22px; margin: 0 0 10px;
+  font-size: 1.0rem; line-height: 1.65;
+}
+.page-prose ul.content-list li::before {
+  content: ""; position: absolute; left: 2px; top: .62em;
+  width: 7px; height: 7px; border-radius: 2px; background: var(--signal); transform: rotate(45deg);
+}
+
+.source-card-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px; margin: 18px 0 8px;
+}
+.source-card {
+  background: var(--white); border: 1px solid var(--line); border-radius: 12px;
+  padding: 14px 16px; box-shadow: var(--shadow);
+}
+.source-card .code { font-family: var(--display); font-weight: 700; font-size: 1.25rem; color: var(--ink); letter-spacing: .03em; }
+.source-card .mode {
+  display: inline-block; margin-top: 10px; font-family: var(--mono);
+  font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: var(--live);
+}
+
+/* ============================================================
+   MIDNIGHT dark theme (from the upgrade concept)
+   Applied via <html data-theme="midnight">. Dark navy + teal.
+   ============================================================ */
+html[data-theme="midnight"] {
+  /* Base tokens — the :root aliases (--surface/--bg/--text/--border/--dim/
+     --green/--amber/--red) are defined as var() of these, so overriding the
+     base tokens here cascades the whole site to dark automatically. */
+  --paper:#0a0e15; --paper-deep:#0d121b; --white:#141b24;
+  --ink:#f3f6fa; --ink-soft:#aab6c4; --muted:#6f7d8f;
+  --line:rgba(255,255,255,.09); --line-strong:rgba(255,255,255,.18);
+  --navy:#0d121b; --navy-2:#14263c;
+  --signal:#22d3b8; --signal-dark:#38e0c6;
+  --live:#34e0b0; --live-soft:rgba(52,224,176,.15);
+  --warning:#f2c36e; --warning-soft:rgba(242,195,110,.16);
+  --danger:#ff6b6b; --danger-soft:rgba(255,107,107,.16);
+  --info:#5aa0ef;
+  --shadow:0 18px 48px rgba(0,0,0,.45);
+  color-scheme:dark;
+  background:#0a0e15;
+}
+html[data-theme="midnight"] body { background:#0a0e15; color:var(--ink); }
+html[data-theme="midnight"] .page-main { background:#0a0e15; }
+
+/* header / footer on dark */
+html[data-theme="midnight"] .site-header { background:#0d121b; border-bottom:1px solid var(--line); }
+html[data-theme="midnight"] .site-brand .brand-name { color:var(--ink); }
+html[data-theme="midnight"] .site-brand .brand-tag { color:var(--muted); }
+html[data-theme="midnight"] .site-links a { color:var(--ink-soft); }
+html[data-theme="midnight"] .site-links a:hover,
+html[data-theme="midnight"] .site-links a.is-active { color:var(--signal); }
+html[data-theme="midnight"] .site-footer { background:transparent; border-top:1px solid var(--line); }
+html[data-theme="midnight"] .footer-brand { color:var(--ink); }
+html[data-theme="midnight"] .footer-links a { color:var(--ink-soft); }
+html[data-theme="midnight"] .footer-links a:hover { color:var(--signal); }
+html[data-theme="midnight"] .footer-note { color:var(--muted); }
+
+/* content pages on dark */
+html[data-theme="midnight"] .page-prose { color:var(--ink-soft); }
+html[data-theme="midnight"] .page-prose h1,
+html[data-theme="midnight"] .page-prose h2,
+html[data-theme="midnight"] .page-prose h3,
+html[data-theme="midnight"] .page-prose strong { color:var(--ink); }
+html[data-theme="midnight"] .prose-eyebrow { color:var(--signal); }
+html[data-theme="midnight"] .prose-lead { color:var(--muted); }
+html[data-theme="midnight"] .page-prose h2 { border-top-color:var(--line); }
+html[data-theme="midnight"] .page-prose a { color:var(--signal); border-bottom-color:rgba(34,211,184,.45); }
+html[data-theme="midnight"] .page-prose ul.content-list li::before { background:var(--signal); }
+html[data-theme="midnight"] .source-card { background:#141b24; border-color:var(--line); box-shadow:none; }
+html[data-theme="midnight"] .source-card .code { color:var(--ink); }
+html[data-theme="midnight"] .source-card .mode { color:var(--signal); }
+
+/* board table + app surfaces on dark */
+html[data-theme="midnight"] .airport-board { background: rgba(255,255,255,.025); }
+html[data-theme="midnight"] .airport-row:hover { background: rgba(255,255,255,.06); }

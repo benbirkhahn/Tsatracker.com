@@ -1291,3 +1291,30 @@ h1, h2, h3, .header-home-link { letter-spacing: 0 !important; }
     transition-duration: .01ms !important;
   }
 }
+
+/* ============================================================
+   MIDNIGHT dark theme — matches tracker.css (navy #0a0e15 + teal).
+   Overrides the light :root when <html data-theme="midnight">.
+   ============================================================ */
+html[data-theme="midnight"]{
+  --bg:#0a0e15; --surface:#141b24; --surface2:#1a222e;
+  --border:rgba(255,255,255,.09); --border2:rgba(255,255,255,.16);
+  --text:#f3f6fa; --muted:#9fb0c6;
+  --amber:#22d3b8; --amber-dim:rgba(34,211,184,.16);
+  --green:#34e0b0; --yellow:#f2c36e; --orange:#f2a54c; --red:#ff6b6b; --blue:#5aa0ef;
+  color-scheme:dark;
+}
+html[data-theme="midnight"] body{background:var(--bg);color:var(--text);}
+
+/* Midnight: re-darken the cards that the light pass forced with !important */
+html[data-theme="midnight"] .card,
+html[data-theme="midnight"] .content-card,
+html[data-theme="midnight"] .network-chart-card,
+html[data-theme="midnight"] .selection-summary,
+html[data-theme="midnight"] .utility-panel,
+html[data-theme="midnight"] .legal-card,
+html[data-theme="midnight"] .custom-flight-search,
+html[data-theme="midnight"] .security-toolkit { background: var(--surface) !important; border-color: var(--border) !important; box-shadow: none !important; }
+html[data-theme="midnight"] .input-wrap input,
+html[data-theme="midnight"] select,
+html[data-theme="midnight"] input { background: var(--surface2); color: var(--text); color-scheme: dark; }
