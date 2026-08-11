@@ -34,25 +34,7 @@
 </head>
 <body>
 
-<header class="site-header">
-  <div class="site-shell site-nav">
-    <a class="site-brand" href="/" aria-label="TSA Tracker home">
-      <span class="brand-mark" aria-hidden="true"><span></span></span>
-      <span class="brand-copy">
-        <span class="brand-name">TSA Tracker</span>
-        <span class="brand-tag">Live airport security intelligence</span>
-      </span>
-    </a>
-    <nav class="site-links" aria-label="Primary navigation">
-      {% set p = request.path if request else '' %}
-      <a href="/airports"{% if p.startswith('/airports') %} class="is-active" aria-current="page"{% endif %}>Airports</a>
-      <a href="/when-should-i-leave"{% if p == '/when-should-i-leave' %} class="is-active" aria-current="page"{% endif %}>Leave-time</a>
-      <a href="/best-time-to-get-to-the-airport"{% if p == '/best-time-to-get-to-the-airport' %} class="is-active" aria-current="page"{% endif %}>Timing</a>
-      <a href="/guide/tsa-wait-times"{% if p.startswith('/guide') %} class="is-active" aria-current="page"{% endif %}>Guides</a>
-      <a href="/methodology"{% if p == '/methodology' %} class="is-active" aria-current="page"{% endif %}>Methodology</a>
-    </nav>
-  </div>
-</header>
+{% include "_site_header.html" %}
 
 <main class="site-shell page-main">
 {% block content %}{% endblock %}

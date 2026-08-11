@@ -1318,3 +1318,39 @@ html[data-theme="midnight"] .security-toolkit { background: var(--surface) !impo
 html[data-theme="midnight"] .input-wrap input,
 html[data-theme="midnight"] select,
 html[data-theme="midnight"] input { background: var(--surface2); color: var(--text); color-scheme: dark; }
+
+/* ── Unified site header (matches tracker.css) ──────────────────────
+   The content/legal pages load this stylesheet instead of tracker.css.
+   These self-contained rules (hardcoded colors, only --display/--mono
+   vars, both defined above) style the shared templates/_site_header.html
+   partial so the header is identical across every page. */
+.site-shell { width: min(1180px, calc(100% - 40px)); margin-inline: auto; }
+.site-header {
+  position: sticky; top: 0; z-index: 40;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(16, 34, 56, 0.96); color: #fff; backdrop-filter: blur(14px);
+}
+.site-nav { display: grid; grid-template-columns: auto 1fr; align-items: center; min-height: 72px; gap: 32px; }
+.site-brand { display: inline-flex; align-items: center; gap: 12px; width: max-content; }
+.brand-mark { position: relative; display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid rgba(255, 255, 255, 0.36); border-radius: 50%; }
+.brand-mark::before, .brand-mark::after { position: absolute; content: ""; background: rgba(255, 255, 255, 0.34); }
+.brand-mark::before { width: 1px; height: 22px; }
+.brand-mark::after { width: 22px; height: 1px; }
+.brand-mark span { position: relative; z-index: 1; width: 8px; height: 8px; border-radius: 50%; background: #4bd4ad; box-shadow: 0 0 0 5px rgba(75, 212, 173, 0.12); animation: status-pulse 2.4s ease-in-out infinite; }
+.brand-copy { display: grid; line-height: 1.05; }
+.brand-name { font-family: var(--display); font-size: 22px; font-weight: 700; letter-spacing: 0.025em; text-transform: uppercase; color: #fff; }
+.brand-tag { margin-top: 4px; color: #aab7c7; font-family: var(--mono); font-size: 8px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
+.site-links { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+.site-links a { border-radius: 4px; color: #cdd6e0; font-size: 13px; font-weight: 600; padding: 9px 12px; transition: background-color 160ms ease, color 160ms ease; }
+.site-links a:hover, .site-links a.is-active, .site-links a[aria-current="page"] { background: rgba(255, 255, 255, 0.1); color: #fff; }
+@keyframes status-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.45; transform: scale(0.78); } }
+@media (max-width: 700px) {
+  .site-shell { width: min(100% - 28px, 1180px); }
+  .site-nav { grid-template-columns: 1fr; gap: 0; padding: 13px 0 10px; }
+  .site-brand { margin-bottom: 9px; }
+  .brand-mark { width: 28px; height: 28px; }
+  .brand-name { font-size: 19px; }
+  .brand-tag { display: none; }
+  .site-links { justify-content: flex-start; flex-wrap: wrap; gap: 2px; padding-bottom: 2px; }
+  .site-links a { flex: 0 0 auto; min-height: 44px; padding: 12px 10px; font-size: 11px; }
+}
