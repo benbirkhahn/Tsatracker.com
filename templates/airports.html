@@ -61,6 +61,22 @@
     </div>
   </section>
 
+  <section class="content-section netcompare" aria-labelledby="netcompare-title">
+    <div class="section-heading">
+      <div>
+        <p class="section-kicker">Typical day &middot; rolling 30-day average</p>
+        <h2 class="section-title" id="netcompare-title">Compare a typical day across the network</h2>
+      </div>
+    </div>
+    <p class="netcompare-lede">Each line is one airport's average standard-lane wait by hour of local day, built from the last 30 days of readings. This is a historical pattern for planning &mdash; not a live reading. Hover the chart to compare airports at any hour.</p>
+    <figure class="netcompare-figure">
+      <div class="netcompare-mount" id="netcompare" data-days="30" role="img" aria-label="Line chart comparing typical hourly TSA wait times across airports over the last 30 days">
+        <p class="netcompare-empty" id="netcompare-empty">Loading the 30-day network comparison&hellip;</p>
+      </div>
+      <figcaption class="netcompare-caption">Standard lanes only. Times shown in each airport's local time zone. Airports without enough recent history are omitted.</figcaption>
+    </figure>
+  </section>
+
   <section class="content-section" aria-labelledby="directory-board-title">
     <div class="section-heading">
       <div>
@@ -219,6 +235,147 @@
       }
     });
   }).catch(function(){});
+})();
+</script>
+<script>
+/* Network comparison chart — self-contained SVG, no external deps.
+   Fed by /api/network-history-24h-average. Matches forecast-chart.js style. */
+(function(){
+  var mount=document.getElementById("netcompare");
+  if(!mount)return;
+  var emptyEl=document.getElementById("netcompare-empty");
+  var days=parseInt(mount.dataset.days,10)||30;
+  var PALETTE=["#5eead4","#fbbf24","#60a5fa","#f87171","#a78bfa","#34d399","#fb7185","#38bdf8","#f97316","#c084fc","#22c55e","#e879f9","#93c5fd","#fde047","#2dd4bf","#fca5a5","#86efac","#fdba74"];
+  var W=960,H=380,L=46,R=18,T=18,B=36,iw=W-L-R,ih=H-T-B;
+  var disabled={};        // codes toggled off
+  var series=[];          // [{code,name,href,color,pts[24]}]
+  var netAvg=[];          // network mean per hour
+
+  function xPix(h){return L+(h/23)*iw;}
+  function yPix(v,ymax){return T+ih-(v/ymax)*ih;}
+  function fill(arr){ // carry-fill nulls both directions
+    var out=arr.slice(),last=null,i;
+    for(i=0;i<24;i++){if(out[i]==null){out[i]=last;}else{last=out[i];}}
+    var next=null;
+    for(i=23;i>=0;i--){if(arr[i]==null){if(next!=null)out[i]=next;}else{next=arr[i];}}
+    for(i=0;i<24;i++){if(out[i]==null)out[i]=0;}
+    return out;
+  }
+  function fmtHour(h){var ap=h<12?"a":"p";var hr=h%12;if(hr===0)hr=12;return hr+ap;}
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+
+  function fail(msg){if(emptyEl){emptyEl.textContent=msg;emptyEl.style.display="block";}}
+
+  fetch("/api/network-history-24h-average?days="+days).then(function(r){return r.json();}).then(function(d){
+    var aps=(d.airports||[]).map(function(a,i){
+      var raw=[];for(var h=0;h<24;h++)raw[h]=null;
+      (a.rows||[]).forEach(function(r){var hh=Number(r.hour);var v=Number(r.avg_wait);if(hh>=0&&hh<24&&isFinite(v))raw[hh]=v;});
+      var samples=(a.rows||[]).reduce(function(s,r){return s+(Number(r.samples)||0);},0);
+      return {code:a.code,name:a.name||a.code,href:a.href||("/airports/"+String(a.code).toLowerCase()+"-tsa-wait-times"),raw:raw,samples:samples};
+    }).filter(function(a){return a.samples>0;});
+    if(!aps.length){fail("Not enough recent history yet to compare airports. Check back soon.");return;}
+    // sort by peak so busiest get the leading colors + legend order
+    aps.sort(function(a,b){return Math.max.apply(null,b.raw.map(Number).filter(isFinite))-Math.max.apply(null,a.raw.map(Number).filter(isFinite));});
+    series=aps.map(function(a,i){return {code:a.code,name:a.name,href:a.href,color:PALETTE[i%PALETTE.length],pts:fill(a.raw)};});
+    for(var h=0;h<24;h++){var s=0,n=0;series.forEach(function(x){s+=x.pts[h];n++;});netAvg[h]=n?s/n:0;}
+    render();
+  }).catch(function(){fail("Network comparison is unavailable right now. The airport cards below still work.");});
+
+  function activeSeries(){return series.filter(function(s){return !disabled[s.code];});}
+  function yMax(){
+    var mx=0;activeSeries().forEach(function(s){s.pts.forEach(function(v){if(v>mx)mx=v;});});
+    netAvg.forEach(function(v){if(!disabled.__avg&&v>mx)mx=v;});
+    mx=Math.max(mx,10);return Math.ceil(mx/5)*5;
+  }
+  function path(pts,ymax){
+    return pts.map(function(v,i){return (i?"L":"M")+xPix(i).toFixed(1)+" "+yPix(v,ymax).toFixed(1);}).join(" ");
+  }
+
+  function render(){
+    if(emptyEl)emptyEl.style.display="none";
+    var ymax=yMax(),i;
+    var gy="";for(i=0;i<=4;i++){var gv=ymax*i/4,gyp=yPix(gv,ymax);gy+='<line class="nc-grid" x1="'+L+'" y1="'+gyp.toFixed(1)+'" x2="'+(W-R)+'" y2="'+gyp.toFixed(1)+'"/><text class="nc-ylab" x="'+(L-8)+'" y="'+(gyp+3).toFixed(1)+'">'+Math.round(gv)+'</text>';}
+    var gx="";[0,3,6,9,12,15,18,21,23].forEach(function(h){var xp=xPix(h);gx+='<text class="nc-xlab" x="'+xp.toFixed(1)+'" y="'+(H-14)+'">'+fmtHour(h)+'</text>';});
+    var lines="";
+    activeSeries().forEach(function(s){
+      lines+='<path class="nc-line" data-code="'+s.code+'" d="'+path(s.pts,ymax)+'" fill="none" stroke="'+s.color+'" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>';
+    });
+    var avgLine=disabled.__avg?"":'<path class="nc-avg" d="'+path(netAvg,ymax)+'" fill="none" stroke="var(--ink, #e8edf4)" stroke-width="2.6" stroke-dasharray="2 5" stroke-linecap="round"/>';
+    var svg=''+
+      '<svg class="nc-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'+
+        '<text class="nc-axis-title" x="'+(L-8)+'" y="'+(T-6)+'">min</text>'+
+        gy+gx+lines+avgLine+
+        '<line class="nc-guide" x1="0" y1="'+T+'" x2="0" y2="'+(T+ih)+'" style="display:none"/>'+
+        '<g class="nc-dots"></g>'+
+      '</svg>'+
+      '<div class="nc-tip" style="display:none"></div>';
+    // legend
+    var chips='<div class="nc-legend" role="group" aria-label="Toggle airports">';
+    chips+='<button type="button" class="nc-chip nc-chip-avg'+(disabled.__avg?" off":"")+'" data-code="__avg" aria-pressed="'+(disabled.__avg?"false":"true")+'"><i style="background:var(--ink,#e8edf4)"></i>Network avg</button>';
+    series.forEach(function(s){
+      chips+='<button type="button" class="nc-chip'+(disabled[s.code]?" off":"")+'" data-code="'+s.code+'" aria-pressed="'+(disabled[s.code]?"false":"true")+'"><i style="background:'+s.color+'"></i>'+esc(s.code)+'</button>';
+    });
+    chips+='</div>';
+    mount.innerHTML=svg+chips;
+    wire();
+  }
+
+  function wire(){
+    var svg=mount.querySelector(".nc-svg");
+    var guide=mount.querySelector(".nc-guide");
+    var dots=mount.querySelector(".nc-dots");
+    var tip=mount.querySelector(".nc-tip");
+    var ymax=yMax();
+
+    // legend: click toggles, hover highlights
+    Array.prototype.forEach.call(mount.querySelectorAll(".nc-chip"),function(chip){
+      chip.addEventListener("click",function(){disabled[chip.dataset.code]=!disabled[chip.dataset.code];render();});
+      chip.addEventListener("mouseenter",function(){highlight(chip.dataset.code);});
+      chip.addEventListener("mouseleave",function(){highlight(null);});
+      chip.addEventListener("focus",function(){highlight(chip.dataset.code);});
+      chip.addEventListener("blur",function(){highlight(null);});
+    });
+
+    function highlight(code){
+      Array.prototype.forEach.call(mount.querySelectorAll(".nc-line"),function(p){
+        p.classList.remove("nc-focus");p.classList.remove("nc-dim");
+        if(code&&code!=="__avg"){if(p.dataset.code===code)p.classList.add("nc-focus");else p.classList.add("nc-dim");}
+      });
+      var avg=mount.querySelector(".nc-avg");
+      if(avg){avg.classList.remove("nc-dim");if(code&&code!=="__avg")avg.classList.add("nc-dim");}
+    }
+
+    function hourFromEvent(e){
+      var box=svg.getBoundingClientRect();
+      var sx=(e.clientX-box.left)/box.width*W;
+      var h=Math.round((sx-L)/iw*23);
+      return Math.max(0,Math.min(23,h));
+    }
+    function showAt(h){
+      var xp=xPix(h);
+      guide.setAttribute("x1",xp);guide.setAttribute("x2",xp);guide.style.display="";
+      var rows=activeSeries().map(function(s){return {code:s.code,color:s.color,v:s.pts[h]};});
+      rows.sort(function(a,b){return b.v-a.v;});
+      var dg="";rows.forEach(function(r){dg+='<circle cx="'+xp.toFixed(1)+'" cy="'+yPix(r.v,ymax).toFixed(1)+'" r="3.2" fill="'+r.color+'" stroke="var(--panel,#0d1420)" stroke-width="1.5"/>';});
+      dots.innerHTML=dg;
+      var html='<div class="nc-tip-h">'+fmtHour(h).replace("a"," AM").replace("p"," PM")+' &middot; typical</div>';
+      rows.forEach(function(r){html+='<div class="nc-tip-r"><i style="background:'+r.color+'"></i><b>'+esc(r.code)+'</b><span>'+Math.round(r.v)+'m</span></div>';});
+      tip.innerHTML=html;tip.style.display="";
+      var box=svg.getBoundingClientRect();
+      var leftFrac=xp/W;
+      // position tooltip in mount coords, flip near right edge
+      var tipLeft=leftFrac*mount.clientWidth+14;
+      if(leftFrac>0.62)tipLeft=leftFrac*mount.clientWidth-tip.offsetWidth-14;
+      tip.style.left=Math.max(4,tipLeft)+"px";
+      tip.style.top="6px";
+    }
+    function hide(){guide.style.display="none";dots.innerHTML="";tip.style.display="none";}
+
+    svg.addEventListener("mousemove",function(e){showAt(hourFromEvent(e));});
+    svg.addEventListener("mouseleave",hide);
+    svg.addEventListener("touchstart",function(e){if(e.touches[0])showAt(hourFromEvent(e.touches[0]));},{passive:true});
+    svg.addEventListener("touchmove",function(e){if(e.touches[0]){showAt(hourFromEvent(e.touches[0]));}},{passive:true});
+  }
 })();
 </script>
 <script type="application/ld+json">
