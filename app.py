@@ -1114,33 +1114,12 @@ AIRPORT_FACTORS = {
     "TPA": 0.9, "JAX": 0.9,
 }
 
-PIPELINE_AIRPORTS = [
-    {
-        "code": "DEN",
-        "name": "Denver International (DEN)",
-        "status": "IN_RESEARCH",
-        "public_note": "Live integration coming soon.",
-    },
-
-    {
-        "code": "IAH",
-        "name": "George Bush Intercontinental (IAH)",
-        "status": "IN_RESEARCH",
-        "public_note": "Live integration coming soon.",
-        # internal: fly2houston.com/iah/security renders wait times dynamically (JS/AJAX).
-        # Public checkpoint endpoint found at api.houstonairports.mobi, but the bundled API version is currently rejected.
-        # See airport_research/pipeline/IAH.md for full investigation log.
-    },
-    {
-        "code": "IAD",
-        "name": "Washington Dulles International (IAD)",
-        "status": "IN_RESEARCH",
-        "public_note": "Live integration coming soon.",
-        # internal: flydulles.com and mwaa.com both render wait times dynamically.
-        # No public JSON API found. Both are MWAA-operated (same backend).
-        # See airport_research/pipeline/IAD.md for full investigation log.
-    },
-]
+# Airports still being validated for a live feed, shown in the "Coming online"
+# section on /airports. DEN, IAH, and IAD have all graduated to live feeds and
+# were removed (2026-08). Re-add an entry here (code/name/status/public_note)
+# only for airports that are genuinely not yet live — never for a live airport,
+# which reads as broken/contradictory content. Research logs: airport_research/pipeline/.
+PIPELINE_AIRPORTS = []
 PIPELINE_AIRPORT_CODES = {airport["code"] for airport in PIPELINE_AIRPORTS}
 
 LEGACY_PAGE_REDIRECTS = {
@@ -4924,32 +4903,20 @@ def about_page():
     )
 
 
+# /alerts and /pro are "coming soon" placeholders with no working feature yet.
+# Under-construction pages are a common AdSense-review rejection trigger, so
+# until the features are real these routes redirect to the homepage and their
+# nav links are removed from the templates. The alerts.html / pro.html templates
+# are retained; to relaunch, restore the render_template bodies below and the
+# nav links (search templates/ for the removed anchors).
 @app.route("/alerts")
 def alerts_page():
-    seo = build_page_seo(
-        title="Wait-Time Alerts (Coming Soon) | TSA Tracker",
-        description="Push and email alerts for TSA security wait times are on the TSA Tracker roadmap — get notified when your airport's line crosses your threshold or starts rising.",
-        canonical_path="/alerts",
-    )
-    return render_template(
-        "alerts.html",
-        seo=seo,
-        monetization=get_monetization_context(),
-    )
+    return redirect("/", code=302)
 
 
 @app.route("/pro")
 def pro_page():
-    seo = build_page_seo(
-        title="TSA Tracker Pro & API (Coming Soon)",
-        description="A Pro tier and a public wait-time API are on the TSA Tracker roadmap. The live board, airport pages, and leave-time tool stay free, always.",
-        canonical_path="/pro",
-    )
-    return render_template(
-        "pro.html",
-        seo=seo,
-        monetization=get_monetization_context(),
-    )
+    return redirect("/", code=302)
 
 
 @app.route("/link-graph")
