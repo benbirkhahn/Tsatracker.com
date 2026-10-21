@@ -41,6 +41,7 @@
       <p><strong>{{ 'PreCheck' if lane == 'PRECHECK' else 'Standard' }}: {% if estimate.minutes is not none %}about {{ estimate.minutes|round|int }} min</strong> · {{ estimate.days }} day{{ 's' if estimate.days != 1 }} of observations{% if estimate.days < 3 %} · Limited history{% endif %}{% else %}Not enough history</strong>{% endif %}</p>
       {% endfor %}{% endif %}
     </div>
+    <p class="raw-checkpoint-intro">History combines our own observations with <a href="https://huggingface.co/datasets/digitalhen/us-airport-wait-times" target="_blank" rel="noopener">Henry Williams’ airport wait-time archive</a> (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>), filtered and averaged for this site. Overlapping days use our own readings.</p>
     <p class="raw-checkpoint-intro">Same local hour over the past 30 days; at least three observations from a previous day required. Estimates are separate from live checkpoint readings. Fresh airport readings replace them automatically.</p>
   </aside>
   {% endif %}

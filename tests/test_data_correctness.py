@@ -41,6 +41,9 @@ class DataCorrectnessTests(unittest.TestCase):
             patcher = patch.object(self.m, name, value)
             patcher.start()
             self.addCleanup(patcher.stop)
+        archive = patch.object(self.m, "recovered_airport_history", return_value=[])
+        archive.start()
+        self.addCleanup(archive.stop)
         clock = patch.object(self.m, "utc_now", return_value=self.now)
         clock.start()
         self.addCleanup(clock.stop)
@@ -58,6 +61,26 @@ class DataCorrectnessTests(unittest.TestCase):
 
     def store(self, *rows):
         self.m.db_insert_rows(list(rows))
+
+    def test_archive_fills_missing_days_without_overlapping_or_becoming_live(self):
+        self.store(self.sample(10, code="DFW", age=1440), self.sample(10, code="DFW", age=1439), self.sample(10, code="DFW", age=1438))
+        hour = self.now.astimezone(self.m.ZoneInfo("America/Chicago")).hour
+        def bucket(days, value, lane="STANDARD", bucket_hour=hour):
+            return {"airport": "DFW", "date": (self.now-timedelta(days=days)).date().isoformat(),
+                    "hour": bucket_hour, "lane": lane, "mean": value, "samples": 60}
+        archive = [bucket(1, 100), bucket(2, 30), bucket(3, 0), bucket(31, 180), bucket(0, 180), bucket(2, 180, bucket_hour=(hour+1)%24)]
+        with patch.object(self.m, "recovered_airport_history", return_value=archive):
+            result = self.m.historical_outage_estimates("DFW", [])
+            lane = result["lanes"]["STANDARD"]
+            self.assertEqual(lane["days"], 3)
+            self.assertEqual(lane["archiveDays"], 2)
+            self.assertEqual(lane["minutes"], 13.3)
+            self.assertEqual(lane["samples"], 123)
+            self.assertFalse(result["isLive"])
+            recovered = [self.sample(4, code="DFW"), self.sample(2, code="DFW", lane="PRECHECK")]
+            self.assertIsNone(self.m.historical_outage_estimates("DFW", recovered))
+        with sqlite3.connect(self.m.DB_PATH) as conn:
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM samples").fetchone()[0], 3)
 
     def test_historical_outage_fallback_and_automatic_recovery(self):
         for code in ("DFW", "IAH", "MCO"):

@@ -11,6 +11,7 @@ import threading
 import time
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from contextlib import closing
+from functools import lru_cache
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 from zoneinfo import ZoneInfo
@@ -4245,6 +4246,18 @@ def _valid_lane_rows(rows: List[Dict], lane_type: str, fresh_only: bool = False)
     ]
 
 
+@lru_cache(maxsize=1)
+def recovered_airport_history() -> List[Dict]:
+    """A pinned archive supplement, intentionally separate from live samples."""
+    path = os.path.join(os.path.dirname(__file__), "data", "recovered_airport_history.json")
+    try:
+        with open(path, encoding="utf-8") as source:
+            return json.load(source)["rows"]
+    except (OSError, ValueError, KeyError):
+        logger.warning("Recovered history unavailable; using retained local observations only")
+        return []
+
+
 def historical_outage_estimates(code: str, rows: List[Dict], now: Optional[datetime] = None) -> Optional[Dict]:
     """Read-only, lane-specific fallback; never write estimates to observations."""
     if code not in {"DFW", "IAH", "MCO"}:
@@ -4273,14 +4286,25 @@ def historical_outage_estimates(code: str, rows: List[Dict], now: Optional[datet
         if local.hour != local_now.hour or local.date() >= local_now.date():
             continue
         groups[lane].setdefault(local.date().isoformat(), []).append(wait)
+    # A local day/hour wins as a whole: never double-count overlapping providers.
+    archive_counts = {}
+    for archived in recovered_airport_history():
+        lane, date = archived["lane"], archived["date"]
+        if (archived["airport"] != code or lane not in groups
+                or archived["hour"] != local_now.hour or date in groups[lane]
+                or not cutoff.astimezone(local_now.tzinfo).date().isoformat() <= date < local_now.date().isoformat()):
+            continue
+        groups[lane][date] = [archived["mean"]]
+        archive_counts[(lane, date)] = archived["samples"]
     lanes = {}
     for lane, dates in groups.items():
-        count = sum(len(values) for values in dates.values())
+        count = sum(archive_counts.get((lane, date), len(values)) for date, values in dates.items())
         # Sparse history is explicitly disclosed; never fill gaps with a model.
         enough = bool(dates) and count >= 3
         lanes[lane] = {
             "minutes": round(statistics.mean(statistics.mean(v) for v in dates.values()), 1) if enough else None,
             "days": len(dates), "samples": count,
+            "archiveDays": sum((lane, date) in archive_counts for date in dates),
             "firstDate": min(dates, default=None), "lastDate": max(dates, default=None),
         }
     return {"sourceType": "historical_estimate", "isLive": False,
