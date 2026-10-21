@@ -10,6 +10,7 @@ import hmac
 import threading
 import time
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from contextlib import closing
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 from zoneinfo import ZoneInfo
@@ -1873,6 +1874,7 @@ def build_airport_arrival_mode(
         "lane_types": list(lane_types),
         "terminals": terminals,
         "fastest_fresh_reading": fastest,
+        "historical_fallback": historical_outage_estimates(code, rows or [], generated_at),
         "excluded_readings": excluded_readings,
         "unmatched_readings": sorted(unmatched_readings, key=_lane_display_sort_key),
         "unmatched_rows": sorted(unmatched_readings, key=_lane_display_sort_key),
@@ -2217,6 +2219,8 @@ def build_airport_overview_context() -> Dict:
             source_type = payload.get("sourceType", "estimated_fallback")
             source_reason = payload.get("sourceReason", "live_stale_or_unavailable")
             source_label = "Traveler reports · lane unspecified" if source_type == "community" else "Modeled estimate · no Standard reading"
+            if source_reason == "historical_outage_estimate":
+                source_label = "Historical estimate · not live"
             precheck_wait = _precheck_wait_from_rows(rows)
             checkpoint_count = 0
             if source_type == "community":
@@ -4241,6 +4245,49 @@ def _valid_lane_rows(rows: List[Dict], lane_type: str, fresh_only: bool = False)
     ]
 
 
+def historical_outage_estimates(code: str, rows: List[Dict], now: Optional[datetime] = None) -> Optional[Dict]:
+    """Read-only, lane-specific fallback; never write estimates to observations."""
+    if code not in {"DFW", "IAH", "MCO"}:
+        return None
+    now = now or utc_now()
+    missing = [lane for lane in ("STANDARD", "PRECHECK")
+               if not _valid_lane_rows(rows, lane, fresh_only=True)]
+    if not missing:
+        return None
+    local_now = now.astimezone(ZoneInfo(AIRPORT_TIME_ZONES[code]))
+    cutoff = now - timedelta(days=30)
+    with closing(sqlite3.connect(DB_PATH)) as conn:
+        samples = conn.execute(
+            "SELECT wait_minutes, lane_type, checkpoint, captured_at FROM samples "
+            "WHERE airport_code = ? AND captured_at >= ? AND captured_at < ?",
+            (code, cutoff.isoformat(), now.isoformat()),
+        ).fetchall()
+    groups = {lane: {} for lane in missing}
+    for value, lane, checkpoint, timestamp in samples:
+        captured = _arrival_datetime(timestamp)
+        wait = _arrival_wait_minutes(value)
+        lane = _arrival_normalized_lane_type({"lane_type": lane, "checkpoint": checkpoint})
+        if lane not in groups or captured is None or wait is None or not cutoff <= captured < now:
+            continue
+        local = captured.astimezone(local_now.tzinfo)
+        if local.hour != local_now.hour or local.date() >= local_now.date():
+            continue
+        groups[lane].setdefault(local.date().isoformat(), []).append(wait)
+    lanes = {}
+    for lane, dates in groups.items():
+        count = sum(len(values) for values in dates.values())
+        # Sparse history is explicitly disclosed; never fill gaps with a model.
+        enough = bool(dates) and count >= 3
+        lanes[lane] = {
+            "minutes": round(statistics.mean(statistics.mean(v) for v in dates.values()), 1) if enough else None,
+            "days": len(dates), "samples": count,
+            "firstDate": min(dates, default=None), "lastDate": max(dates, default=None),
+        }
+    return {"sourceType": "historical_estimate", "isLive": False,
+            "hour": local_now.hour, "timezone": AIRPORT_TIME_ZONES[code],
+            "lookbackDays": 30, "generatedAt": now.isoformat(), "lanes": lanes}
+
+
 def normalized_current_wait_for_code(code: str, rows: Optional[List[Dict]] = None) -> Dict:
     rows = latest_for_code(code) if rows is None else rows
     standard_rows = _valid_lane_rows(rows, "STANDARD", fresh_only=True)
@@ -4294,6 +4341,19 @@ def normalized_current_wait_for_code(code: str, rows: Optional[List[Dict]] = Non
         }
 
     now = utc_now()
+    historical = historical_outage_estimates(code, rows, now)
+    standard_history = (historical or {}).get("lanes", {}).get("STANDARD", {})
+    if standard_history.get("minutes") is not None:
+        estimate = standard_history["minutes"]
+        return {
+            **context, "sourceType": "estimated_fallback",
+            "sourceReason": "historical_outage_estimate", "historicalEstimate": historical,
+            "currentWait": {"standard": estimate, "standardDescription": wait_description(estimate),
+                            "userReported": None, "precheck": bool(pre_rows),
+                            "precheckWait": precheck_wait, "laneType": "STANDARD",
+                            "timestamp": now.isoformat(), "observedAt": None},
+            "hourlyForecast": normalize_hourly_forecast(code, estimate),
+        }
     local_hour = now.astimezone(ZoneInfo(AIRPORT_TIME_ZONES.get(code, "UTC"))).hour
     estimated = round(estimated_wait_for_hour(local_hour, AIRPORT_FACTORS.get(code, 1.0)), 1)
     source_reason = "standard_lane_unavailable" if rows else (

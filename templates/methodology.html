@@ -32,6 +32,7 @@
   </ul>
 
   <h2>4. Forecasting and Fallback Behavior</h2>
+  <p>During a DFW, Houston (IAH), or Orlando (MCO) feed outage, a separately labeled historical estimate uses airport-wide observations from the same local hour in the preceding 30 days. Standard and PreCheck are calculated separately. Each observed day's mean receives equal weight, with at least three observations from a previous day required. Fewer than three observed days is explicitly labeled limited history. Today's readings, other hours, and other screening lanes are excluded. These estimates do not predict a specific checkpoint and are never stored as live observations. Fresh readings automatically replace the fallback for each lane.</p>
   <p>Hourly forecast values are planning aids, not promises. They blend airport-specific historical factors with the latest observed wait value. If no fresh live data is available, the site provides an estimated fallback and marks that state in API metadata.</p>
   <ul class="content-list">
     <li>Fallback values are labeled so users can distinguish them from live airport-published readings.</li>

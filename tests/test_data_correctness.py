@@ -59,6 +59,57 @@ class DataCorrectnessTests(unittest.TestCase):
     def store(self, *rows):
         self.m.db_insert_rows(list(rows))
 
+    def test_historical_outage_fallback_and_automatic_recovery(self):
+        for code in ("DFW", "IAH", "MCO"):
+            with self.subTest(code=code):
+                self.store(self.sample(0, code=code, age=1440),
+                           self.sample(20, code=code, age=2880),
+                           self.sample(20, code=code, age=2881),
+                           self.sample(4, code=code, lane="PRECHECK", age=1440),
+                           self.sample(8, code=code, lane="PRECHECK", age=2880),
+                           self.sample(8, code=code, lane="PRECHECK", age=2881),
+                           self.sample(100, code=code, lane="PRIORITY", age=1440))
+                # Use the same local hour: minute -1 above crosses the hour.
+                with sqlite3.connect(self.m.DB_PATH) as conn:
+                    conn.execute("UPDATE samples SET captured_at = ? WHERE airport_code = ? AND captured_at = ?",
+                                 ((self.now - timedelta(minutes=2879)).isoformat(), code,
+                                  (self.now - timedelta(minutes=2881)).isoformat()))
+                with patch.object(self.m, "community_wait_for_code", return_value=None):
+                    payload = self.m.normalized_current_wait_for_code(code, rows=[])
+                    self.assertEqual(payload["sourceReason"], "historical_outage_estimate")
+                    self.assertEqual(payload["currentWait"]["standard"], 10)
+                    self.assertIsNone(payload["currentWait"]["observedAt"])
+                    estimates = payload["historicalEstimate"]["lanes"]
+                    self.assertEqual(estimates["PRECHECK"]["minutes"], 6)
+                    self.assertEqual(estimates["STANDARD"]["days"], 2)
+                    recovered = [self.sample(0, code=code), self.sample(2, code=code, lane="PRECHECK")]
+                    self.assertIsNone(self.m.historical_outage_estimates(code, recovered))
+                    self.assertEqual(self.m.normalized_current_wait_for_code(code, recovered)["sourceType"], "live_direct")
+                    partial = self.m.historical_outage_estimates(code, recovered[:1])
+                    self.assertEqual(list(partial["lanes"]), ["PRECHECK"])
+                    stale = [dict(r, captured_at=(self.now-timedelta(minutes=16)).isoformat()) for r in recovered]
+                    self.assertIsNotNone(self.m.historical_outage_estimates(code, stale))
+
+    def test_historical_fallback_requires_recent_samples_and_matching_hour(self):
+        self.store(self.sample(40, code="DFW", age=1440),
+                   self.sample(40, code="DFW", age=1439),
+                   self.sample(80, code="DFW", age=2880+60),
+                   self.sample(80, code="DFW", age=31*1440),
+                   self.sample(80, code="DFW", age=-1440))
+        with sqlite3.connect(self.m.DB_PATH) as conn:
+            before = conn.execute("SELECT COUNT(*) FROM samples").fetchone()[0]
+        result = self.m.historical_outage_estimates("DFW", [])
+        self.assertIsNone(result["lanes"]["STANDARD"]["minutes"])
+        self.assertEqual(result["lanes"]["STANDARD"]["days"], 1)
+        self.assertIsNone(result["lanes"]["PRECHECK"]["minutes"])
+        self.assertIsNone(self.m.historical_outage_estimates("PHL", []))
+        with sqlite3.connect(self.m.DB_PATH) as conn:
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM samples").fetchone()[0], before)
+        self.store(self.sample(40, code="DFW", age=1438))
+        sparse = self.m.historical_outage_estimates("DFW", [])["lanes"]["STANDARD"]
+        self.assertEqual(sparse["minutes"], 40)
+        self.assertEqual(sparse["days"], 1)
+
     def test_standard_mean_excludes_other_lanes_and_retains_zero(self):
         self.store(self.sample(30), self.sample(0, checkpoint="B"),
                    self.sample(2, lane="PRECHECK"), self.sample(1, lane="CLEAR"))

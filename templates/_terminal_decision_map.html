@@ -32,6 +32,19 @@
     {% endif %}
   </header>
 
+  {% if arrival.code in ['DFW', 'IAH', 'MCO'] %}
+  <aside class="arrival-history-fallback detail-section" data-historical-fallback aria-live="polite"{% if not arrival.historical_fallback %} hidden{% endif %}>
+    <h2 class="detail-title">Typical wait for this time · not live</h2>
+    <p>Live readings are unavailable for the lanes listed below. These airport-wide historical estimates may not describe your terminal or today's conditions.</p>
+    <div data-historical-values>
+      {% if arrival.historical_fallback %}{% for lane, estimate in arrival.historical_fallback.lanes.items() %}
+      <p><strong>{{ 'PreCheck' if lane == 'PRECHECK' else 'Standard' }}: {% if estimate.minutes is not none %}about {{ estimate.minutes|round|int }} min</strong> · {{ estimate.days }} day{{ 's' if estimate.days != 1 }} of observations{% if estimate.days < 3 %} · Limited history{% endif %}{% else %}Not enough history</strong>{% endif %}</p>
+      {% endfor %}{% endif %}
+    </div>
+    <p class="raw-checkpoint-intro">Same local hour over the past 30 days; at least three observations from a previous day required. Estimates are separate from live checkpoint readings. Fresh airport readings replace them automatically.</p>
+  </aside>
+  {% endif %}
+
   <ol class="airport-flow-steps" aria-label="Plan your airport visit">
     <li><span>1</span> {% if terminal_routing %}Pick your terminal{% else %}Pick your lane{% endif %}</li>
     <li><span>2</span> Compare your wait</li>

@@ -661,7 +661,28 @@
     );
   }
 
+  function updateHistoricalFallback() {
+    var box = root.querySelector("[data-historical-fallback]");
+    if (!box) return;
+    var fallback = model.historical_fallback;
+    box.hidden = !fallback;
+    if (!fallback) return;
+    var values = box.querySelector("[data-historical-values]");
+    values.textContent = "";
+    ["STANDARD", "PRECHECK"].filter(function (lane) { return fallback.lanes[lane]; }).forEach(function (lane) {
+      var estimate = fallback.lanes[lane];
+      var line = document.createElement("p");
+      var label = lane === "PRECHECK" ? "PreCheck" : "Standard";
+      line.textContent = label + ": " + (estimate.minutes == null ? "Not enough history" :
+        "about " + Math.round(estimate.minutes) + " min · " + estimate.days + (estimate.days === 1 ? " day" : " days") + " of observations" +
+        (estimate.days < 3 ? " · Limited history" : "") + " (" +
+        estimate.firstDate + " to " + estimate.lastDate + ")");
+      values.appendChild(line);
+    });
+  }
+
   function updateDecision() {
+    updateHistoricalFallback();
     selectedTerminal = String(selected("decision-terminal") || "").toLowerCase();
     selectedGate = String(selected("decision-gate") || "").toUpperCase();
     selectedLane = String(selected("decision-lane") || "STANDARD").toUpperCase();

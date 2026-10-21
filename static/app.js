@@ -1197,7 +1197,8 @@ async function updateSelectionSourceStatus(airportCode) {
   try {
     const resp = await fetch(`/api/tsa-wait-times?code=${airportCode}`);
     const payload = await resp.json();
-    const [label, cls] = sourceStatusLabel(payload.sourceType);
+    const [label, cls] = payload.sourceReason === "historical_outage_estimate"
+      ? ["~ Historical estimate · not live", "is-fallback"] : sourceStatusLabel(payload.sourceType);
     el.textContent = label;
     el.className = `selection-source-status ${cls}`;
     renderAirportNotice(payload);
