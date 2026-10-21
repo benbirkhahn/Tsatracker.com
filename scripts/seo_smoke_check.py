@@ -113,8 +113,6 @@ with site.app.test_client() as client:
         "/tsa-wait-times-explained": "/guide/tsa-wait-times",
         "/tsa-precheck-vs-clear": "/guide/tsa-precheck-clear",
         "/lax-tsa-wait-times": "/airports/lax-tsa-wait-times",
-        "/airports/den-tsa-wait-times": "/airports",
-        "/airports/iah-tsa-wait-times": "/airports",
     }.items():
         response = assert_status(client, path, 301)
         location = response.headers.get("Location", "")
@@ -163,8 +161,15 @@ with site.app.test_client() as client:
             if href in html:
                 record_failure(f"{path}: contains redirected internal link {href}")
 
+    # Every tracked airport, including DEN and IAH, has a canonical page.
+    # The short airport URL is an alias; the canonical page must not redirect.
     for code in site.LIVE_AIRPORTS:
         path = site.airport_seo_slug(code)
+        short_path = f"/airports/{code.lower()}"
+        response = assert_status(client, short_path, 301)
+        location = response.headers.get("Location", "")
+        if urlparse(location).path != path:
+            record_failure(f"{short_path}: expected redirect to {path}, got {location}")
         html = assert_canonical(client, path)
         count = visible_word_count(html)
         if count < 300:

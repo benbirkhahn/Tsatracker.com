@@ -1,0 +1,69 @@
+/* Planner layout is scoped so editorial and airport pages keep their own rhythm. */
+.calculator-shell.trip-planner { max-width: 1200px; }
+.trip-planner [hidden] { display: none !important; }
+.planner-intro { padding: 36px 0 28px; max-width: 800px; }
+.planner-intro h1 { margin: 10px 0 14px; font-family: var(--sans); font-size: clamp(34px, 5vw, 58px); line-height: 1.06; letter-spacing: -.045em; text-transform: none; }
+.planner-intro > p:not(.eyebrow) { max-width: 600px; color: var(--ink-soft); line-height: 1.6; font-size: 16px; }
+.planner-progress { display: flex; flex-wrap: wrap; list-style: none; gap: 24px; padding: 0; margin: 25px 0 0; color: var(--ink-soft); font-size: 13px; }
+.planner-progress li { display: flex; align-items: center; gap: 8px; }
+.planner-progress span { display: grid; place-items: center; width: 25px; height: 25px; border: 1px solid var(--line); border-radius: 50%; font: 11px var(--mono); color: var(--signal); }
+.planner-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr); align-items: start; gap: 28px; }
+.planner-form { min-width: 0; }
+.planner-step { min-width: 0; padding: 22px; margin: 0 0 24px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+.planner-step legend { padding: 0 8px; color: var(--ink); font-size: 17px; font-weight: 600; letter-spacing: -.015em; }
+.planner-step-num { color: var(--signal); margin-right: 8px; font: 11px var(--mono); }
+.planner-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px 14px; }
+.planner-full { grid-column: 1 / -1; }
+.planner-field { min-width: 0; }
+.trip-planner .planner-field label { color: var(--ink-soft); font-family: var(--sans); text-transform: none; letter-spacing: 0; font-size: 13px; line-height: 1.5; margin: 0 0 7px; font-weight: 500; display: block; }
+.trip-planner .planner-field select, .trip-planner .planner-field input { width: 100%; min-height: 48px; min-width: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--ink); font: 15px var(--sans); padding: 11px 12px; color-scheme: dark; }
+.trip-planner .planner-field select { padding-right: 30px; }
+.trip-planner .planner-field input[type=number] { font-family: var(--mono); }
+.trip-planner .planner-field input:disabled, .trip-planner .planner-field select:disabled { opacity: .55; cursor: not-allowed; }
+.trip-planner :is(button, input, select, a):focus-visible, .planner-result:focus-visible { outline: 2px solid var(--signal); outline-offset: 4px; }
+.planner-hint { color: var(--muted); font-size: 12px; line-height: 1.65; margin: 12px 0; }
+.planner-hint a { color: var(--ink-soft); text-underline-offset: 3px; }
+.trip-planner .planner-check { display: flex; width: fit-content; max-width: 100%; min-height: 44px; gap: 10px; align-items: center; color: var(--ink); cursor: pointer; font: 14px var(--sans); text-transform: none; letter-spacing: 0; margin: 14px 0 4px; }
+.planner-check input { display: block; flex: 0 0 19px; width: 19px; height: 19px; margin: 0; accent-color: var(--signal); cursor: pointer; }
+.planner-source { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 18px; }
+.planner-source-label { display: block; color: var(--muted); font: 10px var(--mono); text-transform: uppercase; letter-spacing: .06em; line-height: 1.6; }
+.planner-source strong { display: block; margin-top: 7px; color: var(--ink); font-size: 18px; font-weight: 500; }
+.planner-source[data-state=live] strong { color: var(--live); }
+.planner-source p { margin: 8px 0 12px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.planner-source a, .planner-result-actions a { color: var(--signal); font-size: 13px; text-underline-offset: 4px; }
+.planner-text-button { border: 0; border-radius: 4px; background: none; min-height: 44px; padding: 8px 0; color: var(--ink-soft); font: 13px var(--sans); text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.planner-submit { width: 100%; display: flex; justify-content: space-between; align-items: center; min-height: 54px; padding: 16px 20px; background: var(--signal); color: #09241b; border: 0; border-radius: 10px; font: 600 15px var(--sans); cursor: pointer; }
+.planner-submit:hover { filter: brightness(1.1); }
+.planner-error, .planner-notice { padding: 15px; border: 1px solid var(--warning); border-radius: 8px; color: var(--ink); background: var(--surface); font-size: 14px; line-height: 1.5; }
+.planner-result { position: sticky; top: 100px; padding: 26px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); scroll-margin-top: 100px; }
+.planner-result > .eyebrow { color: var(--signal); font-size: 10px; margin-top: 0; }
+#resultPlaceholder h2 { font-size: 28px; line-height: 1.25; letter-spacing: -.035em; margin: 24px 0 16px; font-weight: 500; }
+#resultPlaceholder > p, .planner-preview-list { font-size: 13px; color: var(--muted); line-height: 1.75; }
+.planner-preview-list { list-style: none; padding: 20px 0 0; margin-top: 30px; border-top: 1px solid var(--line); }
+.planner-preview-list li { position: relative; padding-left: 20px; margin-bottom: 10px; }
+.planner-preview-list li::before { content: '✓'; position: absolute; left: 0; color: var(--signal); }
+.planner-result-context { color: var(--muted); font: 11px var(--mono); line-height: 1.6; margin: 24px 0 14px; }
+.trip-planner .res-label { color: var(--ink-soft); font-size: 13px; font-family: var(--sans); letter-spacing: 0; text-transform: none; font-weight: 500; line-height: 1.5; }
+.planner-leave-time { font-size: clamp(27px, 3.5vw, 43px); font-weight: 500; letter-spacing: -.045em; margin: 8px 0; line-height: 1.1; }
+.planner-leave-date { color: var(--ink-soft); font-size: 13px; margin: 0 0 20px; line-height: 1.6; }
+.planner-verdict { color: var(--ink-soft); font-size: 12px; line-height: 1.65; border-left: 2px solid var(--signal); padding-left: 12px; }
+.planner-verdict[data-status=leave_past], .planner-verdict[data-status=flight_past] { border-color: var(--danger); color: var(--danger); }
+.planner-itinerary { margin: 24px 0; padding: 0; list-style: none; }
+.planner-itinerary li { border-left: 1px solid var(--line); padding: 0 0 20px 20px; position: relative; }
+.planner-itinerary li:last-child { padding-bottom: 0; border-left-color: transparent; }
+.planner-itinerary li::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--signal); position: absolute; left: -4px; top: 4px; }
+.planner-itinerary span { display: block; font-size: 13px; font-weight: 500; }
+.planner-itinerary time { display: block; color: var(--muted); font-size: 11px; margin-top: 6px; line-height: 1.55; }
+.planner-breakdown { border-top: 1px solid var(--line); padding-top: 8px; }
+.trip-planner .bk-row { font-size: 12px; padding: 7px 0; gap: 10px; }
+.trip-planner .bk-row:last-child { border-top: 1px solid var(--line); margin-top: 5px; padding-top: 12px; color: var(--ink); }
+.planner-result-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.planner-explanation { border-top: 1px solid var(--line); margin-top: 60px; padding: 36px 0 20px; }
+.planner-explanation h2 { font-size: clamp(22px, 3vw, 30px); font-weight: 500; letter-spacing: -.03em; }
+.planner-explanation-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 30px; margin: 25px 0; }
+.planner-explanation-grid h3 { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+.planner-explanation-grid p { color: var(--muted); font-size: 13px; line-height: 1.75; }
+.planner-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@media(max-width: 850px) { .planner-layout { grid-template-columns: minmax(0,1fr); } .planner-result { position: static; } .planner-intro { padding-top: 22px; } .planner-explanation-grid { grid-template-columns: 1fr; gap: 10px; } .planner-explanation { margin-top: 40px; } }
+@media(max-width: 480px) { .planner-step { padding: 16px; } .planner-step legend { font-size: 15px; padding: 0 4px; } .planner-progress { gap: 13px; font-size: 11px; } .planner-progress span { width: 22px; height: 22px; } .planner-fields { gap: 15px 10px; } .planner-field select { font-size: 14px; } .planner-step:first-child .planner-fields { grid-template-columns: 1fr; } .planner-result { padding: 22px; } .planner-intro > p:not(.eyebrow) { font-size: 14px; } }
+@media(prefers-reduced-motion: reduce) { .trip-planner { scroll-behavior: auto; } }

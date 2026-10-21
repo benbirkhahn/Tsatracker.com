@@ -31,47 +31,16 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Oswald:wght@600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/tracker.css">
   {% block head_extra %}{% endblock %}
+  <link rel="stylesheet" href="/static/experience.css?v=20261002">
 </head>
 <body>
 
-<header class="site-header">
-  <div class="site-shell site-nav">
-    <a class="site-brand" href="/" aria-label="TSA Tracker home">
-      <span class="brand-mark" aria-hidden="true"><span></span></span>
-      <span class="brand-copy">
-        <span class="brand-name">TSA Tracker</span>
-        <span class="brand-tag">Live airport security intelligence</span>
-      </span>
-    </a>
-    <nav class="site-links" aria-label="Primary navigation">
-      {% set p = request.path if request else '' %}
-      <a href="/airports"{% if p.startswith('/airports') %} class="is-active" aria-current="page"{% endif %}>Airports</a>
-      <a href="/when-should-i-leave"{% if p == '/when-should-i-leave' %} class="is-active" aria-current="page"{% endif %}>Leave-time</a>
-      <a href="/best-time-to-get-to-the-airport"{% if p == '/best-time-to-get-to-the-airport' %} class="is-active" aria-current="page"{% endif %}>Timing</a>
-      <a href="/guide/tsa-wait-times"{% if p.startswith('/guide') %} class="is-active" aria-current="page"{% endif %}>Guides</a>
-      <a href="/methodology"{% if p == '/methodology' %} class="is-active" aria-current="page"{% endif %}>Methodology</a>
-    </nav>
-  </div>
-</header>
+{% include "_site_header.html" %}
 
-<main class="site-shell page-main">
+<main id="main-content" tabindex="-1" class="site-shell page-main">
 {% block content %}{% endblock %}
 
-  <footer class="site-footer">
-    <div class="footer-row">
-      <span class="footer-brand">TSA Tracker</span>
-      <nav class="footer-links" aria-label="Footer navigation">
-        <a href="/airports">Airports</a>
-        <a href="/when-should-i-leave">Leave-time tool</a>
-        <a href="/methodology">Methodology</a>
-        <a href="/about">About</a>
-        <a href="/contact">Contact</a>
-        <a href="/privacy">Privacy</a>
-        <a href="/terms">Terms</a>
-      </nav>
-    </div>
-    <div class="footer-note">Active airport feeds are checked about every 2 minutes; fallback estimates are labeled. Independent publisher; not affiliated with TSA or any airport authority.</div>
-  </footer>
+  {% include "_site_footer.html" %}
 </main>
 
 {% block body_end %}{% endblock %}

@@ -1,0 +1,16 @@
+<a class="skip-link" href="#main-content">Skip to content</a>
+<header class="site-header">
+  <div class="site-shell site-nav">
+    <a class="site-brand" href="/" aria-label="TSA Tracker home">
+      <span class="brand-mark" aria-hidden="true"><span></span></span>
+      <span class="brand-copy"><span class="brand-name">TSA Tracker</span><span class="brand-tag">Know the line. Plan your departure.</span></span>
+    </a>
+    {% set p = request.path %}
+    <nav class="site-links" aria-label="Primary navigation">
+      <a href="/airports"{% if p.startswith('/airports') or p == '/' %} aria-current="page"{% endif %}>Airports</a>
+      <a href="/when-should-i-leave"{% if p == '/when-should-i-leave' %} aria-current="page"{% endif %}>Plan departure</a>
+      <a href="/guide/tsa-wait-times"{% if p.startswith('/guide') or p == '/best-time-to-get-to-the-airport' %} aria-current="page"{% endif %}>Travel guides</a>
+      <a href="/methodology"{% if p == '/methodology' %} aria-current="page"{% endif %}>Our data</a>
+    </nav>
+  </div>
+</header>

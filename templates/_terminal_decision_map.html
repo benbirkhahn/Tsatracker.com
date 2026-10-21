@@ -5,7 +5,7 @@
 {% set gate_routing = arrival.decision_mode == 'terminal_gate' %}
 {% set arrival_counts = namespace(checkpoints=0) %}
 {% for terminal in arrival.terminals %}{% set arrival_counts.checkpoints = arrival_counts.checkpoints + terminal.checkpoints|length %}{% endfor %}
-<section class="airport-arrival-mode{% if arrival.terminals|length > 5 %} arrival-many-terminals{% endif %}"
+<section class="airport-arrival-mode airport-flow{% if arrival.terminals|length > 5 %} arrival-many-terminals{% endif %}"
          data-airport-arrival-mode
          data-airport-code="{{ arrival.airport.code if arrival.airport else arrival.code }}"
          aria-labelledby="arrival-mode-title">
@@ -13,26 +13,174 @@
 
   <header class="arrival-mode-heading">
     <div class="airport-identity">
-      <p class="airport-page-code">Airport arrival mode</p>
+      <p class="airport-page-code">Your airport, your lane</p>
       <h1 class="airport-page-title" id="arrival-mode-title">{{ initial_airport_code }} TSA wait times <span>at {{ airport_display_name }}</span></h1>
       <div class="airport-page-meta">
         <span>{{ airport_city }}</span>
-        <span>Satellite airport view</span>
+        <span>Choose your checkpoint before planning</span>
         {% if terminal_routing %}<span>{{ arrival.terminals|length }} terminal areas / {{ arrival_counts.checkpoints }} published checkpoints</span>
         {% else %}<span>{{ arrival_counts.checkpoints }} reporting checkpoint{{ 's' if arrival_counts.checkpoints != 1 }}</span>{% endif %}
         {% if airport_summary %}<span>{% if is_live %}Captured{% else %}Estimate generated{% endif %} {{ airport_summary.updated_at }}</span>{% endif %}
       </div>
     </div>
     {% if gate_routing %}
-    <p class="arrival-mode-intro">Choose the terminal, gate, and screening lane on your boarding pass. Arrival Mode keeps the airport in view while it compares compatible current readings.</p>
+    <p class="arrival-mode-intro">Choose the terminal on your boarding pass, then plan your departure.</p>
     {% elif terminal_routing %}
-    <p class="arrival-mode-intro">Choose a terminal area and screening lane. Arrival Mode keeps the airport in view while it compares the freshest nearby checkpoint readings.</p>
+    <p class="arrival-mode-intro">Choose the terminal on your boarding pass, then plan your departure.</p>
     {% else %}
-    <p class="arrival-mode-intro">Explore the airport from above, switch screening lanes, and compare the freshest checkpoint readings published by the airport.</p>
+    <p class="arrival-mode-intro">Compare current checkpoint readings for your screening lane, then build your departure plan.</p>
     {% endif %}
   </header>
 
+  <ol class="airport-flow-steps" aria-label="Plan your airport visit">
+    <li><span>1</span> {% if terminal_routing %}Pick your terminal{% else %}Pick your lane{% endif %}</li>
+    <li><span>2</span> Compare your wait</li>
+    <li><span>3</span> Plan your departure</li>
+  </ol>
   <div class="arrival-workspace" data-arrival-workspace>
+
+    <aside class="arrival-operations" data-arrival-sheet data-sheet-state="peek" aria-label="{{ initial_airport_code }} checkpoint planner">
+      <button type="button"
+              class="arrival-sheet-toggle"
+              data-arrival-sheet-toggle
+              aria-controls="arrival-control-body"
+              aria-expanded="false">
+        <span data-arrival-sheet-toggle-label>Show details</span>
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="m3.5 10 4.5-4 4.5 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+
+
+      <div class="arrival-control-body" id="arrival-control-body">
+        <form class="decision-controls arrival-decision-controls" data-decision-controls>
+          {% if terminal_routing %}
+          <fieldset>
+            <legend>1 · {% if gate_routing %}Check-in terminal{% else %}Your terminal{% endif %}</legend>
+            <div class="choice-grid arrival-terminal-choice-grid">
+              <label><input type="radio" name="decision-terminal" value="" checked><span>Not sure</span></label>
+              {% for terminal in arrival.terminals %}
+              <label><input type="radio" name="decision-terminal" value="{{ terminal.id }}"><span>{{ terminal.label }}</span></label>
+              {% endfor %}
+            </div>
+          </fieldset>
+          {% endif %}
+
+          {% if gate_routing %}
+          <fieldset>
+            <legend>Gate on your boarding pass</legend>
+            <div class="choice-grid gate-choice-grid">
+              <label><input type="radio" name="decision-gate" value="" checked><span>Not sure</span></label>
+              {% for gate in ["A", "B", "C", "D", "E"] %}
+              <label><input type="radio" name="decision-gate" value="{{ gate }}"><span>Gate {{ gate }}</span></label>
+              {% endfor %}
+            </div>
+          </fieldset>
+          {% endif %}
+
+          <fieldset>
+            <legend>{% if terminal_routing %}2{% else %}1{% endif %} · Screening lane</legend>
+            <div class="choice-grid choice-grid-two">
+              <label><input type="radio" name="decision-lane" value="STANDARD" checked><span>Standard</span></label>
+              <label><input type="radio" name="decision-lane" value="PRECHECK"><span>PreCheck</span></label>
+            </div>
+          </fieldset>
+
+          <p class="decision-result" data-decision-result role="status" aria-live="polite">{% if gate_routing %}Choose a gate or terminal to compare compatible checkpoints.{% elif terminal_routing %}Choose your terminal to compare checkpoints that serve your flight.{% else %}Comparing fresh standard-screening readings across reporting checkpoints.{% endif %}</p>
+          {% if arrival.routing_note %}<p class="decision-caveat">{{ arrival.routing_note }}</p>{% endif %}
+        </form>
+
+      <div class="arrival-current-summary">
+        <div>
+          <span class="arrival-current-label" data-arrival-current-label>{% if terminal_routing %}Choose your terminal{% else %}Airport Standard overview{% endif %}</span>
+          {% if is_live %}<span class="arrival-current-source source-live" data-arrival-current-source>{% if terminal_routing %}Terminal selection needed{% else %}Official feed{% endif %}</span>{% else %}<span class="arrival-current-source source-estimated" data-arrival-current-source>{% if terminal_routing %}Terminal selection needed{% else %}Estimated fallback{% endif %}</span>{% endif %}
+        </div>
+        <strong class="arrival-current-wait {{ airport_summary.tier if airport_summary else 'low' }}" data-arrival-current-wait>
+          {% if terminal_routing %}<span>Select a terminal first</span>{% elif overall_wait is not none %}{{ overall_wait|round|int }}<small> min</small>{% else %}<span>No fresh reading</span>{% endif %}
+        </strong>
+        {% if terminal_routing %}
+        <span class="arrival-current-trend" data-arrival-current-trend>Use the terminal on your boarding pass.</span>
+        {% elif airport_summary and is_live %}
+        <span class="arrival-current-trend {{ airport_summary.trend }}" data-arrival-current-trend>{{ airport_summary.trend_arrow }} {{ airport_summary.trend }} over the last 30 min</span>
+        {% else %}
+        <span class="arrival-current-trend" data-arrival-current-trend>Modeled planning estimate / no live trend</span>
+        {% endif %}
+      </div>
+
+<div class="airport-flow-plan"><p class="airport-flow-plan-step">3 · Plan your departure</p>
+        <a class="arrival-calculator-link"
+           data-arrival-calculator-link
+           href="/when-should-i-leave?airport={{ initial_airport_code }}&amp;lane=STANDARD">
+          <span data-arrival-plan-label>{% if terminal_routing %}Plan with a security allowance{% else %}Plan my departure{% endif %}</span>
+          <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M3 9h11M10 4l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+<p data-arrival-plan-note class="airport-flow-plan-note">{% if terminal_routing %}Choose a terminal for checkpoint-specific planning, or continue and choose a security allowance in the next step.{% else %}Add your flight time, travel time, and buffers.{% endif %}</p></div>
+        <div class="arrival-checkpoint-panel">
+          <div class="arrival-checkpoint-heading">
+            <h2 id="arrival-checkpoints-title">Compare checkpoint readings</h2>
+            <span data-arrival-compatible-count>{{ arrival_counts.checkpoints }} published</span>
+          </div>
+          <ol class="arrival-checkpoint-list" id="arrival-checkpoint-list" aria-labelledby="arrival-checkpoints-title">
+            {% for terminal in arrival.terminals %}
+              {% for checkpoint in terminal.checkpoints %}
+              <li data-arrival-checkpoint-item
+                  data-checkpoint-id="{{ checkpoint.id }}"
+                  data-terminal="{{ terminal.id }}"
+                  data-primary-gates="{{ checkpoint.primary_for|join(' ') }}"
+                  data-compatible-gates="{{ (checkpoint.primary_for + checkpoint.alternate_for)|join(' ') }}">
+                <button type="button"
+                        class="arrival-checkpoint-choice"
+                        data-arrival-checkpoint-choice="{{ checkpoint.id }}"
+                        aria-label="Select {{ checkpoint.label }} checkpoint{% if terminal_routing %} in {{ terminal.label }}{% endif %}"
+                        aria-pressed="false">
+                  <span class="arrival-checkpoint-copy">
+                    {% if terminal_routing %}<span class="arrival-checkpoint-terminal">{{ terminal.label }}</span>{% endif %}
+                    <strong>{{ checkpoint.label }}</strong>
+                    {% if checkpoint.hours %}<span class="arrival-checkpoint-hours">Published hours: {{ checkpoint.hours }}</span>{% endif %}
+                  </span>
+                  <span class="arrival-lane-stack">
+                    {% for lane in checkpoint.lanes %}
+                    {% set freshness = lane.freshness_status or lane.freshness %}
+                    <span class="arrival-lane-reading"
+                          data-arrival-lane-reading
+                          data-lane-type="{{ lane.lane_type|upper }}"
+                          data-wait-minutes="{% if lane.wait_minutes is not none %}{{ lane.wait_minutes }}{% endif %}"
+                          data-freshness="{{ freshness }}">
+                      <span>{{ lane.label or (lane.lane_type|lane_label) }}</span>
+                      <strong data-arrival-lane-value>
+                        {% if lane.wait_minutes is not none and freshness in ['live', 'aging'] %}{{ lane.wait_minutes|round|int }} min
+                        {% elif freshness == 'stale' %}Stale — no number
+                        {% elif freshness == 'published_only' %}Published only
+                        {% else %}No current reading{% endif %}
+                      </strong>
+                      {% if lane.trend and freshness in ['live', 'aging'] %}<span class="arrival-lane-trend">{{ lane.trend_arrow }} {{ lane.trend }}</span>{% endif %}
+                    </span>
+                    {% endfor %}
+                  </span>
+                  <span class="arrival-checkpoint-state" data-checkpoint-state aria-hidden="true"></span>
+                </button>
+              </li>
+              {% endfor %}
+            {% endfor %}
+            {% if arrival_counts.checkpoints == 0 %}
+            <li class="arrival-checkpoint-empty">No current checkpoint rows are available. Choose a security allowance in the departure planner.</li>
+            {% endif %}
+          </ol>
+        </div>
+
+        <p class="arrival-source-note">
+          {% if arrival.has_published_hours %}
+          Checkpoint hours verified {{ arrival.source.verified_on }} from
+          <a href="{{ arrival.source.url }}" target="_blank" rel="noopener">{{ arrival.source.label }}</a>.
+          Hours are published reference windows, not an “open now” calculation.
+          {% else %}
+          Checkpoint labels and current readings are sourced from
+          <a href="{{ arrival.source.url }}" target="_blank" rel="noopener">{{ arrival.source.label }}</a>.
+          Verify operating hours directly; Arrival Mode never infers open or closed from a missing row.
+          {% endif %}
+        </p>
+      </div>
+    </aside>
+    <details class="airport-flow-map" data-airport-map-details>
+      <summary><span>Explore the airport map</span><span class="airport-flow-map-hint">Terminal locations and orientation</span></summary>
     <div class="arrival-map-stage" data-arrival-map-stage data-location-accuracy="{{ arrival.map.location_accuracy }}" role="region" aria-label="Interactive satellite map of {{ airport_display_name }}" aria-busy="true" tabindex="-1">
       <div class="arrival-map-canvas" id="arrival-airport-map" aria-hidden="true"></div>
       <div class="arrival-map-fallback" data-arrival-map-fallback hidden>
@@ -80,142 +228,7 @@
       <p class="arrival-map-instruction" data-arrival-map-instruction>{% if terminal_routing %}Drag to explore · choose a terminal marker{% else %}Drag to explore · choose a checkpoint below{% endif %}</p>
       <p class="sr-only" id="arrival-map-status" data-arrival-map-status role="status" aria-live="polite"></p>
     </div>
-
-    <aside class="arrival-operations" data-arrival-sheet data-sheet-state="peek" aria-label="{{ initial_airport_code }} checkpoint planner">
-      <button type="button"
-              class="arrival-sheet-toggle"
-              data-arrival-sheet-toggle
-              aria-controls="arrival-control-body"
-              aria-expanded="false">
-        <span data-arrival-sheet-toggle-label>Show details</span>
-        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="m3.5 10 4.5-4 4.5 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-
-      <div class="arrival-current-summary">
-        <div>
-          <span class="arrival-current-label" data-arrival-current-label>Current airport wait</span>
-          {% if is_live %}<span class="arrival-current-source source-live" data-arrival-current-source>Official feed</span>{% else %}<span class="arrival-current-source source-estimated" data-arrival-current-source>Estimated fallback</span>{% endif %}
-        </div>
-        <strong class="arrival-current-wait {{ airport_summary.tier if airport_summary else 'low' }}" data-arrival-current-wait>
-          {% if overall_wait is not none %}{{ overall_wait|round|int }}<small> min</small>{% else %}<span>No fresh reading</span>{% endif %}
-        </strong>
-        {% if airport_summary and is_live %}
-        <span class="arrival-current-trend {{ airport_summary.trend }}" data-arrival-current-trend>{{ airport_summary.trend_arrow }} {{ airport_summary.trend }} over the last 30 min</span>
-        {% else %}
-        <span class="arrival-current-trend" data-arrival-current-trend>Modeled planning estimate / no live trend</span>
-        {% endif %}
-      </div>
-
-      <div class="arrival-control-body" id="arrival-control-body">
-        <form class="decision-controls arrival-decision-controls" data-decision-controls>
-          {% if terminal_routing %}
-          <fieldset>
-            <legend>{% if gate_routing %}Check-in terminal{% else %}Terminal or checkpoint area{% endif %}</legend>
-            <div class="choice-grid arrival-terminal-choice-grid">
-              <label><input type="radio" name="decision-terminal" value="" checked><span>Not sure</span></label>
-              {% for terminal in arrival.terminals %}
-              <label><input type="radio" name="decision-terminal" value="{{ terminal.id }}"><span>{{ terminal.label }}</span></label>
-              {% endfor %}
-            </div>
-          </fieldset>
-          {% endif %}
-
-          {% if gate_routing %}
-          <fieldset>
-            <legend>Gate on your boarding pass</legend>
-            <div class="choice-grid gate-choice-grid">
-              <label><input type="radio" name="decision-gate" value="" checked><span>Not sure</span></label>
-              {% for gate in ["A", "B", "C", "D", "E"] %}
-              <label><input type="radio" name="decision-gate" value="{{ gate }}"><span>Gate {{ gate }}</span></label>
-              {% endfor %}
-            </div>
-          </fieldset>
-          {% endif %}
-
-          <fieldset>
-            <legend>Screening lane</legend>
-            <div class="choice-grid choice-grid-two">
-              <label><input type="radio" name="decision-lane" value="STANDARD" checked><span>Standard</span></label>
-              <label><input type="radio" name="decision-lane" value="PRECHECK"><span>PreCheck</span></label>
-            </div>
-          </fieldset>
-
-          <p class="decision-result" data-decision-result role="status" aria-live="polite">{% if gate_routing %}Choose a gate or terminal to compare compatible checkpoints.{% elif terminal_routing %}Comparing fresh standard-screening readings across all terminal areas.{% else %}Comparing fresh standard-screening readings across reporting checkpoints.{% endif %}</p>
-          {% if arrival.routing_note %}<p class="decision-caveat">{{ arrival.routing_note }}</p>{% endif %}
-        </form>
-
-        <div class="arrival-checkpoint-panel">
-          <div class="arrival-checkpoint-heading">
-            <h2 id="arrival-checkpoints-title">Checkpoint choices</h2>
-            <span data-arrival-compatible-count>{{ arrival_counts.checkpoints }} published</span>
-          </div>
-          <ol class="arrival-checkpoint-list" id="arrival-checkpoint-list" aria-labelledby="arrival-checkpoints-title">
-            {% for terminal in arrival.terminals %}
-              {% for checkpoint in terminal.checkpoints %}
-              <li data-arrival-checkpoint-item
-                  data-checkpoint-id="{{ checkpoint.id }}"
-                  data-terminal="{{ terminal.id }}"
-                  data-primary-gates="{{ checkpoint.primary_for|join(' ') }}"
-                  data-compatible-gates="{{ (checkpoint.primary_for + checkpoint.alternate_for)|join(' ') }}">
-                <button type="button"
-                        class="arrival-checkpoint-choice"
-                        data-arrival-checkpoint-choice="{{ checkpoint.id }}"
-                        aria-label="Select {{ checkpoint.label }} checkpoint{% if terminal_routing %} in {{ terminal.label }}{% endif %}"
-                        aria-pressed="false">
-                  <span class="arrival-checkpoint-copy">
-                    {% if terminal_routing %}<span class="arrival-checkpoint-terminal">{{ terminal.label }}</span>{% endif %}
-                    <strong>{{ checkpoint.label }}</strong>
-                    {% if checkpoint.hours %}<span class="arrival-checkpoint-hours">Published hours: {{ checkpoint.hours }}</span>{% endif %}
-                  </span>
-                  <span class="arrival-lane-stack">
-                    {% for lane in checkpoint.lanes %}
-                    {% set freshness = lane.freshness_status or lane.freshness %}
-                    <span class="arrival-lane-reading"
-                          data-arrival-lane-reading
-                          data-lane-type="{{ lane.lane_type|upper }}"
-                          data-wait-minutes="{% if lane.wait_minutes is not none %}{{ lane.wait_minutes }}{% endif %}"
-                          data-freshness="{{ freshness }}">
-                      <span>{{ lane.label or (lane.lane_type|lane_label) }}</span>
-                      <strong data-arrival-lane-value>
-                        {% if lane.wait_minutes is not none and freshness in ['live', 'aging'] %}{{ lane.wait_minutes|round|int }} min
-                        {% elif freshness == 'stale' %}Stale — no number
-                        {% elif freshness == 'published_only' %}Published only
-                        {% else %}No current reading{% endif %}
-                      </strong>
-                      {% if lane.trend and freshness in ['live', 'aging'] %}<span class="arrival-lane-trend">{{ lane.trend_arrow }} {{ lane.trend }}</span>{% endif %}
-                    </span>
-                    {% endfor %}
-                  </span>
-                  <span class="arrival-checkpoint-state" data-checkpoint-state aria-hidden="true"></span>
-                </button>
-              </li>
-              {% endfor %}
-            {% endfor %}
-            {% if arrival_counts.checkpoints == 0 %}
-            <li class="arrival-checkpoint-empty">No current checkpoint rows are available. Use the labeled airport planning estimate and check the raw feed below.</li>
-            {% endif %}
-          </ol>
-        </div>
-
-        <a class="arrival-calculator-link"
-           data-arrival-calculator-link
-           href="/when-should-i-leave?airport={{ initial_airport_code }}&amp;lane=STANDARD">
-          <span>When should I leave?</span>
-          <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M3 9h11M10 4l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </a>
-        <p class="arrival-source-note">
-          {% if arrival.has_published_hours %}
-          Checkpoint hours verified {{ arrival.source.verified_on }} from
-          <a href="{{ arrival.source.url }}" target="_blank" rel="noopener">{{ arrival.source.label }}</a>.
-          Hours are published reference windows, not an “open now” calculation.
-          {% else %}
-          Checkpoint labels and current readings are sourced from
-          <a href="{{ arrival.source.url }}" target="_blank" rel="noopener">{{ arrival.source.label }}</a>.
-          Verify operating hours directly; Arrival Mode never infers open or closed from a missing row.
-          {% endif %}
-        </p>
-      </div>
-    </aside>
+    </details>
   </div>
 
   <noscript><p class="arrival-noscript">The satellite view requires JavaScript. All current source rows remain available in the raw checkpoint feed below.</p></noscript>
@@ -325,6 +338,14 @@
     </div>
   </div>
 
+  {% if airport_decision_map.excluded_readings %}
+  <details class="unmatched-readings">
+    <summary>Readings excluded from departure recommendations</summary>
+    {% for row in airport_decision_map.excluded_readings %}
+    <p><strong>{{ row.checkpoint }}</strong>: {{ row.reason }}</p>
+    {% endfor %}
+  </details>
+  {% endif %}
   {% if airport_decision_map.unmatched_rows %}
   <details class="unmatched-readings">
     <summary>Other live readings not yet mapped</summary>

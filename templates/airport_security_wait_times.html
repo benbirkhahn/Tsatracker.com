@@ -24,7 +24,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Oswald:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/tracker.css">
   <style>
     .content-card h1 { color: var(--text); line-height: 1.15; }
     .content-card h2 { font-size: 1.25rem !important; font-family: inherit !important; text-transform: none !important; letter-spacing: 0 !important; color: var(--text) !important; }
@@ -63,36 +63,18 @@
     .faq-item h3 { margin: 0 0 8px; }
     .faq-item p { margin: 0; }
   </style>
+  <link rel="stylesheet" href="/static/experience.css?v=20261002">
 </head>
 <body>
-  <header class="header">
-    <a href="/" class="header-home-link">
-      <span class="logo-shield">✈️</span>
-      <div>
-        <div class="logo-name">TSA Tracker</div>
-        <div class="logo-tag">Live airport data</div>
-      </div>
-    </a>
-    <nav class="header-nav">
-      <a href="/" class="header-nav-link">Home</a>
-      <a href="/airports" class="header-nav-link">Airports</a>
-      <a href="/airport-security-wait-times" class="header-nav-link active">Airport Wait Times</a>
-      <a href="/methodology" class="header-nav-link">Methodology</a>
-    </nav>
-    <div class="header-external-links">
-      <span class="header-external-label">More from Ben</span>
-      <a href="https://benbirkhahn.com" class="header-external-link primary" target="_blank" rel="noopener">Other Projects</a>
-      <a href="https://github.com/benbirkhahn" class="header-external-link" target="_blank" rel="noopener">GitHub</a>
-      <a href="https://www.linkedin.com/in/benjamin-birkhahn-421870240" class="header-external-link" target="_blank" rel="noopener">LinkedIn</a>
-    </div>
-  </header>
+  {% include "_site_header.html" %}
 
-  <main class="main">
-    <article class="card content-card" style="max-width:860px;margin:0 auto;" itemscope itemtype="https://schema.org/Article">
+  <main id="main-content" tabindex="-1" class="site-shell page-main article-shell">
+    <article class="content-card page-prose" style="max-width:860px;margin:0 auto;" itemscope itemtype="https://schema.org/Article">
       <div style="margin-bottom:8px;">
         <span style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);">Live Guide</span>
       </div>
       <h1 itemprop="headline" style="font-size:2rem;font-weight:700;margin-bottom:10px;">Airport Security Wait Times</h1>
+      {% include "_guide_actions.html" %}
       <p class="muted" style="margin-bottom:6px;">Find live airport security wait times, compare the busiest airports, and open the airport page that matches your trip before you leave home.</p>
       <p style="font-size:0.85rem;color:var(--muted);margin-bottom:24px;"><em>By the TSA Tracker team · Updated {{ copy_updated_label }}</em></p>
 
@@ -129,17 +111,17 @@
         </div>
         <div class="stat-card">
           <div class="stat-label">Fastest now</div>
-          <div class="stat-value">{{ fastest_airport.code }}</div>
-          <div class="stat-sub">{{ fastest_airport.wait_description }} average</div>
+          <div class="stat-value">{{ fastest_airport.code if fastest_airport else 'Unavailable' }}</div>
+          <div class="stat-sub">{{ fastest_airport.wait_description ~ ' Standard average' if fastest_airport else 'No fresh Standard readings' }}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Slowest now</div>
-          <div class="stat-value">{{ slowest_airport.code }}</div>
-          <div class="stat-sub">{{ slowest_airport.wait_description }} average</div>
+          <div class="stat-value">{{ slowest_airport.code if slowest_airport else 'Unavailable' }}</div>
+          <div class="stat-sub">{{ slowest_airport.wait_description ~ ' Standard average' if slowest_airport else 'No fresh Standard readings' }}</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Network average</div>
-          <div class="stat-value">{{ "%.1f"|format(overall_average) }}</div>
+          <div class="stat-label">Reporting-airport Standard average</div>
+          <div class="stat-value">{{ "%.1f"|format(overall_average) if overall_average is not none else "—" }}</div>
           <div class="stat-sub">minutes across reporting live and fallback values</div>
         </div>
       </div>
@@ -212,29 +194,7 @@
     </article>
   </main>
 
-  <footer class="footer">
-    <div>TSA Tracker — active airport feeds are checked about every 2 minutes; fallback estimates are labeled.</div>
-    <div class="footer-links">
-      <a href="/">Home</a>
-      <span>·</span>
-      <a href="/airports">Airports</a>
-      <span>·</span>
-      <a href="/when-should-i-leave">Leave-Time Calculator</a>
-      <span>·</span>
-      <a href="/airport-security-wait-times">Airport Wait Times</a>
-      <span>·</span>
-      <a href="/about">About</a>
-      <span>·</span>
-      <a href="/methodology">Methodology</a>
-      <span>·</span>
-      <a href="/guide/tsa-wait-times">TSA Guide</a>
-      <span>·</span>
-      <a href="/guide/tsa-precheck-clear">PreCheck vs CLEAR</a>
-      <span>·</span>
-      <a href="/contact">Contact</a>
-    </div>
-    <div class="publisher-disclosure">Independent publisher; not affiliated with TSA or any airport authority.</div>
-  </footer>
+  {% include "_site_footer.html" %}
 
   <script type="application/ld+json">
   {

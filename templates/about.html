@@ -23,7 +23,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Oswald:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/tracker.css">
   <style>
     .content-card h1 { color: var(--text); line-height: 1.2; }
     .content-card h2 { font-size: 1.25rem !important; font-family: inherit !important; text-transform: none !important; letter-spacing: 0 !important; color: var(--text) !important; }
@@ -35,34 +35,16 @@
     .content-card ul.content-list { font-size: 0.95rem; }
   </style>
   {% include "_ga_head.html" %}
+  <link rel="stylesheet" href="/static/experience.css?v=20261002">
 </head>
 <body>
-  <header class="header">
-    <a href="/" class="header-home-link">
-      <span class="logo-shield">✈️</span>
-      <div>
-        <div class="logo-name">TSA Tracker</div>
-        <div class="logo-tag">Live airport data</div>
-      </div>
-    </a>
-    <nav class="header-nav">
-      <a href="/" class="header-nav-link">Home</a>
-      <a href="/airports" class="header-nav-link">Airports</a>
-      <a href="/about" class="header-nav-link">About</a>
-      <a href="/methodology" class="header-nav-link">Methodology</a>
-    </nav>
-    <div class="header-external-links">
-      <span class="header-external-label">More from Ben</span>
-      <a href="https://benbirkhahn.com" class="header-external-link primary" target="_blank" rel="noopener">Other Projects</a>
-      <a href="https://github.com/benbirkhahn" class="header-external-link" target="_blank" rel="noopener">GitHub</a>
-      <a href="https://www.linkedin.com/in/benjamin-birkhahn-421870240" class="header-external-link" target="_blank" rel="noopener">LinkedIn</a>
-    </div>
-  </header>
+  {% include "_site_header.html" %}
 
-  <main class="main">
-    <section class="card content-card" style="max-width:780px;margin:0 auto;">
+  <main id="main-content" tabindex="-1" class="site-shell page-main article-shell">
+    <section class="content-card page-prose" style="max-width:780px;margin:0 auto;">
 
       <h1 style="font-size:2rem;font-weight:700;margin-bottom:8px;">About TSA Tracker</h1>
+      {% include "_guide_actions.html" %}
       <p class="muted" style="font-size:1.05rem;margin-bottom:32px;">TSA Tracker is a live airport utility: it shows checkpoint wait times, airport-specific guidance, and recent history so travelers can make a real timing decision instead of guessing.</p>
       <p class="muted" style="font-size:0.85rem;margin:-20px 0 32px;"><em>Last reviewed: {{ copy_updated_label }}</em></p>
 
@@ -110,7 +92,7 @@
       </ul>
 
       <h2 style="font-size:1.25rem;font-weight:700;margin:32px 0 10px;">Airports Coming Soon</h2>
-      <p>We're actively working on adding more airports. The challenge isn't desire — it's data availability. Each new airport requires finding, testing, and normalizing a reliable data source. We only launch an airport when we're confident the data is real and consistently updated. Check the Coming Soon section on the homepage for current status.</p>
+      <p>We're actively working on adding more airports. The challenge isn't desire — it's data availability. Each new airport requires finding, testing, and normalizing a reliable data source. We only launch an airport when we're confident the data is real and consistently updated. The <a href="/airports">airport directory</a> lists current coverage.</p>
 
       <h2 style="font-size:1.25rem;font-weight:700;margin:32px 0 10px;">Color Coding Guide</h2>
       <p>Each checkpoint card uses a simple color system to help you immediately understand conditions:</p>
@@ -156,29 +138,7 @@
     </section>
   </main>
 
-  <footer class="footer">
-    <div>TSA Tracker — active airport feeds are checked about every 2 minutes; fallback estimates are labeled.</div>
-    <div class="footer-links">
-      <a href="/airports">Airports</a>
-      <span>·</span>
-      <a href="/airport-security-wait-times">Airport Wait Times</a>
-      <span>·</span>
-      <a href="/about">About</a>
-      <span>·</span>
-      <a href="/methodology">Methodology</a>
-      <span>·</span>
-      <a href="/privacy">Privacy</a>
-      <span>·</span>
-      <a href="/terms">Terms</a>
-      <span>·</span>
-      <a href="/contact">Contact</a>
-      <span>·</span>
-      <a href="/guide/tsa-wait-times">TSA Guide</a>
-      <span>·</span>
-      <a href="/guide/tsa-precheck-clear">PreCheck vs CLEAR</a>
-    </div>
-    <div class="publisher-disclosure">Independent publisher; not affiliated with TSA or any airport authority.</div>
-  </footer>
+  {% include "_site_footer.html" %}
 
   <script>
     document.querySelectorAll(".header-nav-link").forEach(function(a) {
@@ -216,5 +176,6 @@
   }
   </script>
   {% include "_structured_breadcrumbs.html" %}
+<script src="/static/experience.js?v=20261002" defer></script>
 </body>
 </html>

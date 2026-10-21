@@ -708,6 +708,11 @@
     }
   }
 
+  var mapDisclosure = stage.closest("details");
+  if (mapDisclosure) mapDisclosure.addEventListener("toggle", function () {
+    if (!mapDisclosure.open) return;
+    window.requestAnimationFrame(function () { map.invalidateSize({animate:false}); resetOverview(false); syncSearch(); });
+  });
   if (searchInput) searchInput.addEventListener("input", syncSearch);
 
   document.querySelectorAll("[data-hero-search]").forEach(function (result) {

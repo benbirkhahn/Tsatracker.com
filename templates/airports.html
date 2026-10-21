@@ -21,36 +21,20 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=Oswald:wght@600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/tracker.css">
+  <link rel="stylesheet" href="/static/experience.css?v=20261002">
 </head>
 <body>
 
-<header class="site-header">
-  <div class="site-shell site-nav">
-    <a class="site-brand" href="/" aria-label="TSA Tracker home">
-      <span class="brand-mark" aria-hidden="true"><span></span></span>
-      <span class="brand-copy">
-        <span class="brand-name">TSA Tracker</span>
-        <span class="brand-tag">Live airport security intelligence</span>
-      </span>
-    </a>
-    <nav class="site-links" aria-label="Primary navigation">
-      <a href="/airports" aria-current="page">Airports</a>
-      <a href="/when-should-i-leave">Leave-time</a>
-      <a href="/best-time-to-get-to-the-airport">Timing</a>
-      <a href="/guide/tsa-wait-times">Guides</a>
-      <a href="/methodology">Methodology</a>
-    </nav>
-  </div>
-</header>
+{% include "_site_header.html" %}
 
-<main class="site-shell page-main">
+<main id="main-content" tabindex="-1" class="site-shell page-main">
   <section class="directory-hero" aria-labelledby="directory-title">
     <div>
       <p class="eyebrow">Airport directory / live and fallback status</p>
       <h1 class="directory-title" id="directory-title">TSA wait times by airport.</h1>
     </div>
     <div>
-      <p class="directory-copy">Browse {{ airport_summaries|length }} supported airports. {{ live_count }} currently have a fresh official reading and {{ estimated_count }} use labeled planning estimates. Terminal and checkpoint conditions can vary sharply.</p>
+      <p class="directory-copy">Browse {{ airport_summaries|length }} supported airports. {{ live_count }} currently have a fresh official reading and {{ estimated_count }} use modeled estimates{% if community_count %}, and {{ community_count }} show traveler reports{% endif %}. Terminal and checkpoint conditions can vary sharply.</p>
       <label class="search-control" for="q">
         <span class="search-prefix" aria-hidden="true">APT</span>
         <input id="q" type="search" placeholder="Search airport, code, or city" autocomplete="off" aria-label="Search airports" aria-controls="board" aria-describedby="directory-search-status">
@@ -59,27 +43,13 @@
     </div>
   </section>
 
-  <section class="content-section netcompare" aria-labelledby="netcompare-title">
-    <div class="section-heading">
-      <div>
-        <p class="section-kicker">Typical day &middot; rolling 30-day average</p>
-        <h2 class="section-title" id="netcompare-title">Compare a typical day across the network</h2>
-      </div>
-    </div>
-    <p class="netcompare-lede">Each line is one airport's average standard-lane wait by hour of local day, built from the last 30 days of readings. This is a historical pattern for planning &mdash; not a live reading. Hover the chart to compare airports at any hour.</p>
-    <figure class="netcompare-figure">
-      <div class="netcompare-mount" id="netcompare" data-days="30" role="img" aria-label="Line chart comparing typical hourly TSA wait times across airports over the last 30 days">
-        <p class="netcompare-empty" id="netcompare-empty">Loading the 30-day network comparison&hellip;</p>
-      </div>
-      <figcaption class="netcompare-caption">Standard lanes only. Times shown in each airport's local time zone. Airports without enough recent history are omitted.</figcaption>
-    </figure>
-  </section>
+
 
   <section class="content-section" aria-labelledby="directory-board-title">
     <div class="section-heading">
       <div>
         <p class="section-kicker">Current network</p>
-        <h2 class="section-title" id="directory-board-title">All reporting airports</h2>
+        <h2 class="section-title" id="directory-board-title">Choose an airport</h2>
       </div>
       <div class="apt-toolbar" role="group" aria-label="Filter airports by region">
         <button class="apt-chip on" type="button" data-region="all" aria-pressed="true">All</button>
@@ -92,7 +62,7 @@
     </div>
 
     <div class="apt-grid" id="board" aria-live="polite">
-      {% for a in airport_summaries %}
+      {% for a in airport_summaries|sort(attribute='code') %}
       <a class="apt-card{% if a.is_closed %} closed{% endif %}" href="{{ a.href }}"
          data-code="{{ a.code }}" data-region="{{ a.region }}"
          data-city="{{ a.city|lower }} {{ a.name|lower }}" data-wait="{{ a.current_wait }}">
@@ -101,17 +71,18 @@
             <span class="apt-card-code">{{ a.code }}</span>
             <span class="apt-card-city">{{ a.city or a.name }}</span>
           </div>
-          {% if a.is_live %}<span class="apt-card-src is-live">Live</span>
-          {% else %}<span class="apt-card-src is-est">Est.</span>{% endif %}
+          {% if a.is_live %}<span class="apt-card-src is-live">Official</span>
+          {% else %}<span class="apt-card-src is-est">{{ a.source_label }}</span>{% endif %}
         </div>
         <div class="apt-card-mid">
           {% if a.is_closed %}
           <span class="apt-card-wait w-dim">closed</span>
           {% else %}
           <span class="apt-card-wait w-{{ a.tier }}">{{ a.current_wait|round|int }}</span>
-          <span class="apt-card-unit">min standard{% if a.is_live %} <i class="apt-card-trend" aria-label="{{ a.trend }}">{{ a.trend_arrow }}</i>{% endif %}</span>
+          <span class="apt-card-unit">min {{ 'reported' if a.source_type == 'community' else 'standard' }}{% if a.is_live %} <i class="apt-card-trend" aria-label="{{ a.trend }}">{{ a.trend_arrow }}</i>{% endif %}</span>
           {% endif %}
         </div>
+        <p class="card-source-age">{{ a.updated_at if a.is_live else "Planning context · no fresh Standard reading" }}</p>
         <div class="apt-card-foot">
           <span class="apt-card-pre">PreCheck {% if a.precheck_wait is not none %}<b>{{ a.precheck_wait }}m</b>{% else %}<b>&mdash;</b>{% endif %}</span>
           <span class="apt-card-spark" data-spark aria-hidden="true"></span>
@@ -119,8 +90,24 @@
       </a>
       {% endfor %}
     </div>
-    <p class="board-note directory-empty" id="directory-empty" hidden>No tracked airport matches that filter.</p>
+    <p class="board-note directory-empty" id="directory-empty" hidden>No supported airport matches these filters. <button type="button" id="reset-directory">Clear search and filters</button></p>
   </section>
+
+  <details class="content-section netcompare"><summary>Compare typical waits across airports</summary>
+    <div class="section-heading">
+      <div>
+        <p class="section-kicker">Typical day &middot; rolling 30-day average</p>
+        <h2 class="section-title" id="netcompare-title">Compare a typical day across the network</h2>
+      </div>
+    </div>
+    <p class="netcompare-lede">Each line is one airport's average standard-lane wait by hour of local day, built from the last 30 days of readings. This is a historical pattern for planning &mdash; not a live reading. Use the hour selector or hover the chart to compare recorded waits. Gaps mean observations are unavailable.</p>
+    <figure class="netcompare-figure">
+      <div class="netcompare-mount" id="netcompare" data-days="30" role="region" aria-label="Line chart comparing typical hourly TSA wait times across airports over the last 30 days">
+        <p class="netcompare-empty" id="netcompare-empty">Loading the 30-day network comparison&hellip;</p>
+      </div>
+      <figcaption class="netcompare-caption">Standard lanes only. Times shown in each airport's local time zone. Airports without enough recent history are omitted.</figcaption>
+    </figure>
+  </details>
 
   <section class="content-section directory-explainer" aria-labelledby="directory-explainer-title">
     <div class="section-heading">
@@ -164,21 +151,7 @@
   </section>
   {% endif %}
 
-  <footer class="site-footer">
-    <div class="footer-row">
-      <span class="footer-brand">TSA Tracker</span>
-      <nav class="footer-links" aria-label="Footer navigation">
-        <a href="/">Live board</a>
-        <a href="/when-should-i-leave">Leave-time tool</a>
-        <a href="/methodology">Methodology</a>
-        <a href="/about">About</a>
-        <a href="/contact">Contact</a>
-        <a href="/privacy">Privacy</a>
-        <a href="/terms">Terms</a>
-      </nav>
-    </div>
-    <div class="footer-note">Active airport feeds are checked about every 2 minutes; fallback estimates are labeled. Independent publisher; not affiliated with TSA or any airport authority.</div>
-  </footer>
+  {% include "_site_footer.html" %}
 </main>
 
 <script>
@@ -207,6 +180,7 @@
     if(empty)empty.hidden=n>0;
   }
   if(q)q.addEventListener("input",apply);
+  apply();
   chips.forEach(function(ch){
     ch.addEventListener("click",function(){
       chips.forEach(function(x){x.classList.remove("on");x.setAttribute("aria-pressed","false");});
@@ -214,6 +188,7 @@
       region=ch.dataset.region;apply();
     });
   });
+  document.getElementById("reset-directory").addEventListener("click",function(){q.value="";region="all";chips.forEach(function(ch){var active=ch.dataset.region==="all";ch.classList.toggle("on",active);ch.setAttribute("aria-pressed",String(active));});apply();q.focus();});
   // Sparklines from the real 30-day typical-day curve (one cached call).
   function tierColor(t){return t==="med"?"var(--warning)":(t==="high"||t==="crit")?"var(--danger)":"var(--live)";}
   function draw(series,color){
@@ -227,7 +202,7 @@
     var by={};(d.airports||[]).forEach(function(a){by[a.code]=(a.rows||[]).map(function(r){return r.avg_wait;});});
     cards.forEach(function(c){
       var s=by[c.dataset.code],slot=c.querySelector("[data-spark]");
-      if(s&&s.length>1&&slot){
+      if(s&&s.length>1&&s.every(function(v){return v!=null&&isFinite(v);})&&slot){
         var t=c.querySelector(".apt-card-wait"),m=t?(t.className.match(/w-(\w+)/)||[]):[];
         slot.innerHTML=draw(s,tierColor(m[1]||"low"));
       }
@@ -247,27 +222,24 @@
   var W=960,H=380,L=46,R=18,T=18,B=36,iw=W-L-R,ih=H-T-B;
   var disabled={};        // codes toggled off
   var series=[];          // [{code,name,href,color,pts[24]}]
+  var selectedHour=9;
   var netAvg=[];          // network mean per hour
 
   function xPix(h){return L+(h/23)*iw;}
   function yPix(v,ymax){return T+ih-(v/ymax)*ih;}
-  function fill(arr){ // carry-fill nulls both directions
-    var out=arr.slice(),last=null,i;
-    for(i=0;i<24;i++){if(out[i]==null){out[i]=last;}else{last=out[i];}}
-    var next=null;
-    for(i=23;i>=0;i--){if(arr[i]==null){if(next!=null)out[i]=next;}else{next=arr[i];}}
-    for(i=0;i<24;i++){if(out[i]==null)out[i]=0;}
-    return out;
-  }
+  function fill(arr){return arr.slice();}
   function fmtHour(h){var ap=h<12?"a":"p";var hr=h%12;if(hr===0)hr=12;return hr+ap;}
   function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 
   function fail(msg){if(emptyEl){emptyEl.textContent=msg;emptyEl.style.display="block";}}
 
   fetch("/api/network-history-24h-average?days="+days).then(function(r){return r.json();}).then(function(d){
+    if((d.airports||[]).some(function(a){return a.history_backfill_pending;})){
+      var note=document.createElement("p");note.className="board-note";note.textContent="Standard history is still being prepared. The comparison currently includes the observations processed so far.";mount.parentNode.appendChild(note);
+    }
     var aps=(d.airports||[]).map(function(a,i){
       var raw=[];for(var h=0;h<24;h++)raw[h]=null;
-      (a.rows||[]).forEach(function(r){var hh=Number(r.hour);var v=Number(r.avg_wait);if(hh>=0&&hh<24&&isFinite(v))raw[hh]=v;});
+      (a.rows||[]).forEach(function(r){var hh=Number(r.hour);var v=Number(r.avg_wait);if(r.avg_wait!=null&&hh>=0&&hh<24&&isFinite(v))raw[hh]=v;});
       var samples=(a.rows||[]).reduce(function(s,r){return s+(Number(r.samples)||0);},0);
       return {code:a.code,name:a.name||a.code,href:a.href||("/airports/"+String(a.code).toLowerCase()+"-tsa-wait-times"),raw:raw,samples:samples};
     }).filter(function(a){return a.samples>0;});
@@ -275,9 +247,9 @@
     // sort by peak so busiest get the leading colors + legend order
     aps.sort(function(a,b){return Math.max.apply(null,b.raw.map(Number).filter(isFinite))-Math.max.apply(null,a.raw.map(Number).filter(isFinite));});
     series=aps.map(function(a,i){return {code:a.code,name:a.name,href:a.href,color:PALETTE[i%PALETTE.length],pts:fill(a.raw)};});
-    for(var h=0;h<24;h++){var s=0,n=0;series.forEach(function(x){s+=x.pts[h];n++;});netAvg[h]=n?s/n:0;}
+    for(var h=0;h<24;h++){var s=0,n=0;series.forEach(function(x){if(x.pts[h]!=null){s+=x.pts[h];n++;}});netAvg[h]=n?s/n:null;}
     render();
-  }).catch(function(){fail("Network comparison is unavailable right now. The airport cards below still work.");});
+  }).catch(function(){fail("Network comparison is unavailable right now. The airport cards above still work.");});
 
   function activeSeries(){return series.filter(function(s){return !disabled[s.code];});}
   function yMax(){
@@ -286,7 +258,7 @@
     mx=Math.max(mx,10);return Math.ceil(mx/5)*5;
   }
   function path(pts,ymax){
-    return pts.map(function(v,i){return (i?"L":"M")+xPix(i).toFixed(1)+" "+yPix(v,ymax).toFixed(1);}).join(" ");
+    var drawing=false;return pts.map(function(v,i){if(v==null){drawing=false;return "";}var command=drawing?"L":"M";drawing=true;return command+xPix(i).toFixed(1)+" "+yPix(v,ymax).toFixed(1);}).join(" ");
   }
 
   function render(){
@@ -314,7 +286,8 @@
       chips+='<button type="button" class="nc-chip'+(disabled[s.code]?" off":"")+'" data-code="'+s.code+'" aria-pressed="'+(disabled[s.code]?"false":"true")+'"><i style="background:'+s.color+'"></i>'+esc(s.code)+'</button>';
     });
     chips+='</div>';
-    mount.innerHTML=svg+chips;
+    var options="";for(var h=0;h<24;h++)options+='<option value="'+h+'"'+(h===selectedHour?' selected':'')+'>'+fmtHour(h).replace("a"," AM").replace("p"," PM")+'</option>';
+    mount.innerHTML=svg+chips+'<label class="nc-reading-control" for="nc-hour">Read typical waits by local hour <select id="nc-hour">'+options+'</select></label><ul class="nc-reading-list" aria-live="polite"></ul>';
     wire();
   }
 
@@ -327,7 +300,7 @@
 
     // legend: click toggles, hover highlights
     Array.prototype.forEach.call(mount.querySelectorAll(".nc-chip"),function(chip){
-      chip.addEventListener("click",function(){disabled[chip.dataset.code]=!disabled[chip.dataset.code];render();});
+      chip.addEventListener("click",function(){var code=chip.dataset.code;disabled[code]=!disabled[code];render();mount.querySelector('.nc-chip[data-code="'+code+'"]').focus();});
       chip.addEventListener("mouseenter",function(){highlight(chip.dataset.code);});
       chip.addEventListener("mouseleave",function(){highlight(null);});
       chip.addEventListener("focus",function(){highlight(chip.dataset.code);});
@@ -353,6 +326,7 @@
       var xp=xPix(h);
       guide.setAttribute("x1",xp);guide.setAttribute("x2",xp);guide.style.display="";
       var rows=activeSeries().map(function(s){return {code:s.code,color:s.color,v:s.pts[h]};});
+      rows=rows.filter(function(r){return r.v!=null;});
       rows.sort(function(a,b){return b.v-a.v;});
       var dg="";rows.forEach(function(r){dg+='<circle cx="'+xp.toFixed(1)+'" cy="'+yPix(r.v,ymax).toFixed(1)+'" r="3.2" fill="'+r.color+'" stroke="var(--panel,#0d1420)" stroke-width="1.5"/>';});
       dots.innerHTML=dg;
@@ -369,6 +343,12 @@
     }
     function hide(){guide.style.display="none";dots.innerHTML="";tip.style.display="none";}
 
+    function readHour(){
+      selectedHour=Number(mount.querySelector("#nc-hour").value);
+      var readings=activeSeries().map(function(s){return '<li><a href="'+esc(s.href)+'">'+esc(s.code)+'</a><span>'+(s.pts[selectedHour]==null?'Unavailable':Math.round(s.pts[selectedHour])+' min')+'</span></li>';});
+      mount.querySelector(".nc-reading-list").innerHTML=readings.join("")||'<li>No airports selected.</li>';
+    }
+    mount.querySelector("#nc-hour").addEventListener("change",readHour);readHour();
     svg.addEventListener("mousemove",function(e){showAt(hourFromEvent(e));});
     svg.addEventListener("mouseleave",hide);
     svg.addEventListener("touchstart",function(e){if(e.touches[0])showAt(hourFromEvent(e.touches[0]));},{passive:true});

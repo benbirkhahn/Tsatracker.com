@@ -574,7 +574,7 @@ AIRPORT_DECISION_MAPS = {
                     {
                         "id": "mco-west",
                         "label": "West Security",
-                        "aliases": ["West Standard", "West PreCheck", "West Security"],
+                        "aliases": ["West Standard", "West PreCheck", "West Security", "West Standard (general)", "West PreCheck (precheck)"],
                         "primary_for": [],
                         "alternate_for": [],
                         "hours": "",
@@ -595,7 +595,7 @@ AIRPORT_DECISION_MAPS = {
                     {
                         "id": "mco-south",
                         "label": "South Security",
-                        "aliases": ["South Standard", "South PreCheck", "South Security"],
+                        "aliases": ["South Standard", "South PreCheck", "South Security", "South Standard (general)", "South PreCheck (precheck)"],
                         "primary_for": [],
                         "alternate_for": [],
                         "hours": "",
@@ -616,7 +616,7 @@ AIRPORT_DECISION_MAPS = {
                     {
                         "id": "mco-east",
                         "label": "East Security",
-                        "aliases": ["East Standard", "East PreCheck", "East Security"],
+                        "aliases": ["East Standard", "East PreCheck", "East Security", "East Standard (general)", "East PreCheck (precheck)"],
                         "primary_for": [],
                         "alternate_for": [],
                         "hours": "",
@@ -1078,6 +1078,7 @@ AIRPORT_DECISION_MAPS = {
                         "label": "Terminal A North",
                         "aliases": [
                             "Terminal A North",
+                            "IAH Terminal A North",
                             "Terminal A North (Standard)",
                             "Terminal A North (TSA PreCheck)",
                             "Terminal A North (CLEAR)",
@@ -1092,6 +1093,7 @@ AIRPORT_DECISION_MAPS = {
                         "label": "Terminal A South",
                         "aliases": [
                             "Terminal A South",
+                            "IAH Terminal A South",
                             "Terminal A South (Standard)",
                             "Terminal A South (TSA PreCheck)",
                         ],
@@ -1137,6 +1139,8 @@ AIRPORT_DECISION_MAPS = {
                         "label": "Terminal C North",
                         "aliases": [
                             "Terminal C North",
+                            "IAH Terminal C North",
+                            "IAH Terminal C North Premier",
                             "Terminal C North (Standard)",
                             "Terminal C North (TSA PreCheck)",
                             "Terminal C North (CLEAR)",
@@ -1151,6 +1155,7 @@ AIRPORT_DECISION_MAPS = {
                         "label": "Terminal C South",
                         "aliases": [
                             "Terminal C South",
+                            "IAH Terminal C South",
                             "Terminal C South (Standard)",
                             "Terminal C South (TSA PreCheck)",
                         ],
@@ -1174,7 +1179,7 @@ AIRPORT_DECISION_MAPS = {
                     {
                         "id": "iah-terminal-d",
                         "label": "Terminal D",
-                        "aliases": ["Terminal D", "Terminal D (Standard)"],
+                        "aliases": ["Terminal D", "Terminal D (Standard)", "IAH Terminal D"],
                         "primary_for": [],
                         "alternate_for": [],
                         "hours": "4:00 a.m. - 12:30 a.m.",
@@ -1195,7 +1200,7 @@ AIRPORT_DECISION_MAPS = {
                     {
                         "id": "iah-terminal-e",
                         "label": "Terminal E",
-                        "aliases": ["Terminal E", "Terminal E (Standard)", "Terminal E (CLEAR)"],
+                        "aliases": ["Terminal E", "Terminal E (Standard)", "Terminal E (CLEAR)", "IAH Terminal E"],
                         "primary_for": [],
                         "alternate_for": [],
                         "hours": "4:00 a.m. - 12:00 a.m.",
@@ -1436,8 +1441,8 @@ AIRPORT_DECISION_MAPS = {
                 "checkpoints": [
                     {
                         "id": "sfo-checkpoint-b",
-                        "label": "Checkpoint B",
-                        "aliases": ["Checkpoint B · Harvey Milk Terminal 1"],
+                        "label": "Checkpoint B - Departure Level",
+                        "aliases": ["Checkpoint B", "Checkpoint B · Harvey Milk Terminal 1", "Checkpoint B - Departure Level", "Checkpoint B - Departure Level · Harvey Milk Terminal 1"],
                         "primary_for": [],
                         "alternate_for": [],
                         "hours": "",
@@ -2008,10 +2013,17 @@ AIRPORT_DECISION_MAPS = {
                 "marker_label": "Terminal A",
                 "marker_offset": [10, -10],
                 "label": "Terminal A",
-                "summary": "Checkpoints A12, A21, and A35",
+                "summary": "Checkpoints A7, A12, A21, and A35",
                 "anchor": [32.9045373, -97.0371022],
                 "location_accuracy": "terminal_building_centroid",
                 "checkpoints": [
+                    {
+                        "id": "dfw-a7",
+                        "label": "A7",
+                        "aliases": ["A7", "A7 (General)", "A7 (Priority)", "A7 (TSA Pre)"],
+                        "primary_for": [], "alternate_for": [], "hours": "",
+                        "note": "Separate Terminal A checkpoint reported by the official DFW feed. Map position represents the terminal, not the checkpoint entrance.",
+                    },
                     {
                         "id": "dfw-a12",
                         "label": "A12",

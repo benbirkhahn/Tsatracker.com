@@ -6,6 +6,7 @@ import sqlite3
 import json
 import math
 import statistics
+import hmac
 import threading
 import time
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
@@ -977,8 +978,10 @@ def _arrival_normalized_lane_type(row: Dict) -> str:
         return lane_type
 
     checkpoint = str(row.get("checkpoint") or "").strip().lower()
+    if "customs" in checkpoint and "arrivals" in checkpoint:
+        return "ARRIVALS_CUSTOMS"
     if re.search(r"\b(?:tsa[\s-]*pre|precheck|pre-check)\b", checkpoint):
-        return "PRECHECK"
+        return "CLEAR_PRECHECK" if re.search(r"\bclear\b", checkpoint) else "PRECHECK"
     if re.search(r"\bclear\b", checkpoint):
         return "CLEAR"
     if re.search(r"\bpriority lane\b", checkpoint):
@@ -1177,6 +1180,7 @@ _poller_started = False
 _network_history_cache = {"key": None, "generated_at": None, "payload": None}
 NETWORK_HISTORY_CACHE_SECONDS = 15 * 60
 HOURLY_AGGREGATE_MAX_DAYS = 90
+STANDARD_AGGREGATE_BATCH_SIZE = 5000
 CHECKPOINT_HISTORY_MIN_SAMPLES = 8
 CHECKPOINT_HISTORY_MIN_BUCKETS = 2
 CHECKPOINT_HISTORY_MAX_GROUPS = 10
@@ -1255,7 +1259,7 @@ EDITORIAL_REVIEW_DATES = {
     "/methodology": "2026-07-10",
     "/privacy": "2026-07-10",
     "/terms": "2026-07-10",
-    "/when-should-i-leave": "2026-07-10",
+    "/when-should-i-leave": "2026-10-21",
 }
 
 
@@ -1639,7 +1643,9 @@ def _arrival_freshness(captured_at: object, now: datetime) -> str:
     captured = _arrival_datetime(captured_at)
     if not captured:
         return "no_current_reading"
-    age_minutes = max(0.0, (now - captured).total_seconds() / 60.0)
+    age_minutes = (now - captured).total_seconds() / 60.0
+    if age_minutes < -1:
+        return "no_current_reading"
     if age_minutes <= 5:
         return "live"
     if age_minutes <= 15:
@@ -1731,9 +1737,18 @@ def build_airport_arrival_mode(
         if not existing_captured or captured >= existing_captured:
             current_by_lane[key] = {**row, "wait_minutes": wait}
 
-    unmatched_readings = [
-        row for row in (rows or []) if not _arrival_checkpoint_id(row, aliases)
-    ]
+    excluded_readings = []
+    unmatched_readings = []
+    for row in rows or []:
+        lane_type = _arrival_normalized_lane_type(row)
+        if lane_type == "ARRIVALS_CUSTOMS":
+            excluded_readings.append({**row, "lane_type": lane_type,
+                "reason": "Arrivals customs is not a departure security checkpoint and is excluded from departure plans."})
+        elif lane_type not in lane_types:
+            excluded_readings.append({**row, "lane_type": lane_type,
+                "reason": "This lane requires separate eligibility and is excluded from Standard and PreCheck recommendations."})
+        elif not _arrival_checkpoint_id(row, aliases):
+            unmatched_readings.append({**row, "lane_type": lane_type})
     terminals = []
     fastest = None
     aggregate_statuses = []
@@ -1842,6 +1857,8 @@ def build_airport_arrival_mode(
             "city": meta.get("city", ""),
         },
         "code": code,
+        "timezone": AIRPORT_TIME_ZONES.get(code, "UTC"),
+        "freshness_rules": {"live_minutes": 5, "max_current_minutes": 15, "live_max_minutes": 5, "stale_after_minutes": 15},
         "generated_at": generated_at.isoformat(),
         "refresh_seconds": AIRPORT_ARRIVAL_MODE_REFRESH_SECONDS,
         "decision_mode": config.get("decision_mode", "terminal_gate"),
@@ -1856,6 +1873,7 @@ def build_airport_arrival_mode(
         "lane_types": list(lane_types),
         "terminals": terminals,
         "fastest_fresh_reading": fastest,
+        "excluded_readings": excluded_readings,
         "unmatched_readings": sorted(unmatched_readings, key=_lane_display_sort_key),
         "unmatched_rows": sorted(unmatched_readings, key=_lane_display_sort_key),
     }
@@ -1964,7 +1982,8 @@ def index_template_context(initial_airport_code: str, seo: Dict) -> Dict:
         except Exception as e:
             logger.error("Error fetching initial data for %s: %s", initial_airport_code, e)
         if initial_data is None:
-            estimated = round(estimated_wait_for_hour(utc_now().hour, AIRPORT_FACTORS.get(initial_airport_code, 1.0)), 1)
+            local_hour = utc_now().astimezone(ZoneInfo(AIRPORT_TIME_ZONES.get(initial_airport_code, "UTC"))).hour
+            estimated = round(estimated_wait_for_hour(local_hour, AIRPORT_FACTORS.get(initial_airport_code, 1.0)), 1)
             initial_data = {
                 "available": True,
                 "sourceType": "estimated_fallback",
@@ -2036,6 +2055,8 @@ def index_template_context(initial_airport_code: str, seo: Dict) -> Dict:
         "slowest_airport": airport_overview["slowest_airport"],
         "live_count": airport_overview["live_count"],
         "estimated_count": airport_overview["estimated_count"],
+        "community_count": airport_overview["community_count"],
+        "fallback_count": airport_overview["fallback_count"],
         "seo": seo,
         "initial_data": initial_data,
         "initial_checkpoints": initial_checkpoints,
@@ -2083,6 +2104,8 @@ def intent_page_context(page_key: str) -> Dict:
         "overall_average": overview["overall_average"],
         "live_count": overview["live_count"],
         "estimated_count": overview["estimated_count"],
+        "community_count": overview["community_count"],
+        "fallback_count": overview["fallback_count"],
         "copy_updated_label": editorial_review_date_label(f"/{page_key}"),
         "copy_updated_iso": editorial_review_date_iso(f"/{page_key}"),
     }
@@ -2092,28 +2115,40 @@ def compute_airport_trends(window_minutes: int = 30) -> Dict[str, Dict]:
     """Compare recent average wait (last 10 min) vs the window start (25-40 min ago)
     for every airport in one query. Returns {code: {direction, delta}}."""
     now = utc_now()
-    recent_cutoff = (now - timedelta(minutes=10)).isoformat()
-    old_start = (now - timedelta(minutes=window_minutes + 10)).isoformat()
-    old_end = (now - timedelta(minutes=window_minutes - 5)).isoformat()
+    recent_cutoff = now - timedelta(minutes=10)
+    old_start = now - timedelta(minutes=window_minutes + 10)
+    old_end = now - timedelta(minutes=window_minutes - 5)
     trends: Dict[str, Dict] = {}
     try:
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT airport_code,
-                   AVG(CASE WHEN captured_at >= ? THEN wait_minutes END) AS recent_avg,
-                   AVG(CASE WHEN captured_at >= ? AND captured_at <= ? THEN wait_minutes END) AS old_avg
+            SELECT airport_code, checkpoint, lane_type, wait_minutes, captured_at
             FROM samples
-            WHERE captured_at >= ? AND wait_minutes > 0
-            GROUP BY airport_code
+            WHERE captured_at >= ?
             """,
-            (recent_cutoff, old_start, old_end, old_start),
+            (old_start.isoformat(),),
         )
-        for code, recent_avg, old_avg in cur.fetchall():
-            if recent_avg is None or old_avg is None:
+        observations = cur.fetchall()
+        conn.close()
+        buckets = {}
+        for code, checkpoint, lane_type, value, timestamp in observations:
+            if _arrival_normalized_lane_type({"checkpoint": checkpoint, "lane_type": lane_type}) != "STANDARD":
                 continue
-            delta = round(float(recent_avg) - float(old_avg), 1)
+            wait = _arrival_wait_minutes(value)
+            captured = _arrival_datetime(timestamp)
+            if wait is None or captured is None or captured > now + timedelta(minutes=1):
+                continue
+            bucket = buckets.setdefault(code, {"recent": [], "old": []})
+            if captured >= recent_cutoff:
+                bucket["recent"].append(wait)
+            if old_start <= captured <= old_end:
+                bucket["old"].append(wait)
+        for code, bucket in buckets.items():
+            if not bucket["recent"] or not bucket["old"]:
+                continue
+            delta = round(statistics.mean(bucket["recent"]) - statistics.mean(bucket["old"]), 1)
             if delta >= 2.0:
                 direction = "rising"
             elif delta <= -2.0:
@@ -2121,7 +2156,6 @@ def compute_airport_trends(window_minutes: int = 30) -> Dict[str, Dict]:
             else:
                 direction = "steady"
             trends[code] = {"direction": direction, "delta": delta}
-        conn.close()
     except Exception as e:
         logger.warning("trend_computation_failed: %s", e)
     return trends
@@ -2147,43 +2181,49 @@ AIRPORT_REGION_FILTERS = [
 
 def _precheck_wait_from_rows(rows: List[Dict]) -> Optional[int]:
     """Average PreCheck-lane wait from snapshot rows, or None when no PreCheck lane."""
-    pre = [r for r in rows if str(r.get("lane_type") or "STANDARD").upper() == "PRECHECK"]
+    pre = _valid_lane_rows(rows, "PRECHECK", fresh_only=True)
     if not pre:
         return None
     avg = average_wait_from_rows(pre)
-    return int(round(avg)) if avg and avg > 0 else None
+    return int(round(avg))
 
 
 def build_airport_overview_context() -> Dict:
     snapshot = latest_snapshot()
     trends = compute_airport_trends()
     airport_summaries = []
-    total_wait = 0.0
     live_count = 0
     estimated_count = 0
+    community_count = 0
 
     for code, meta in sorted(LIVE_AIRPORTS.items()):
         map_point = AIRPORT_MAP_COORDINATES.get(code, {})
         rows = snapshot.get(code, [])
-        if rows:
-            current_wait = average_wait_from_rows(rows)
-            updated_at = max(rows, key=lambda r: r.get("captured_at", ""))["captured_at"]
+        standard_rows = _valid_lane_rows(rows, "STANDARD", fresh_only=True)
+        if standard_rows:
+            current_wait = average_wait_from_rows(standard_rows)
+            updated_at = max(standard_rows, key=lambda r: r.get("captured_at", ""))["captured_at"]
             source_type = "live_direct"
-            checkpoint_count = len({row.get("checkpoint") for row in rows if row.get("checkpoint")})
-            source_label = f"{checkpoint_count} checkpoint{'s' if checkpoint_count != 1 else ''}"
+            source_reason = "fresh_live_data"
+            checkpoint_count = len({row.get("checkpoint") for row in standard_rows if row.get("checkpoint")})
+            source_label = f"Standard · {checkpoint_count} checkpoint{'s' if checkpoint_count != 1 else ''}"
             precheck_wait = _precheck_wait_from_rows(rows)
             live_count += 1
         else:
-            payload = normalized_current_wait_for_code(code)
+            payload = normalized_current_wait_for_code(code, rows=rows)
             current = payload.get("currentWait", {})
             current_wait = float(current.get("standard", 0) or 0)
             updated_at = current.get("timestamp", utc_now().isoformat())
             source_type = payload.get("sourceType", "estimated_fallback")
-            source_label = "Estimated fallback"
-            precheck_wait = None
-            estimated_count += 1
+            source_reason = payload.get("sourceReason", "live_stale_or_unavailable")
+            source_label = "Traveler reports · lane unspecified" if source_type == "community" else "Modeled estimate · no Standard reading"
+            precheck_wait = _precheck_wait_from_rows(rows)
+            checkpoint_count = 0
+            if source_type == "community":
+                community_count += 1
+            else:
+                estimated_count += 1
 
-        total_wait += current_wait
         airport_summaries.append(
             {
                 "code": code,
@@ -2194,14 +2234,18 @@ def build_airport_overview_context() -> Dict:
                 "wait_description": wait_description(current_wait),
                 "tier": wait_tier_class_for_minutes(current_wait),
                 "updated_at": format_airport_timestamp(code, updated_at),
+                "updated_at_iso": updated_at,
                 "source_type": source_type,
+                "source_reason": source_reason,
                 "source_label": source_label,
+                "timezone": AIRPORT_TIME_ZONES.get(code, "UTC"),
+                "checkpoint_count": checkpoint_count,
                 "is_live": source_type == "live_direct",
                 "is_closed": False,
                 "is_zero": current_wait <= 0,
-                "trend": trends.get(code, {}).get("direction", "steady"),
-                "trend_delta": trends.get(code, {}).get("delta", 0.0),
-                "trend_arrow": TREND_ARROWS.get(trends.get(code, {}).get("direction", "steady"), "→"),
+                "trend": trends.get(code, {}).get("direction") if source_type == "live_direct" else None,
+                "trend_delta": trends.get(code, {}).get("delta") if source_type == "live_direct" else None,
+                "trend_arrow": TREND_ARROWS.get(trends.get(code, {}).get("direction"), "") if source_type == "live_direct" else "",
                 "map_lat": map_point.get("lat"),
                 "map_lng": map_point.get("lng"),
                 "precheck_wait": precheck_wait,
@@ -2210,10 +2254,10 @@ def build_airport_overview_context() -> Dict:
         )
 
     airport_summaries.sort(key=lambda item: (-item["current_wait"], item["code"]))
-    rankable = [a for a in airport_summaries if a["current_wait"] > 0]
+    rankable = [a for a in airport_summaries if a["is_live"]]
     fastest_airport = min(rankable, key=lambda item: item["current_wait"], default=None)
     slowest_airport = max(rankable, key=lambda item: item["current_wait"], default=None)
-    overall_average = round(sum(a["current_wait"] for a in rankable) / len(rankable), 1) if rankable else 0.0
+    overall_average = round(sum(a["current_wait"] for a in rankable) / len(rankable), 1) if rankable else None
 
     airport_pages = []
     for code, meta in sorted(LIVE_AIRPORTS.items()):
@@ -2233,6 +2277,8 @@ def build_airport_overview_context() -> Dict:
         "slowest_airport": slowest_airport,
         "live_count": live_count,
         "estimated_count": estimated_count,
+        "community_count": community_count,
+        "fallback_count": estimated_count + community_count,
     }
 
 
@@ -2247,6 +2293,8 @@ def airport_directory_context() -> Dict:
         "slowest_airport": overview["slowest_airport"],
         "live_count": overview["live_count"],
         "estimated_count": overview["estimated_count"],
+        "community_count": overview["community_count"],
+        "fallback_count": overview["fallback_count"],
         "seo": airports_directory_seo(),
         "monetization": get_monetization_context(),
         "app_js_version": APP_JS_VERSION,
@@ -2526,6 +2574,7 @@ def fetch_mco_rows() -> List[Dict]:
                 "airport_code": "MCO",
                 "checkpoint": checkpoint,
                 "wait_minutes": wait_minutes,
+                "lane_type": normalize_lane_type(lane or name),
                 "source": endpoint,
                 "captured_at": stamp,
             }
@@ -2712,6 +2761,30 @@ def init_db() -> None:
         )
         """
     )
+    # Legacy hourly_wait_aggregates combines lanes and cannot be relabeled as
+    # Standard. Keep that history intact; build a separate, versioned series
+    # from raw samples with a durable cursor so retries cannot double-count.
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS standard_hourly_wait_aggregates_v2 (
+            airport_code TEXT NOT NULL,
+            local_date TEXT NOT NULL,
+            local_hour INTEGER NOT NULL,
+            wait_sum REAL NOT NULL DEFAULT 0,
+            sample_count INTEGER NOT NULL DEFAULT 0,
+            refreshed_at TEXT NOT NULL,
+            PRIMARY KEY (airport_code, local_date, local_hour)
+        )
+        """
+    )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS standard_aggregate_cursors_v2 (
+            airport_code TEXT PRIMARY KEY,
+            last_sample_id INTEGER NOT NULL
+        )
+        """
+    )
     # Migrate existing DBs that don't yet have lane_type
     try:
         cur.execute("ALTER TABLE samples ADD COLUMN lane_type TEXT NOT NULL DEFAULT 'STANDARD'")
@@ -2731,6 +2804,7 @@ def init_db() -> None:
         ON samples (airport_code, captured_at)
         """
     )
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_samples_airport_id ON samples (airport_code, id)")
     cur.execute(
         """
         CREATE INDEX IF NOT EXISTS idx_user_reports_airport_time
@@ -2761,16 +2835,21 @@ def init_db() -> None:
 
 def hourly_aggregate_bucket(airport_code: str, wait_minutes: float, captured_at: str) -> Optional[Dict]:
     try:
+        wait = _arrival_wait_minutes(wait_minutes)
+        if wait is None:
+            return None
         tz = ZoneInfo(AIRPORT_TIME_ZONES.get(airport_code, "UTC"))
         captured = datetime.fromisoformat(str(captured_at).replace("Z", "+00:00"))
         if captured.tzinfo is None:
             captured = captured.replace(tzinfo=timezone.utc)
+        if captured > utc_now() + timedelta(minutes=1):
+            return None
         local_dt = captured.astimezone(tz)
         return {
             "airport_code": airport_code,
             "local_date": local_dt.date().isoformat(),
             "local_hour": local_dt.hour,
-            "wait_sum": clamp_wait_minutes(float(wait_minutes)),
+            "wait_sum": wait,
             "sample_count": 1,
         }
     except Exception:
@@ -2783,13 +2862,13 @@ def upsert_hourly_aggregate_buckets(conn: sqlite3.Connection, buckets: List[Dict
     now_iso = utc_now().isoformat()
     conn.executemany(
         """
-        INSERT INTO hourly_wait_aggregates (
+        INSERT INTO standard_hourly_wait_aggregates_v2 (
             airport_code, local_date, local_hour, wait_sum, sample_count, refreshed_at
         )
         VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(airport_code, local_date, local_hour) DO UPDATE SET
-            wait_sum = hourly_wait_aggregates.wait_sum + excluded.wait_sum,
-            sample_count = hourly_wait_aggregates.sample_count + excluded.sample_count,
+            wait_sum = standard_hourly_wait_aggregates_v2.wait_sum + excluded.wait_sum,
+            sample_count = standard_hourly_wait_aggregates_v2.sample_count + excluded.sample_count,
             refreshed_at = excluded.refreshed_at
         """,
         [
@@ -2807,28 +2886,9 @@ def upsert_hourly_aggregate_buckets(conn: sqlite3.Connection, buckets: List[Dict
 
 
 def update_hourly_aggregates_for_rows(rows: List[Dict]) -> None:
-    buckets = []
-    for row in rows:
-        airport_code = str(row.get("airport_code", "")).upper()
-        if airport_code not in LIVE_AIRPORTS:
-            continue
-        bucket = hourly_aggregate_bucket(
-            airport_code,
-            row.get("wait_minutes", 0),
-            row.get("captured_at", ""),
-        )
-        if bucket:
-            buckets.append(bucket)
-    if not buckets:
-        return
-    conn = sqlite3.connect(DB_PATH)
-    try:
-        upsert_hourly_aggregate_buckets(conn, buckets)
-        cutoff = (utc_now() - timedelta(days=HOURLY_AGGREGATE_MAX_DAYS + 7)).date().isoformat()
-        conn.execute("DELETE FROM hourly_wait_aggregates WHERE local_date < ?", (cutoff,))
-        conn.commit()
-    finally:
-        conn.close()
+    for code in {str(row.get("airport_code", "")).upper() for row in rows}:
+        if code in LIVE_AIRPORTS:
+            refresh_hourly_aggregates_from_local_samples(code)
 
 
 def db_insert_rows(rows: List[Dict]) -> None:
@@ -3353,7 +3413,7 @@ def fetch_iah_rows() -> List[Dict]:
                 "airport_code": "IAH",
                 "checkpoint": checkpoint,
                 "wait_minutes": round(float(wait_seconds) / 60.0, 1),
-                "lane_type": "PRECHECK" if is_pre else "STANDARD",
+                "lane_type": "PRECHECK" if is_pre else _arrival_normalized_lane_type({"checkpoint": checkpoint}),
                 "source": url,
                 "captured_at": stamp,
             }
@@ -4114,8 +4174,12 @@ def latest_snapshot() -> Dict:
     out: Dict[str, List[Dict]] = {}
     seen = set()
     for airport_code, checkpoint, wait_minutes, source, captured_at, lane_type in rows:
+        wait = _arrival_wait_minutes(wait_minutes)
+        if wait is None or _arrival_freshness(captured_at, utc_now()) not in {"live", "aging"}:
+            continue
         if airport_code == "ORD":
             checkpoint = ord_friendly_checkpoint(checkpoint)
+        lane_type = _arrival_normalized_lane_type({"checkpoint": checkpoint, "lane_type": lane_type})
         key = (airport_code, checkpoint, lane_type)
         if key in seen:
             continue
@@ -4123,9 +4187,11 @@ def latest_snapshot() -> Dict:
         out.setdefault(airport_code, []).append(
             {
                 "checkpoint": checkpoint,
-                "wait_minutes": wait_minutes,
+                "wait_minutes": wait,
                 "lane_type": lane_type,
                 "captured_at": captured_at,
+                "source": source,
+                "sourceType": "live_direct",
             }
         )
     return out
@@ -4156,7 +4222,7 @@ def community_wait_for_code(code: str, minutes: int = 30, min_reports: int = 2) 
     except Exception as exc:
         logger.warning("community_wait_for_code failed for %s: %s", code, exc)
         return None
-    vals = sorted(clamp_wait_minutes(float(r[0])) for r in rows if r[0] is not None)
+    vals = sorted(wait for r in rows if (wait := _arrival_wait_minutes(r[0])) is not None)
     if len(vals) < min_reports:
         return None
     n = len(vals)
@@ -4164,74 +4230,88 @@ def community_wait_for_code(code: str, minutes: int = 30, min_reports: int = 2) 
     return {"wait": round(float(median), 1), "count": n, "last_reported_at": rows[0][1]}
 
 
-def normalized_current_wait_for_code(code: str) -> Dict:
-    rows = latest_for_code(code)
-    # JFK's public Port Authority endpoint is fast and does not require a key.
-    # If a deploy starts with an empty local cache, fetch it once on demand so a
-    # traveler does not see an estimate while the scheduled poller warms up.
-    if not rows and code == "JFK":
-        try:
-            fresh_rows = fetch_jfk_rows()
-            if fresh_rows:
-                db_insert_rows(fresh_rows)
-                rows = latest_for_code(code)
-        except Exception as exc:
-            logger.warning("JFK on-demand refresh unavailable: %s", exc)
-    if rows:
-        active = [r for r in rows if float(r.get("wait_minutes", 0)) > 0]
-        sample = active if active else rows
-        values = [clamp_wait_minutes(float(r.get("wait_minutes", 0))) for r in sample]
-        standard = round(sum(values) / len(values), 1) if values else 0.0
-        has_pre = any(str(r.get("lane_type", "")).upper() == "PRECHECK" for r in rows)
-        latest_ts = max(rows, key=lambda r: r.get("captured_at", ""))["captured_at"]
+def _valid_lane_rows(rows: List[Dict], lane_type: str, fresh_only: bool = False) -> List[Dict]:
+    """A reported zero is valid. Missing, non-finite and stale waits are not."""
+    now = utc_now()
+    return [
+        row for row in rows
+        if _arrival_normalized_lane_type(row) == lane_type
+        and _arrival_wait_minutes(row.get("wait_minutes")) is not None
+        and (not fresh_only or _arrival_freshness(row.get("captured_at"), now) in {"live", "aging"})
+    ]
+
+
+def normalized_current_wait_for_code(code: str, rows: Optional[List[Dict]] = None) -> Dict:
+    rows = latest_for_code(code) if rows is None else rows
+    standard_rows = _valid_lane_rows(rows, "STANDARD", fresh_only=True)
+    pre_rows = _valid_lane_rows(rows, "PRECHECK", fresh_only=True)
+    precheck_wait = average_wait_from_rows(pre_rows) if pre_rows else None
+    context = {
+        "available": True,
+        "timezone": AIRPORT_TIME_ZONES.get(code, "UTC"),
+        "checkpoints": rows,
+        "forecastType": "modeled_pattern",
+    }
+    if standard_rows:
+        standard = average_wait_from_rows(standard_rows)
+        latest_ts = max(standard_rows, key=lambda r: r.get("captured_at", ""))["captured_at"]
         return {
-            "available": True,
+            **context,
             "sourceType": "live_direct",
             "sourceReason": "fresh_live_data",
             "currentWait": {
                 "standard": standard,
                 "standardDescription": wait_description(standard),
                 "userReported": None,
-                "precheck": has_pre,
+                "precheck": bool(pre_rows),
+                "precheckWait": precheck_wait,
+                "laneType": "STANDARD",
                 "timestamp": latest_ts,
+                "observedAt": latest_ts,
             },
             "hourlyForecast": normalize_hourly_forecast(code, standard),
         }
 
-    # No live feed (down or locked, e.g. ATL/LAX). Before falling back to a flat
-    # historical estimate, use recent traveler reports if we have enough of them.
+    # Reports do not record a lane. Retain the legacy standard key while
+    # explicitly stating that their screening lane is unspecified.
     crowd = community_wait_for_code(code)
     if crowd:
         return {
-            "available": True,
+            **context,
             "sourceType": "community",
-            "sourceReason": "crowd_reported",
+            "sourceReason": "crowd_reported_lane_unspecified",
             "currentWait": {
                 "standard": crowd["wait"],
                 "standardDescription": wait_description(crowd["wait"]),
                 "userReported": crowd["count"],
-                "precheck": False,
+                "precheck": bool(pre_rows),
+                "precheckWait": precheck_wait,
+                "laneType": None,
                 "timestamp": crowd["last_reported_at"],
+                "observedAt": crowd["last_reported_at"],
             },
             "hourlyForecast": normalize_hourly_forecast(code, crowd["wait"]),
         }
 
     now = utc_now()
-    estimated = round(estimated_wait_for_hour(now.hour, AIRPORT_FACTORS.get(code, 1.0)), 1)
-    if code in LIVE_AIRPORTS:
-        source_reason = "live_stale_or_unavailable"
-    else:
-        source_reason = "airport_not_live_integrated"
+    local_hour = now.astimezone(ZoneInfo(AIRPORT_TIME_ZONES.get(code, "UTC"))).hour
+    estimated = round(estimated_wait_for_hour(local_hour, AIRPORT_FACTORS.get(code, 1.0)), 1)
+    source_reason = "standard_lane_unavailable" if rows else (
+        "live_stale_or_unavailable" if code in LIVE_AIRPORTS else "airport_not_live_integrated"
+    )
     return {
-        "available": True,
+        **context,
         "sourceType": "estimated_fallback",
         "sourceReason": source_reason,
         "currentWait": {
             "standard": estimated,
             "standardDescription": wait_description(estimated),
             "userReported": None,
-            "precheck": False,
+            "precheck": bool(pre_rows),
+            "precheckWait": precheck_wait,
+            "laneType": "STANDARD",
             "timestamp": now.isoformat(),
+            "observedAt": None,
         },
         "hourlyForecast": normalize_hourly_forecast(code, estimated),
     }
@@ -4289,7 +4369,7 @@ def read_hourly_aggregate_rows(airport_code: str, days: int = 30) -> List[Dict]:
     cur.execute(
         """
         SELECT local_hour, SUM(wait_sum), SUM(sample_count)
-        FROM hourly_wait_aggregates
+        FROM standard_hourly_wait_aggregates_v2
         WHERE airport_code = ? AND local_date >= ?
         GROUP BY local_hour
         """,
@@ -4319,68 +4399,82 @@ def read_hourly_aggregate_rows(airport_code: str, days: int = 30) -> List[Dict]:
 
 
 def refresh_hourly_aggregates_from_local_samples(airport_code: str, days: int = 30) -> None:
-    bounded_days = max(1, min(days, HOURLY_AGGREGATE_MAX_DAYS))
-    tz = ZoneInfo(AIRPORT_TIME_ZONES.get(airport_code, "UTC"))
-    cutoff_dt = utc_now() - timedelta(days=bounded_days + 2)
-    cutoff_date = (utc_now().astimezone(tz) - timedelta(days=bounded_days)).date().isoformat()
-    aggregate: Dict[tuple, Dict] = {}
+    """Append a bounded batch, preserving archived buckets and legacy history.
 
+    Cursor and bucket updates share a transaction. Collection and history
+    requests advance the same cursor; reads with no new samples need no write
+    lock. Mixed-lane legacy buckets cannot be converted without raw samples.
+    """
     conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute(
-        """
-        SELECT wait_minutes, captured_at
-        FROM samples
-        WHERE airport_code = ? AND captured_at >= ?
-        ORDER BY captured_at ASC
-        """,
-        (airport_code, cutoff_dt.isoformat()),
-    )
-    for wait_minutes, captured_at in cur.fetchall():
-        bucket = hourly_aggregate_bucket(airport_code, wait_minutes, captured_at)
-        if not bucket or bucket["local_date"] < cutoff_date:
-            continue
-        key = (bucket["airport_code"], bucket["local_date"], bucket["local_hour"])
-        current = aggregate.setdefault(
-            key,
-            {
-                "airport_code": bucket["airport_code"],
-                "local_date": bucket["local_date"],
-                "local_hour": bucket["local_hour"],
-                "wait_sum": 0.0,
-                "sample_count": 0,
-            },
-        )
-        current["wait_sum"] += bucket["wait_sum"]
-        current["sample_count"] += 1
-
-    conn.execute(
-        "DELETE FROM hourly_wait_aggregates WHERE airport_code = ? AND local_date >= ?",
-        (airport_code, cutoff_date),
-    )
-    if aggregate:
-        now_iso = utc_now().isoformat()
-        conn.executemany(
+    try:
+        cursor = conn.execute(
+            "SELECT last_sample_id FROM standard_aggregate_cursors_v2 WHERE airport_code = ?",
+            (airport_code,),
+        ).fetchone()
+        last_id = cursor[0] if cursor else 0
+        if not conn.execute(
+            "SELECT 1 FROM samples WHERE airport_code = ? AND id > ? LIMIT 1",
+            (airport_code, last_id),
+        ).fetchone():
+            return
+        conn.execute("BEGIN IMMEDIATE")
+        # Another worker may have advanced the cursor before this lock.
+        cursor = conn.execute(
+            "SELECT last_sample_id FROM standard_aggregate_cursors_v2 WHERE airport_code = ?",
+            (airport_code,),
+        ).fetchone()
+        last_id = cursor[0] if cursor else 0
+        rows = conn.execute(
             """
-            INSERT INTO hourly_wait_aggregates (
-                airport_code, local_date, local_hour, wait_sum, sample_count, refreshed_at
-            )
-            VALUES (?, ?, ?, ?, ?, ?)
+            SELECT id, checkpoint, wait_minutes, lane_type, captured_at
+            FROM samples WHERE airport_code = ? AND id > ? ORDER BY id LIMIT ?
             """,
-            [
-                (
-                    bucket["airport_code"],
-                    bucket["local_date"],
-                    int(bucket["local_hour"]),
-                    float(bucket["wait_sum"]),
-                    int(bucket["sample_count"]),
-                    now_iso,
-                )
-                for bucket in aggregate.values()
-            ],
-        )
-    conn.commit()
-    conn.close()
+            (airport_code, last_id, STANDARD_AGGREGATE_BATCH_SIZE),
+        ).fetchall()
+        aggregate: Dict[tuple, Dict] = {}
+        for sample_id, checkpoint, wait, lane_type, captured_at in rows:
+            if _arrival_normalized_lane_type({"checkpoint": checkpoint, "lane_type": lane_type}) != "STANDARD":
+                continue
+            bucket = hourly_aggregate_bucket(airport_code, wait, captured_at)
+            if not bucket:
+                continue
+            key = (bucket["local_date"], bucket["local_hour"])
+            existing = aggregate.get(key)
+            if existing:
+                existing["wait_sum"] += bucket["wait_sum"]
+                existing["sample_count"] += 1
+            else:
+                aggregate[key] = bucket
+        upsert_hourly_aggregate_buckets(conn, list(aggregate.values()))
+        if rows:
+            conn.execute(
+                """
+                INSERT INTO standard_aggregate_cursors_v2 (airport_code, last_sample_id) VALUES (?, ?)
+                ON CONFLICT(airport_code) DO UPDATE SET last_sample_id = excluded.last_sample_id
+                """,
+                (airport_code, rows[-1][0]),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def standard_history_backfill_pending(airport_code: str) -> bool:
+    """Whether retained raw history still awaits Standard-only aggregation."""
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        row = conn.execute(
+            """
+            SELECT 1 FROM samples
+            WHERE airport_code = ? AND id > COALESCE(
+                (SELECT last_sample_id FROM standard_aggregate_cursors_v2 WHERE airport_code = ?), 0
+            ) LIMIT 1
+            """,
+            (airport_code, airport_code),
+        ).fetchone()
+    finally:
+        conn.close()
+    return row is not None
 
 
 def aggregate_rows_have_samples(rows: List[Dict]) -> bool:
@@ -4388,55 +4482,8 @@ def aggregate_rows_have_samples(rows: List[Dict]) -> bool:
 
 
 def historical_24h_average_for_airport(airport_code: str, days: int = 30, sample_limit: int = 100000) -> List[Dict]:
-    aggregate_rows = read_hourly_aggregate_rows(airport_code, days=days)
-    if aggregate_rows_have_samples(aggregate_rows):
-        return aggregate_rows
-
     refresh_hourly_aggregates_from_local_samples(airport_code, days=days)
-    aggregate_rows = read_hourly_aggregate_rows(airport_code, days=days)
-    if aggregate_rows_have_samples(aggregate_rows):
-        return aggregate_rows
-
-    time_zone_name = AIRPORT_TIME_ZONES.get(airport_code, "UTC")
-    tz = ZoneInfo(time_zone_name)
-    cutoff = (utc_now() - timedelta(days=max(1, min(days, 90)))).isoformat()
-    buckets = {hour: {"sum": 0.0, "count": 0} for hour in range(24)}
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute(
-        """
-        SELECT wait_minutes, captured_at
-        FROM samples
-        WHERE airport_code = ? AND captured_at >= ?
-        ORDER BY captured_at ASC
-        LIMIT ?
-        """,
-        (airport_code, cutoff, max(1000, min(sample_limit, 100000))),
-    )
-    rows = cur.fetchall()
-    conn.close()
-
-    for wait_minutes, captured_at in rows:
-        try:
-            wait = clamp_wait_minutes(float(wait_minutes))
-            captured = datetime.fromisoformat(str(captured_at))
-            if captured.tzinfo is None:
-                captured = captured.replace(tzinfo=timezone.utc)
-            local_hour = captured.astimezone(tz).hour
-        except Exception:
-            continue
-        buckets[local_hour]["sum"] += wait
-        buckets[local_hour]["count"] += 1
-
-    return [
-        {
-            "hour": hour,
-            "label": f"{hour:02d}:00",
-            "avg_wait": round(bucket["sum"] / bucket["count"], 1) if bucket["count"] else None,
-            "samples": bucket["count"],
-        }
-        for hour, bucket in buckets.items()
-    ]
+    return read_hourly_aggregate_rows(airport_code, days=days)
 
 
 def checkpoint_24h_average_for_airport(airport_code: str, days: int = 30, sample_limit: int = 100000) -> List[Dict]:
@@ -4584,11 +4631,9 @@ def x_alerts_enabled() -> bool:
 
 
 def average_wait_from_rows(rows: List[Dict]) -> float:
-    active = [clamp_wait_minutes(float(r.get("wait_minutes", 0))) for r in rows if float(r.get("wait_minutes", 0)) > 0]
-    values = active if active else [clamp_wait_minutes(float(r.get("wait_minutes", 0))) for r in rows]
-    if not values:
-        return 0.0
-    return round(sum(values) / len(values), 1)
+    values = [_arrival_wait_minutes(row.get("wait_minutes")) for row in rows]
+    values = [value for value in values if value is not None]
+    return round(sum(values) / len(values), 1) if values else 0.0
 
 
 def historical_baseline_wait(airport_code: str, as_of: str) -> Optional[float]:
@@ -4950,6 +4995,12 @@ def when_should_i_leave_page():
             "live": a["is_live"],
             "trend": a["trend"],
             "delta": a["trend_delta"],
+            "timezone": a["timezone"],
+            "sourceType": a["source_type"],
+            "sourceReason": a["source_reason"],
+            "updatedAt": a["updated_at_iso"],
+            "precheckWait": a["precheck_wait"],
+            "checkpointCount": a["checkpoint_count"],
         }
         for a in overview["airport_summaries"]
     }
@@ -5019,7 +5070,7 @@ def when_should_i_leave_page():
     }
     seo = build_page_seo(
         "Airport Leave-Time Calculator | TSA Tracker",
-        "Enter your airport and flight time to combine the current live-or-estimated TSA wait, recent trend, 30-day pattern, drive time, and trip buffer.",
+        "Plan when to leave using your flight date, airport-local time, terminal, screening lane, and adjustable travel and security allowances.",
         "/when-should-i-leave",
     )
     return render_template(
@@ -5050,6 +5101,8 @@ def airport_security_wait_times_page():
         overall_average=overview["overall_average"],
         live_count=overview["live_count"],
         estimated_count=overview["estimated_count"],
+        community_count=overview["community_count"],
+        fallback_count=overview["fallback_count"],
         copy_updated_label=editorial_review_date_label("/airport-security-wait-times"),
         copy_updated_iso=editorial_review_date_iso("/airport-security-wait-times"),
     )
@@ -5181,11 +5234,13 @@ def api_live():
         payload = normalized_current_wait_for_code(code)
         current = payload.get("currentWait", {})
         data[code] = [{
-            "checkpoint": "Estimated Wait",
-            "wait_minutes": current.get("standard", 0),
-            "lane_type": "STANDARD",
+            "checkpoint": "Traveler-reported wait (lane unspecified)" if payload.get("sourceType") == "community" else "Modeled planning estimate",
+            "wait_minutes": current.get("standard"),
+            "lane_type": current.get("laneType"),
             "captured_at": current.get("timestamp", utc_now().isoformat()),
+            "observed_at": current.get("observedAt"),
             "source": payload.get("sourceType", "estimated_fallback"),
+            "sourceType": payload.get("sourceType", "estimated_fallback"),
         }]
     return jsonify(
         {
@@ -5258,7 +5313,7 @@ def api_forecast_data():
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT wait_minutes, lane_type, captured_at
+        SELECT wait_minutes, lane_type, captured_at, checkpoint
         FROM samples
         WHERE airport_code = ? AND captured_at >= ?
         ORDER BY captured_at ASC
@@ -5271,18 +5326,24 @@ def api_forecast_data():
     std = [{"sum": 0.0, "n": 0} for _ in range(24)]
     pre = [{"sum": 0.0, "n": 0} for _ in range(24)]
     heat = [[{"sum": 0.0, "n": 0} for _ in range(24)] for _ in range(7)]
-    latest = None  # (wait, hour)
-    for wait_minutes, lane_type, captured_at in rows:
+    observed_dates = set()
+    observed_at = []
+    for wait_minutes, lane_type, captured_at, checkpoint in rows:
         try:
-            wait = clamp_wait_minutes(float(wait_minutes))
-            captured = datetime.fromisoformat(str(captured_at))
-            if captured.tzinfo is None:
-                captured = captured.replace(tzinfo=timezone.utc)
+            wait = _arrival_wait_minutes(wait_minutes)
+            captured = _arrival_datetime(captured_at)
+            if wait is None or captured is None or captured > utc_now() + timedelta(minutes=1):
+                continue
             local = captured.astimezone(tz)
             hour, weekday = local.hour, local.weekday()  # Mon=0
         except Exception:
             continue
-        if _lane_type_key(lane_type) == "PRECHECK":
+        lane_type = _arrival_normalized_lane_type({"checkpoint": checkpoint, "lane_type": lane_type})
+        if lane_type not in {"STANDARD", "PRECHECK"}:
+            continue
+        observed_dates.add(local.date().isoformat())
+        observed_at.append(captured.isoformat())
+        if lane_type == "PRECHECK":
             pre[hour]["sum"] += wait
             pre[hour]["n"] += 1
         else:
@@ -5290,25 +5351,43 @@ def api_forecast_data():
             std[hour]["n"] += 1
             heat[weekday][hour]["sum"] += wait
             heat[weekday][hour]["n"] += 1
-            latest = (wait, hour)
 
     def avg(bucket):
         return round(bucket["sum"] / bucket["n"], 1) if bucket["n"] else None
 
     hours = [
         {"hour": h, "standard": avg(std[h]), "precheck": avg(pre[h]),
-         "samples": std[h]["n"] + pre[h]["n"]}
+         "samples": std[h]["n"] + pre[h]["n"],
+         "standardSamples": std[h]["n"], "precheckSamples": pre[h]["n"]}
         for h in range(24)
     ]
     heatmap = [[avg(heat[d][h]) for h in range(24)] for d in range(7)]
-    now = {"standard": latest[0] if latest else None,
-           "hour": latest[1] if latest else None}
+    fresh_standard = _valid_lane_rows(latest_for_code(code), "STANDARD", fresh_only=True)
+    latest_ts = max((row["captured_at"] for row in fresh_standard), default=None)
+    now = {
+        "standard": average_wait_from_rows(fresh_standard) if fresh_standard else None,
+        "hour": utc_now().astimezone(tz).hour if fresh_standard else None,
+        "timestamp": latest_ts,
+        "sourceType": "live_direct" if fresh_standard else "unavailable",
+        "freshness": _arrival_freshness(latest_ts, utc_now()),
+    }
     return jsonify(
         {
             "airport": code,
             "days": days,
             "timezone": AIRPORT_TIME_ZONES.get(code, "UTC"),
             "generated_at": utc_now().isoformat(),
+            "dataType": "historical_observations",
+            "laneType": "STANDARD",
+            "coverage": {
+                "standardHours": sum(bucket["n"] > 0 for bucket in std),
+                "precheckHours": sum(bucket["n"] > 0 for bucket in pre),
+                "standardSamples": sum(bucket["n"] for bucket in std),
+                "precheckSamples": sum(bucket["n"] for bucket in pre),
+                "daysWithSamples": len(observed_dates),
+                "firstObservedAt": min(observed_at, default=None),
+                "lastObservedAt": max(observed_at, default=None),
+            },
             "now": now,
             "hours": hours,
             "heatmap": heatmap,
@@ -5329,6 +5408,8 @@ def api_history_24h_average():
         "timezone": AIRPORT_TIME_ZONES.get(code, "UTC"),
         "generated_at": utc_now().isoformat(),
         "rows": historical_24h_average_for_airport(code, days=bounded_days),
+        "history_backfill_pending": standard_history_backfill_pending(code),
+        "lane_type": "STANDARD",
     }
     if include_checkpoints:
         payload["checkpoint_groups"] = checkpoint_24h_average_for_airport(code, days=bounded_days)
@@ -5379,6 +5460,7 @@ def api_network_history_24h_average():
                 "timezone": AIRPORT_TIME_ZONES.get(code, "UTC"),
                 "href": airport_seo_slug(code),
                 "rows": rows,
+                "history_backfill_pending": standard_history_backfill_pending(code),
             }
         )
 
@@ -5399,27 +5481,28 @@ def api_historical_average():
     Query: /api/historical-average?airport=LAX&hour=5&days=30
     Returns: {"airport": "LAX", "hour": 5, "avg_wait": 12.3, "days": 30}
     """
-    if not SUPABASE_ENABLED:
-        return jsonify({"error": "Historical data not enabled"}), 503
-
     code = request.args.get("airport", "").upper()
     hour = request.args.get("hour", type=int)
-    days = request.args.get("days", 30, type=int)
+    days = max(1, min(request.args.get("days", 30, type=int) or 30, 90))
 
-    if not code or not re.fullmatch(r"[A-Z]{3}", code):
+    if code not in LIVE_AIRPORTS:
         return jsonify({"error": "Invalid airport code"}), 400
     if hour is None or hour < 0 or hour > 23:
         return jsonify({"error": "Hour must be 0-23"}), 400
 
     try:
-        from supabase_integration import get_average_wait_at_hour
-        avg = get_average_wait_at_hour(code, hour, days)
+        bucket = historical_24h_average_for_airport(code, days=days)[hour]
+        avg = bucket["avg_wait"]
         return jsonify({
             "airport": code,
             "hour": hour,
             "days": days,
             "avg_wait": avg,
-            "description": wait_description(avg) if avg else "No data",
+            "samples": bucket["samples"],
+            "history_backfill_pending": standard_history_backfill_pending(code),
+            "lane_type": "STANDARD",
+            "timezone": AIRPORT_TIME_ZONES.get(code, "UTC"),
+            "description": wait_description(avg) if avg is not None else "No data",
             "timestamp": utc_now().isoformat()
         })
     except Exception as e:
@@ -5433,23 +5516,23 @@ def api_peak_hours():
     Query: /api/peak-hours?airport=LAX&days=30&top=3
     Returns: [{"hour": 17, "avg_wait": 28.5, "samples": 42}, ...]
     """
-    if not SUPABASE_ENABLED:
-        return jsonify({"error": "Historical data not enabled"}), 503
-
     code = request.args.get("airport", "").upper()
-    days = request.args.get("days", 30, type=int)
-    top_n = request.args.get("top", 3, type=int)
+    days = max(1, min(request.args.get("days", 30, type=int) or 30, 90))
+    top_n = max(1, min(request.args.get("top", 3, type=int) or 3, 24))
 
-    if not code or not re.fullmatch(r"[A-Z]{3}", code):
+    if code not in LIVE_AIRPORTS:
         return jsonify({"error": "Invalid airport code"}), 400
 
     try:
-        from supabase_integration import get_peak_hours
-        peaks = get_peak_hours(code, days, top_n)
+        rows = historical_24h_average_for_airport(code, days=days)
+        peaks = sorted((row for row in rows if row["avg_wait"] is not None), key=lambda row: row["avg_wait"], reverse=True)[:top_n]
         return jsonify({
             "airport": code,
             "days": days,
             "peak_hours": peaks,
+            "history_backfill_pending": standard_history_backfill_pending(code),
+            "lane_type": "STANDARD",
+            "timezone": AIRPORT_TIME_ZONES.get(code, "UTC"),
             "timestamp": utc_now().isoformat()
         })
     except Exception as e:
@@ -5561,11 +5644,12 @@ def healthz():
 
 @app.route("/api/collect-now", methods=["POST"])
 def api_collect_now():
-    expected = COLLECT_NOW_TOKEN
-    if expected:
-        provided = request.headers.get("x-collect-token")
-        if provided != expected:
-            return jsonify({"error": "Unauthorized"}), 401
+    expected = (COLLECT_NOW_TOKEN or "").strip()
+    if not expected:
+        return jsonify({"error": "Manual collection is disabled"}), 503
+    provided = request.headers.get("x-collect-token", "")
+    if not hmac.compare_digest(provided.encode("utf-8"), expected.encode("utf-8")):
+        return jsonify({"error": "Unauthorized"}), 401
     with _poll_lock:
         result = collect_once()
     return jsonify(result)

@@ -600,7 +600,7 @@ class FrontendContractTests(unittest.TestCase):
             },
         )
         checkpoint_payload = re.search(
-            r"var CALCULATOR_CHECKPOINTS = (\{.*?\});\s*var hourlyCache",
+            r"var CALCULATOR_CHECKPOINTS = (\{.*?\});\s*</script>",
             valid_html,
             re.DOTALL,
         )
@@ -657,16 +657,30 @@ class FrontendContractTests(unittest.TestCase):
             {"airport": "LAS", "checkpoint": "", "lane": ""},
         )
 
-        for token in (
-            "activeCheckpointSelection",
-            'reading.freshness==="live" || reading.freshness==="aging"',
-            "fallback.fallbackReason=reading.freshness",
-            "checkpointLabel(source.checkpoint)",
-            "reconcileCheckpointSelection()",
-            "if(code!==activeCheckpointSelection.airport)",
-            "if(lane!==activeCheckpointSelection.lane)",
-        ):
-            self.assertIn(token, valid_html)
+        # The enhanced planner keeps validated deep-link context while loading
+        # a single shared browser asset instead of embedding a second algorithm.
+        document = ParsedDocument()
+        document.feed(valid_html)
+        controls = {
+            attrs.get("id"): (tag, attrs)
+            for tag, attrs in document.elements
+            if tag in {"input", "select"}
+        }
+        self.assertEqual(controls["apt"][0], "select")
+        self.assertEqual(controls["terminal"][0], "select")
+        self.assertEqual(controls["checkpoint"][0], "select")
+        self.assertEqual(controls["flightDate"][1]["type"], "date")
+        self.assertEqual(controls["dep"][1]["type"], "time")
+        for control in ("apt", "flightDate", "dep"):
+            self.assertIn("required", controls[control][1])
+        for control in ("pre", "bag", "intl"):
+            self.assertEqual(controls[control][1]["type"], "checkbox")
+        planner_assets = [
+            attrs for tag, attrs in document.elements
+            if tag == "script" and attrs.get("src") == "/static/planner.js"
+        ]
+        self.assertEqual(len(planner_assets), 1)
+        self.assertIn("defer", planner_assets[0])
         self.assertNotIn('"lane": "CLEAR"', invalid_lane_html)
 
     def test_calculator_checkpoint_model_uses_html_safe_json(self):
@@ -727,8 +741,8 @@ class FrontendContractTests(unittest.TestCase):
 
     def test_fallback_airport_never_uses_live_only_claims(self):
         html, _ = self.get_html(self.airport_routes["LAS"])
-        self.assertIn("Estimated fallback", html)
-        self.assertIn("Planning estimate while the live airport source is unavailable", html)
+        self.assertIn("Estimate generated", html)
+        self.assertIn("planning context rather than a measured line", html)
         self.assertNotIn("Official airport reading captured", html)
 
     def test_las_decision_map_preserves_zero_and_unmatched_rows(self):
@@ -1637,7 +1651,7 @@ class FrontendContractTests(unittest.TestCase):
                     "terminal-a", "terminal-b", "terminal-c", "terminal-d", "terminal-e"
                 ],
                 "checkpoint_ids": [
-                    "dfw-a12", "dfw-a21", "dfw-a35", "dfw-b9", "dfw-b30",
+                    "dfw-a7", "dfw-a12", "dfw-a21", "dfw-a35", "dfw-b9", "dfw-b30",
                     "dfw-c10", "dfw-c11", "dfw-c20", "dfw-d18", "dfw-d22",
                     "dfw-d30", "dfw-e8", "dfw-e16", "dfw-e18", "dfw-e33",
                 ],
@@ -2359,7 +2373,7 @@ class FrontendContractTests(unittest.TestCase):
                 ("LGA", 2, 2, "lga-terminal-c"),
                 ("BOS", 4, 7, "bos-checkpoint-4-gates-b23-40"),
                 ("ORD", 4, 8, "ord-terminal-3-checkpoint-7a"),
-                ("DFW", 5, 15, "dfw-c20"),
+                ("DFW", 5, 16, "dfw-c20"),
                 ("DEN", 2, 2, "den-west"),
                 ("BWI", 4, 4, "bwi-b"),
                 ("DTW", 2, 2, "dtw-mcnamara"),
@@ -2399,7 +2413,7 @@ class FrontendContractTests(unittest.TestCase):
                 ]
                 self.assertEqual(len(markers), marker_count)
                 self.assertEqual(len(checkpoint_buttons), checkpoint_count)
-                self.assertIn("Terminal or checkpoint area", html)
+                self.assertIn("Your terminal", html)
                 self.assertNotIn("Gate on your boarding pass", html)
                 self.assertIn("data-location-accuracy", html)
                 self.assertEqual(api_response.status_code, 200)
@@ -2735,7 +2749,7 @@ class FrontendContractTests(unittest.TestCase):
             schema_types = {item.get("@type") for item in las_document.json_ld}
             self.assertIn("BreadcrumbList", schema_types)
             self.assertIn("WebPage", schema_types)
-            self.assertIn("Raw checkpoint readings", las_html)
+            self.assertIn("Source readings", las_html)
             self.assertIn("data-arrival-raw-feed", las_html)
             self.assertIn("T1 - A/B Gates", las_html)
             self.assertIn(
@@ -2764,7 +2778,7 @@ class FrontendContractTests(unittest.TestCase):
                 ),
                 1,
             )
-            self.assertIn("Satellite airport view", las_html)
+            self.assertIn("Explore the airport map", las_html)
             self.assertIn("Hours are published reference windows", las_html)
             self.assertIn("not an “open now” calculation", las_html)
 
@@ -3032,13 +3046,13 @@ class FrontendContractTests(unittest.TestCase):
                 self.assertEqual(len(arrivals), 1)
                 self.assertEqual(arrivals[0].get("data-airport-code"), code)
                 self.assertEqual(document.h1_count, 1)
-                self.assertIn("Satellite airport view", html)
-                self.assertIn("Choose a terminal area and screening lane.", html)
+                self.assertIn("Explore the airport map", html)
+                self.assertIn("Choose the terminal on your boarding pass, then plan your departure.", html)
                 self.assertNotIn("Check-in terminal", html)
                 self.assertNotIn("Gate on your boarding pass", html)
-                self.assertIn("Screening lane", html)
+                self.assertIn("screening lane", html.lower())
                 self.assertIn("tracker.css?v=20260713-5", html)
-                self.assertIn("airport-decision-map.js?v=20260719-1", html)
+                self.assertIn("airport-decision-map.js?v=20261002-1", html)
 
                 marker_buttons = [
                     attrs
@@ -3322,6 +3336,139 @@ class FrontendContractTests(unittest.TestCase):
             module.ENABLE_INTERNAL_GRAPH = original_graph
             module.ENABLE_ADSENSE = original_ads
             module.ADSENSE_CLIENT = original_client
+
+    def test_mco_collector_preserves_explicit_lane_and_zero_wait(self):
+        response = unittest.mock.Mock()
+        response.json.return_value = {"data": {"wait_times": [
+            {"name": "West Standard", "lane": "general", "waitSeconds": 120},
+            {"name": "West PreCheck", "lane": "precheck", "waitSeconds": 0},
+            {"name": "East PreCheck", "waitSeconds": 60},
+            {"name": "South Standard", "lane": "general", "waitSeconds": None},
+            {"name": "Hidden", "isDisplayable": False, "waitSeconds": 60},
+        ]}}
+        with patch.object(self.app_module.requests, "get", return_value=response):
+            rows = self.app_module.fetch_mco_rows()
+        self.assertEqual([(row["checkpoint"], row["lane_type"], row["wait_minutes"]) for row in rows], [
+            ("West Standard (general)", "STANDARD", 2.0),
+            ("West PreCheck (precheck)", "PRECHECK", 0.0),
+            ("East PreCheck", "PRECHECK", 1.0),
+        ])
+
+    def test_mco_current_source_labels_reach_the_correct_checkpoint_and_lane(self):
+        now = datetime(2026, 10, 21, 12, 0, tzinfo=timezone.utc)
+        # Existing stored rows defaulted every MCO lane to STANDARD. Their names
+        # still identify the lane, so they must render correctly without a DB rewrite.
+        rows = [{"airport_code": "MCO", "checkpoint": f"{area} {name} ({lane})",
+                 "lane_type": "STANDARD", "wait_minutes": wait,
+                 "captured_at": (now - timedelta(minutes=2)).isoformat()}
+                for area in ("West", "South", "East")
+                for name, lane, wait in (("Standard", "general", 12), ("PreCheck", "precheck", 0))]
+        model = self.app_module.build_airport_arrival_mode("MCO", rows=rows, history_rows=rows, now=now)
+        self.assertEqual(model["unmatched_readings"], [])
+        self.assertEqual(model["source_status"], "live")
+        for terminal in model["terminals"]:
+            checkpoint = terminal["checkpoints"][0]
+            lanes = {lane["lane_type"]: lane for lane in checkpoint["lanes"]}
+            self.assertEqual(lanes["STANDARD"]["wait_minutes"], 12)
+            self.assertEqual(lanes["PRECHECK"]["wait_minutes"], 0)
+
+    def test_release_checkpoint_aliases_keep_physical_locations_and_lanes_separate(self):
+        now = datetime(2026, 10, 21, 12, 0, tzinfo=timezone.utc)
+        for code, names in {
+            "DFW": [("A7 (General)", "dfw-a7", "STANDARD", 7), ("A7 (Priority)", "dfw-a7", "PRIORITY", 0), ("A12 (General)", "dfw-a12", "STANDARD", 12)],
+            "SFO": [("Checkpoint B - Departure Level", "sfo-checkpoint-b", "STANDARD", 2), ("Checkpoint B - Mezzanine Level", "sfo-checkpoint-b-mezzanine", "PRECHECK", 0)],
+        }.items():
+            rows = [{"airport_code": code, "checkpoint": label, "lane_type": lane,
+                     "wait_minutes": wait, "captured_at": now.isoformat()} for label, _, lane, wait in names]
+            model = self.app_module.build_airport_arrival_mode(code, rows=rows, history_rows=rows, now=now)
+            self.assertEqual(model["unmatched_readings"], [])
+            checkpoints = {cp["id"]: cp for t in model["terminals"] for cp in t["checkpoints"]}
+            for label, checkpoint_id, lane_type, wait in names:
+                if lane_type == "PRIORITY":
+                    self.assertIn(label, [r["checkpoint"] for r in model["excluded_readings"]])
+                    continue
+                lane = next(lane for lane in checkpoints[checkpoint_id]["lanes"] if lane["lane_type"] == lane_type)
+                self.assertEqual(lane["wait_minutes"], wait)
+
+    def test_iah_prefixed_source_labels_map_without_guessing_customs_or_premier(self):
+        now = datetime(2026, 10, 21, 12, 0, tzinfo=timezone.utc)
+        labels = [("IAH Terminal A North", "STANDARD"), ("IAH Terminal A North", "PRECHECK"),
+                  ("IAH Terminal A South", "STANDARD"), ("IAH Terminal C North", "PRECHECK"),
+                  ("IAH Terminal C South", "STANDARD"), ("IAH Terminal D", "STANDARD"),
+                  ("IAH Terminal E", "STANDARD"), ("IAH Terminal E", "PRECHECK"),
+                  ("IAH Terminal C North Premier", "STANDARD"), ("Int'l Arrivals Customs Checkpoint", "STANDARD")]
+        rows = [{"airport_code": "IAH", "checkpoint": name, "lane_type": lane,
+                 "wait_minutes": 3, "captured_at": (now - timedelta(minutes=2)).isoformat()}
+                for name, lane in labels]
+        model = self.app_module.build_airport_arrival_mode("IAH", rows=rows, history_rows=rows, now=now)
+        self.assertEqual({row["checkpoint"] for row in model["excluded_readings"]},
+                         {"IAH Terminal C North Premier", "Int'l Arrivals Customs Checkpoint"})
+        self.assertEqual(model["unmatched_readings"], [])
+        self.assertEqual(self.app_module._arrival_normalized_lane_type(rows[-1]), "ARRIVALS_CUSTOMS")
+        self.assertEqual(self.app_module._arrival_normalized_lane_type(rows[-2]), "PRIORITY")
+        checkpoints = {cp["id"]: cp for terminal in model["terminals"] for cp in terminal["checkpoints"]}
+        for checkpoint_id, lane_type in (("iah-terminal-a-north", "STANDARD"), ("iah-terminal-a-north", "PRECHECK"),
+                                         ("iah-terminal-a-south", "STANDARD"), ("iah-terminal-c-north", "PRECHECK"),
+                                         ("iah-terminal-c-south", "STANDARD"), ("iah-terminal-d", "STANDARD"),
+                                         ("iah-terminal-e", "STANDARD"), ("iah-terminal-e", "PRECHECK")):
+            with self.subTest(checkpoint=checkpoint_id, lane=lane_type):
+                lane = next(lane for lane in checkpoints[checkpoint_id]["lanes"] if lane["lane_type"] == lane_type)
+                self.assertEqual(lane["wait_minutes"], 3)
+
+    def test_manual_collection_requires_configured_token(self):
+        module = self.app_module
+        for token in (None, "", "   "):
+            for headers in ({}, {"x-collect-token": "caller-chosen-token"}):
+                with self.subTest(configured_token=token, headers=headers):
+                    with patch.object(module, "COLLECT_NOW_TOKEN", token), patch.object(module, "collect_once") as collect:
+                        response = self.client.post("/api/collect-now", headers=headers)
+                        self.assertEqual(response.status_code, 503)
+                        collect.assert_not_called()
+
+    def test_manual_collection_rejects_missing_or_wrong_token(self):
+        module = self.app_module
+        for headers in ({}, {"x-collect-token": "incorrect-token"}):
+            with self.subTest(headers=headers):
+                with patch.object(module, "COLLECT_NOW_TOKEN", "configured-test-token"), patch.object(module, "collect_once") as collect:
+                    response = self.client.post("/api/collect-now", headers=headers)
+                    self.assertEqual(response.status_code, 401)
+                    collect.assert_not_called()
+
+    def test_manual_collection_accepts_correct_token_once(self):
+        module = self.app_module
+        result = {"ok": [{"airport": "PHL", "rows": 2}], "errors": []}
+        with patch.object(module, "COLLECT_NOW_TOKEN", "configured-test-token"), patch.object(module, "collect_once", return_value=result) as collect:
+            response = self.client.post("/api/collect-now", headers={"x-collect-token": "configured-test-token"})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.get_json(), result)
+            collect.assert_called_once_with()
+
+
+    def test_standard_current_wait_excludes_other_lanes_and_keeps_zero(self):
+        now = self.app_module.utc_now().isoformat()
+        rows = [{"checkpoint": str(i), "wait_minutes": wait, "lane_type": lane, "captured_at": now}
+                for i, (lane, wait) in enumerate([("STANDARD", 30), ("STANDARD", 0), ("PRECHECK", 2), ("PRIORITY", 1)])]
+        with patch.object(self.app_module, "latest_for_code", return_value=rows):
+            result = self.app_module.normalized_current_wait_for_code("PHL")
+        self.assertEqual(result["sourceType"], "live_direct")
+        self.assertEqual(result["currentWait"]["standard"], 15)
+        self.assertTrue(result["currentWait"]["precheck"])
+
+    def test_precheck_only_does_not_become_live_standard(self):
+        rows = [{"wait_minutes": 2, "lane_type": "PRECHECK", "captured_at": self.app_module.utc_now().isoformat()}]
+        with patch.object(self.app_module, "latest_for_code", return_value=rows), patch.object(self.app_module, "community_wait_for_code", return_value=None):
+            result = self.app_module.normalized_current_wait_for_code("PHL")
+        self.assertEqual(result["sourceType"], "estimated_fallback")
+
+    def test_forecast_now_requires_fresh_standard_checkpoints(self):
+        now = self.app_module.utc_now().isoformat()
+        rows = [{"wait_minutes": wait, "lane_type": lane, "captured_at": now}
+                for lane, wait in [("STANDARD", 30), ("STANDARD", 0), ("PRECHECK", 2)]]
+        for current, expected in [(rows, 15), (rows[2:], None), ([], None)]:
+            with self.subTest(expected=expected), patch.object(self.app_module, "latest_for_code", return_value=current):
+                result = self.client.get("/api/forecast-data?airport=PHL").get_json()
+                self.assertEqual(result["now"]["standard"], expected)
+                self.assertEqual(result["now"]["timestamp"], now if expected is not None else None)
 
 
 if __name__ == "__main__":

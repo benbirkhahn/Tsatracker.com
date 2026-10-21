@@ -1,132 +1,71 @@
-/* TSA Tracker — airport forecast + heatmap.
-   Mounts on #tsa-forecast[data-airport], fed by /api/forecast-data.
-   Self-contained (injects its own dark "Midnight" styling). */
+/* Historical observations only. Missing hours remain gaps, never zeroes. */
 (function () {
+  "use strict";
   var mount = document.getElementById("tsa-forecast");
   if (!mount) return;
   var code = (mount.dataset.airport || "").toUpperCase();
-
-  injectStyles();
-  mount.innerHTML =
-    '<div class="tsafc">' +
-      '<section class="tsafc-card">' +
-        '<span class="tsafc-badge">' + code + ' · live history</span>' +
-        '<h3 class="tsafc-h">24-hour forecast</h3>' +
-        '<div class="tsafc-sub">predicted wait · standard vs PreCheck</div>' +
-        '<div class="tsafc-chart" id="tsafc-line"><div class="tsafc-empty">Loading…</div></div>' +
-        '<div class="tsafc-legend">' +
-          '<span><i class="sw std"></i>Standard</span>' +
-          '<span><i class="sw pre"></i>PreCheck</span>' +
-          '<span><i class="sw now"></i>Now</span>' +
-          '<span><i class="sw best"></i>Best window</span>' +
-        '</div>' +
-      '</section>' +
-      '<section class="tsafc-card">' +
-        '<h3 class="tsafc-h">Typical waits by day &amp; hour</h3>' +
-        '<div class="tsafc-sub">last 30 days</div>' +
-        '<div class="tsafc-heatwrap"><div class="tsafc-rows" id="tsafc-rows"></div><div class="tsafc-grid" id="tsafc-grid"></div></div>' +
-        '<div class="tsafc-x" id="tsafc-x"></div>' +
-      '</section>' +
-    '</div>';
-
-  fetch("/api/forecast-data?airport=" + encodeURIComponent(code))
-    .then(function (r) { return r.json(); })
-    .then(function (d) { if (d && d.hours) render(d); else fail(); })
-    .catch(fail);
-
-  function fail() {
-    var el = document.getElementById("tsafc-line");
-    if (el) el.innerHTML = '<div class="tsafc-empty">Forecast data unavailable right now.</div>';
-  }
-
-  function fmtHour(h) { var ap = h < 12 ? "AM" : "PM"; var hr = h % 12; if (hr === 0) hr = 12; return hr + ap; }
-  function fill(arr) {
-    var out = arr.slice(), last = null, i;
-    for (i = 0; i < 24; i++) { if (out[i] == null) out[i] = last != null ? last : 0; else last = out[i]; }
-    var next = null;
-    for (i = 23; i >= 0; i--) { if (arr[i] != null) next = arr[i]; else if (next != null) out[i] = next; }
-    return out;
-  }
-
-  function render(d) {
-    var stdRaw = d.hours.map(function (r) { return r.standard; });
-    var preRaw = d.hours.map(function (r) { return r.precheck; });
-    var STD = fill(stdRaw), PRE = fill(preRaw);
-    var nowHour = (d.now && d.now.hour != null) ? d.now.hour : new Date().getHours();
-    var nowVal = (d.now && d.now.standard != null) ? Math.round(d.now.standard) : Math.round(STD[nowHour]);
-    var best = 5;
-    for (var h = 6; h <= 23; h++) { if (STD[h] < STD[best]) best = h; }
-
-    var W = 940, H = 320, L = 46, R = 64, T = 26, B = 40, iw = W - L - R, ih = H - T - B;
-    var ymax = Math.max(45, Math.ceil((Math.max.apply(null, STD) * 1.25) / 15) * 15);
-    var X = function (h) { return L + (h / 23) * iw; };
-    var Y = function (v) { return T + (1 - Math.min(v, ymax) / ymax) * ih; };
-    var g = "";
-    for (var v = 0; v <= ymax; v += 15) {
-      var y = Y(v);
-      g += '<line x1="' + L + '" y1="' + y + '" x2="' + (W - R) + '" y2="' + y + '" stroke="#212b38" stroke-width="1"/>';
-      g += '<text x="' + (L - 8) + '" y="' + (y + 4) + '" text-anchor="end" font-size="11" fill="#6f7d8f" font-family="IBM Plex Mono,monospace">' + v + '</text>';
-    }
-    [0, 4, 8, 12, 16, 20, 23].forEach(function (h) {
-      g += '<text x="' + X(h) + '" y="' + (H - 14) + '" text-anchor="middle" font-size="11" fill="#6f7d8f" font-family="IBM Plex Mono,monospace">' + fmtHour(h) + '</text>';
+  function escape(value) {
+    return String(value == null ? "" : value).replace(/[&<>"']/g, function (character) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character];
     });
-    var up = "", dn = "";
-    STD.forEach(function (v, h) { up += (h ? "L" : "M") + X(h).toFixed(1) + "," + Y(v * 1.22).toFixed(1) + " "; });
-    for (var k = 23; k >= 0; k--) { dn += "L" + X(k).toFixed(1) + "," + Y(STD[k] * 0.8).toFixed(1) + " "; }
-    g += '<path d="' + up + dn + 'Z" fill="rgba(34,211,184,.14)" stroke="none"/>';
-    g += '<line x1="' + X(best) + '" y1="' + T + '" x2="' + X(best) + '" y2="' + (H - B) + '" stroke="#7fe6cf" stroke-width="1" stroke-dasharray="2 4" opacity=".7"/>';
-    g += '<path d="M' + (X(best) - 6) + ',' + (H - B + 2) + ' L' + (X(best) + 6) + ',' + (H - B + 2) + ' L' + X(best) + ',' + (H - B - 6) + ' Z" fill="#7fe6cf"/>';
-    g += '<text x="' + X(best) + '" y="' + (T - 8) + '" text-anchor="middle" font-size="11" fill="#7fe6cf" font-family="IBM Plex Mono,monospace">BEST ' + fmtHour(best) + '</text>';
-    var sp = ""; STD.forEach(function (v, h) { sp += (h ? "L" : "M") + X(h).toFixed(1) + "," + Y(v).toFixed(1) + " "; });
-    g += '<path d="' + sp + '" fill="none" stroke="#22d3b8" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>';
-    var pp = ""; PRE.forEach(function (v, h) { pp += (h ? "L" : "M") + X(h).toFixed(1) + "," + Y(v).toFixed(1) + " "; });
-    g += '<path d="' + pp + '" fill="none" stroke="#e0763a" stroke-width="2.2" stroke-dasharray="2 5" stroke-linecap="round"/>';
-    g += '<line x1="' + X(nowHour) + '" y1="' + T + '" x2="' + X(nowHour) + '" y2="' + (H - B) + '" stroke="#22d3b8" stroke-width="1.5" stroke-dasharray="3 3" opacity=".85"/>';
-    g += '<circle cx="' + X(nowHour) + '" cy="' + Y(nowVal) + '" r="5" fill="#22d3b8" stroke="#141b24" stroke-width="2"/>';
-    g += '<text x="' + X(nowHour) + '" y="' + (T - 8) + '" text-anchor="middle" font-size="12" fill="#f3f6fa" font-weight="700" font-family="IBM Plex Mono,monospace">NOW ' + nowVal + 'm</text>';
-    document.getElementById("tsafc-line").innerHTML =
-      '<svg width="100%" viewBox="0 0 ' + W + ' ' + H + '" style="display:block">' + g + "</svg>";
-
-    // heatmap
-    var days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    var ramp = ["#12233b", "#1c4a86", "#2f77d6", "#5aa0ef", "#9cc6f6"];
-    document.getElementById("tsafc-rows").innerHTML = days.map(function (x) { return "<span>" + x + "</span>"; }).join("");
-    document.getElementById("tsafc-x").innerHTML = [0, 3, 6, 9, 12, 15, 18, 21].map(function (h) { return '<span style="grid-column:span 3">' + fmtHour(h) + "</span>"; }).join("");
-    var cells = "", d0, h0, val, b;
-    var HM = d.heatmap || [];
-    for (d0 = 0; d0 < 7; d0++) {
-      for (h0 = 0; h0 < 24; h0++) {
-        val = (HM[d0] && HM[d0][h0] != null) ? HM[d0][h0] : null;
-        b = val == null ? 0 : Math.min(4, Math.floor(val / 15));
-        cells += '<div class="hc" style="background:' + (val == null ? "#0e1622" : ramp[b]) + '"></div>';
-      }
+  }
+  function numeric(value) {
+    if (value === null || value === undefined || value === "" || typeof value === "boolean") return null;
+    var number = Number(value);
+    return Number.isFinite(number) && number >= 0 ? number : null;
+  }
+  function hourLabel(hour) { return (hour % 12 || 12) + (hour < 12 ? " AM" : " PM"); }
+  function valueLabel(value) { var number = numeric(value); return number === null ? "No observations" : Math.round(number * 10) / 10 + " min"; }
+  function fail() {
+    mount.innerHTML = '<section class="airport-history-card"><h2>Typical waits</h2><p class="airport-history-empty" role="status">Historical observations are unavailable right now. Check the current reading above or try again later.</p></section>';
+  }
+  function chart(hours) {
+    var values = [];
+    hours.forEach(function (row) { [row.standard, row.precheck].forEach(function (value) { if (numeric(value) !== null) values.push(Number(value)); }); });
+    if (!values.length) return '<p class="airport-history-empty">No historical observations are available for this airport. Missing data is not a zero-minute wait.</p>';
+    var width = 800, height = 270, left = 42, right = 24, top = 24, bottom = 36;
+    var maximum = Math.max(30, Math.ceil(Math.max.apply(null, values) / 15) * 15);
+    var x = function (hour) { return left + hour / 23 * (width - left - right); };
+    var y = function (value) { return top + (1 - value / maximum) * (height - top - bottom); };
+    var svg = '<svg viewBox="0 0 800 270" role="img" aria-labelledby="typical-chart-title typical-chart-description"><title id="typical-chart-title">Observed average waits by airport local hour</title><desc id="typical-chart-description">Standard and PreCheck history. Gaps mean no observations. Exact values and sample counts are available in the table below.</desc>';
+    for (var tick = 0; tick <= maximum; tick += maximum / 3) {
+      svg += '<line x1="' + left + '" x2="' + (width-right) + '" y1="' + y(tick) + '" y2="' + y(tick) + '" stroke="#334451"/><text x="' + (left-8) + '" y="' + (y(tick)+4) + '" text-anchor="end" fill="#a8b9c5" font-size="11">' + Math.round(tick) + '</text>';
     }
-    document.getElementById("tsafc-grid").innerHTML = cells;
+    [0,4,8,12,16,20,23].forEach(function (hour) { svg += '<text x="' + x(hour) + '" y="258" text-anchor="middle" fill="#a8b9c5" font-size="11">' + hourLabel(hour) + '</text>'; });
+    ["standard", "precheck"].forEach(function (lane) {
+      var path = "", connected = false, dots = "", color = lane === "standard" ? "#5fe1bd" : "#edaa73";
+      hours.forEach(function (row) {
+        var value = numeric(row[lane]);
+        if (value === null) { connected = false; return; }
+        path += (connected ? "L" : "M") + x(row.hour).toFixed(1) + " " + y(value).toFixed(1) + " ";
+        connected = true;
+        dots += '<circle cx="' + x(row.hour) + '" cy="' + y(value) + '" r="3" fill="' + color + '"/>';
+      });
+      svg += '<path d="' + path + '" fill="none" stroke="' + color + '" stroke-width="2.5"' + (lane === "precheck" ? ' stroke-dasharray="5 4"' : '') + '/>' + dots;
+    });
+    return svg + '</svg>';
   }
-
-  function injectStyles() {
-    if (document.getElementById("tsafc-style")) return;
-    var s = document.createElement("style");
-    s.id = "tsafc-style";
-    s.textContent =
-      '.tsafc{display:grid;gap:18px;margin:8px 0}' +
-      '.tsafc-card{background:#141b24;border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:18px 20px;color:#f3f6fa;font-family:"Space Grotesk",system-ui,sans-serif}' +
-      '.tsafc-badge{display:inline-block;background:rgba(34,211,184,.14);color:#22d3b8;font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:20px;margin-bottom:8px}' +
-      '.tsafc-h{font-family:"Oswald","Arial Narrow",sans-serif;text-transform:uppercase;letter-spacing:.02em;font-size:1.12rem;margin:0 0 2px;font-weight:700}' +
-      '.tsafc-sub{color:#6f7d8f;font-size:.82rem;margin-bottom:12px;font-family:"IBM Plex Mono",monospace;letter-spacing:.03em}' +
-      '.tsafc-empty{color:#6f7d8f;font-size:.9rem;padding:36px 0;text-align:center}' +
-      '.tsafc-legend{display:flex;gap:18px;flex-wrap:wrap;font-size:.82rem;color:#aab6c4;margin-top:10px}' +
-      '.tsafc-legend span{display:inline-flex;align-items:center;gap:7px}' +
-      '.tsafc-legend .sw{width:16px;height:0;border-top:3px solid #22d3b8;border-radius:3px}' +
-      '.tsafc-legend .sw.pre{border-top:3px dotted #e0763a}' +
-      '.tsafc-legend .sw.now{width:0;height:14px;border-left:2px dashed #22d3b8}' +
-      '.tsafc-legend .sw.best{width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:9px solid #7fe6cf}' +
-      '.tsafc-heatwrap{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:center;margin-top:4px}' +
-      '.tsafc-rows{display:grid;grid-template-rows:repeat(7,1fr);gap:4px;font-size:11px;color:#6f7d8f;text-align:right;font-family:"IBM Plex Mono",monospace}' +
-      '.tsafc-rows span{height:20px;line-height:20px}' +
-      '.tsafc-grid{display:grid;grid-template-columns:repeat(24,1fr);grid-auto-rows:20px;gap:3px}' +
-      '.tsafc-grid .hc{border-radius:3px}' +
-      '.tsafc-x{display:grid;grid-template-columns:repeat(24,1fr);gap:3px;font-size:9.5px;color:#6f7d8f;margin:6px 0 0 44px;font-family:"IBM Plex Mono",monospace}';
-    document.head.appendChild(s);
+  function render(data) {
+    var byHour = {};
+    (data.hours || []).forEach(function (row) { if (Number.isInteger(row.hour) && row.hour >= 0 && row.hour < 24) byHour[row.hour] = row; });
+    var hours = Array.from({length: 24}, function (_, hour) { return byHour[hour] || {hour: hour, standard: null, precheck: null}; });
+    var standardHours = hours.filter(function (row) { return numeric(row.standard) !== null; }).length;
+    var precheckHours = hours.filter(function (row) { return numeric(row.precheck) !== null; }).length;
+    var coverage = data.coverage || {};
+    var timezone = data.timezone || "airport local time";
+    var coverageText = 'Standard: ' + standardHours + '/24 hours with observations. PreCheck: ' + precheckHours + '/24 hours.';
+    if (numeric(coverage.daysWithSamples) !== null) coverageText += ' Observations on ' + coverage.daysWithSamples + ' of the last ' + (data.days || 30) + ' days.';
+    var rows = hours.map(function (row) {
+      return '<tr><th scope="row">' + hourLabel(row.hour) + '</th><td>' + valueLabel(row.standard) + '</td><td>' + (numeric(row.standardSamples) === null ? '—' : escape(row.standardSamples)) + '</td><td>' + valueLabel(row.precheck) + '</td><td>' + (numeric(row.precheckSamples) === null ? '—' : escape(row.precheckSamples)) + '</td></tr>';
+    }).join('');
+    mount.innerHTML = '<section class="airport-history-card" aria-labelledby="typical-waits-title"><h2 id="typical-waits-title">Typical waits</h2>' +
+      '<p class="airport-history-source">Recorded airport checkpoint observations from the past ' + escape(data.days || 30) + ' days, grouped by hour in ' + escape(timezone) + '. These airport-wide averages describe past readings and do not predict your flight’s wait.</p>' +
+      '<p class="airport-history-coverage">' + escape(coverageText) + '</p><div class="airport-history-chart">' + chart(hours) + '</div>' +
+      '<div class="airport-history-legend"><span><i aria-hidden="true"></i>Standard</span><span><i class="precheck" aria-hidden="true"></i>PreCheck</span><span>Gaps = no observations</span></div>' +
+      '<details class="airport-history-table"><summary>View hourly values and sample counts</summary><div class="airport-history-table-scroll"><table><caption>' + escape(code) + ' historical averages in ' + escape(timezone) + '. Samples are recorded readings, not individual travelers.</caption><thead><tr><th scope="col">Local hour</th><th scope="col">Standard</th><th scope="col">Samples</th><th scope="col">PreCheck</th><th scope="col">Samples</th></tr></thead><tbody>' + rows + '</tbody></table></div></details></section>';
   }
+  fetch('/api/forecast-data?airport=' + encodeURIComponent(code))
+    .then(function (response) { if (!response.ok) throw new Error('History unavailable'); return response.json(); })
+    .then(function (data) { if (!data || !Array.isArray(data.hours)) throw new Error('History unavailable'); render(data); })
+    .catch(fail);
 })();

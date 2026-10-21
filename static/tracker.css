@@ -1705,6 +1705,7 @@ summary:focus-visible {
 }
 
 .calculator-shell select,
+.calculator-shell input[type="date"],
 .calculator-shell input[type="time"] {
   width: 100%;
   min-height: 48px;
@@ -1764,7 +1765,16 @@ summary:focus-visible {
 }
 
 .calculator-shell .toggle input {
-  display: none;
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--live);
+}
+
+.calculator-shell .toggle:focus-within {
+  outline: 2px solid var(--live);
+  outline-offset: 3px;
 }
 
 .calculator-shell .toggle.on {
@@ -1774,8 +1784,8 @@ summary:focus-visible {
 }
 
 .calculator-shell .result {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
   min-height: 220px;
   align-items: center;
   gap: 34px;
@@ -1798,9 +1808,15 @@ summary:focus-visible {
 .calculator-shell .res-time {
   color: #58d9b5;
   font-family: var(--display);
-  font-size: clamp(58px, 8vw, 86px);
+  font-size: clamp(32px, 5vw, 54px);
   letter-spacing: -0.04em;
   line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+.calculator-shell .result > div {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .calculator-shell .res-right {
@@ -1808,6 +1824,16 @@ summary:focus-visible {
   max-width: 360px;
   flex: 1;
   margin-left: auto;
+}
+
+@media (max-width: 700px) {
+  .calculator-shell .result {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .calculator-shell .res-right {
+    width: 100%;
+    margin-left: 0;
+  }
 }
 
 .calculator-shell .verdict {

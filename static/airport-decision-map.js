@@ -24,6 +24,9 @@
   var checkpointButtons = Array.prototype.slice.call(root.querySelectorAll("[data-arrival-checkpoint-choice]"));
   var compatibleCount = root.querySelector("[data-arrival-compatible-count]");
   var calculatorLink = root.querySelector("[data-arrival-calculator-link]");
+  var planLabel = root.querySelector("[data-arrival-plan-label]");
+  var planNote = root.querySelector("[data-arrival-plan-note]");
+  var mapDetails = root.querySelector("[data-airport-map-details]");
   var sheet = root.querySelector("[data-arrival-sheet]");
   var sheetToggle = root.querySelector("[data-arrival-sheet-toggle]");
   var sheetToggleLabel = root.querySelector("[data-arrival-sheet-toggle-label]");
@@ -70,7 +73,7 @@
   var initialTilesSettled = false;
   var tileTimeout = null;
   var handoff = readHandoff();
-  var handoffSettled = !handoff || reduceMotion.matches;
+  var handoffSettled = true; // Restore orientation without blocking the traveler’s first step.
   var refreshTimer = null;
   var refreshSeconds = Math.max(30, numeric(model.refresh_seconds) || 120);
   var inertRecords = [];
@@ -107,9 +110,14 @@
 
   function laneFreshness(lane, checkpoint) {
     var value = String((lane && (lane.freshness_status || lane.freshness || lane.status)) || "").toLowerCase();
+    var observedAt = lane && (lane.captured_at || lane.timestamp || lane.observed_at || lane.updated_at);
+    if (observedAt) {
+      var observedMs = Date.parse(observedAt);
+      if (!Number.isFinite(observedMs) || Date.now() - observedMs > ((model.freshness_rules || {}).max_current_minutes || 15) * 60000) return "stale";
+    }
     if (["live", "aging", "stale", "no_current_reading", "published_only"].indexOf(value) !== -1) return value;
     if (checkpoint && checkpoint.published_only && numeric(lane && lane.wait_minutes) === null) return "published_only";
-    return numeric(lane && lane.wait_minutes) === null ? "no_current_reading" : "live";
+    return "no_current_reading";
   }
 
   function laneLabel(lane) {
@@ -402,6 +410,7 @@
   function setExpanded(expanded, options) {
     options = options || {};
     isExpanded = Boolean(expanded);
+    if (isExpanded && mapDetails) mapDetails.open = true;
     root.classList.toggle("is-expanded", isExpanded);
     document.body.classList.toggle("arrival-map-is-expanded", isExpanded || !handoffSettled);
     setBackgroundInert(isExpanded || !handoffSettled);
@@ -465,7 +474,7 @@
       return;
     }
 
-    if (handoff && !reduceMotion.matches) {
+    if (handoff && !reduceMotion.matches && !mapDetails) {
       handoffSettled = false;
       root.classList.add("is-handoff");
       document.body.classList.add("arrival-map-is-expanded");
@@ -616,8 +625,9 @@
       currentTrend.textContent = isFreshReading(lane, checkpoint)
         ? lane.trend
           ? String(lane.trend_arrow || "→") + " " + lane.trend + " for this checkpoint and lane"
-          : "Fresh official reading · lane trend not available yet"
-        : "Use the labeled airport estimate for planning when this reading is unavailable.";
+          : "Lane trend not available yet"
+        : "Choose a security allowance in the departure planner when this reading is unavailable.";
+      if (isFreshReading(lane, checkpoint) && lane.captured_label) currentTrend.textContent = "Captured " + lane.captured_label + ". " + currentTrend.textContent;
     }
   }
 
@@ -632,7 +642,16 @@
   function updateCalculatorLink(checkpointId) {
     if (!calculatorLink) return;
     var query = new URLSearchParams({ airport: code, lane: selectedLane });
-    if (checkpointId) query.set("checkpoint", checkpointId);
+    if (selectedTerminal) query.set("terminal", selectedTerminal);
+    if (selectedGate) query.set("gate", selectedGate);
+    if (checkpointId && (!terminalRouting || selectedTerminal)) query.set("checkpoint", checkpointId);
+    var hasContext = Boolean(checkpointId && (!terminalRouting || selectedTerminal));
+    if (planLabel) planLabel.textContent = hasContext ? "Plan my departure" : "Plan with a security allowance";
+    if (planNote) planNote.textContent = hasContext
+      ? "Your checkpoint and " + (selectedLane === "PRECHECK" ? "PreCheck" : "Standard") + " lane carry into the planner. Add your flight and travel time."
+      : terminalRouting && !selectedTerminal
+        ? "Choose your terminal for checkpoint-specific planning, or continue and choose a security allowance."
+        : "No compatible current checkpoint reading is selected. Choose a security allowance in the next step.";
     calculatorLink.href = "/when-should-i-leave?" + query.toString();
     calculatorLink.setAttribute(
       "aria-label",
@@ -646,6 +665,7 @@
     selectedTerminal = String(selected("decision-terminal") || "").toLowerCase();
     selectedGate = String(selected("decision-gate") || "").toUpperCase();
     selectedLane = String(selected("decision-lane") || "STANDARD").toUpperCase();
+    if (terminalRouting && !selectedTerminal) selectedCheckpoint = "";
     var filterActive = Boolean(selectedGate || selectedTerminal);
     var allowRecommendation = Boolean(selectedGate);
     var compatible = items.slice();
@@ -658,10 +678,10 @@
       allowRecommendation = true;
       message = items.length
         ? "Comparing fresh " + (selectedLane === "PRECHECK" ? "PreCheck" : "standard-screening") + " readings across reporting checkpoints."
-        : "No current checkpoint rows are available. Use the labeled airport planning estimate.";
+        : "No current checkpoint rows are available. Choose a security allowance in the departure planner.";
     } else if (terminalCheckpoint) {
       filterActive = Boolean(selectedTerminal);
-      allowRecommendation = true;
+      allowRecommendation = Boolean(selectedTerminal);
       if (selectedTerminal) {
         compatible = items.filter(function (item) { return item.dataset.terminal === selectedTerminal; });
         var selectedTerminalModel = terminalForId(selectedTerminal);
@@ -669,8 +689,8 @@
           " readings near " + (selectedTerminalModel ? selectedTerminalModel.label : "the selected terminal area") + ".";
       } else {
         message = items.length
-          ? "Comparing fresh " + (selectedLane === "PRECHECK" ? "PreCheck" : "standard-screening") + " readings across all terminal areas."
-          : "No current checkpoint rows are available. Use the labeled airport planning estimate.";
+          ? "Choose your terminal to compare checkpoints that serve your flight. Airport-wide readings may come from disconnected terminals."
+          : "No current checkpoint rows are available. Choose a security allowance in the departure planner.";
       }
     } else if (conflict) {
       compatible = [];
@@ -708,6 +728,7 @@
       return (a.wait - b.wait) || (a.primary - b.primary) || (a.index - b.index);
     });
 
+    if (terminalRouting && !selectedTerminal) allowRecommendation = false;
     var fastest = allowRecommendation && ranked.length ? ranked[0] : null;
     recommendedCheckpoint = fastest ? fastest.item.dataset.checkpointId : "";
     if (fastest) {
@@ -733,6 +754,7 @@
       var isSelected = item.dataset.checkpointId === selectedCheckpoint;
       var button = item.querySelector("[data-arrival-checkpoint-choice]");
       var state = item.querySelector("[data-checkpoint-state]");
+      item.hidden = filterActive && !isCompatible;
       item.classList.toggle("is-compatible", filterActive && isCompatible);
       item.classList.toggle("is-muted", filterActive && !isCompatible);
       item.classList.toggle("is-fastest", isFastest);
@@ -743,7 +765,13 @@
 
     syncLaneRows();
     var summaryCheckpoint = selectedCheckpoint || recommendedCheckpoint;
-    if (summaryCheckpoint) updateCurrentSummary(summaryCheckpoint, !selectedCheckpoint && Boolean(recommendedCheckpoint)); else restoreCurrentSummary();
+    if (summaryCheckpoint) updateCurrentSummary(summaryCheckpoint, !selectedCheckpoint && Boolean(recommendedCheckpoint));
+    else {
+      if (currentLabel) currentLabel.textContent = selectedTerminal ? (terminalForId(selectedTerminal) || {}).label || "Selected terminal" : terminalRouting ? "Choose your terminal" : "Current checkpoint reading";
+      if (currentWait) { currentWait.className = "arrival-current-wait"; currentWait.innerHTML = "<span>" + (terminalRouting && !selectedTerminal ? "Select a terminal first" : "No fresh reading") + "</span>"; }
+      if (currentSource) currentSource.textContent = terminalRouting && !selectedTerminal ? "Terminal selection needed" : "Current data unavailable";
+      if (currentTrend) currentTrend.textContent = terminalRouting && !selectedTerminal ? "Use the terminal on your boarding pass." : "Choose a security allowance in the departure planner.";
+    }
     var activeCheckpoint = checkpointById[summaryCheckpoint];
     var activeTerminal = activeCheckpoint ? String(activeCheckpoint.terminal_id || "").toLowerCase() : selectedTerminal;
     syncTerminalMarkers(activeTerminal);
@@ -797,7 +825,8 @@
       updateDecision();
       announce("Checkpoint readings refreshed.");
     }).catch(function () {
-      announce("Current checkpoint refresh paused. Showing the most recent available data.");
+      updateDecision();
+      announce("Current checkpoint refresh paused. Readings remain subject to their freshness limit.");
     });
   }
 
@@ -873,8 +902,25 @@
     startRefreshTimer();
   });
 
+  var query = new URLSearchParams(window.location.search);
+  var queryTerminal = String(query.get("terminal") || "").toLowerCase();
+  if (terminalForId(queryTerminal)) selectRadio("decision-terminal", queryTerminal);
+  var queryLane = String(query.get("lane") || "").toUpperCase();
+  if (["STANDARD", "PRECHECK"].indexOf(queryLane) !== -1) selectRadio("decision-lane", queryLane);
+  var queryGate = String(query.get("gate") || "").toUpperCase();
+  if (gateRouting && /^[ABCDE]$/.test(queryGate)) selectRadio("decision-gate", queryGate);
+  var queryCheckpoint = String(query.get("checkpoint") || "");
+  if (checkpointById[queryCheckpoint]) {
+    selectedCheckpoint = queryCheckpoint;
+    selectRadio("decision-terminal", String(checkpointById[queryCheckpoint].terminal_id || "").toLowerCase());
+  }
+  if (mapDetails) mapDetails.addEventListener("toggle", function () {
+    if (!mapDetails.open) return;
+    if (!map && !mapUnavailable) initializeMap();
+    window.requestAnimationFrame(function () { if (map) { map.invalidateSize({pan: false}); fitOverview(false); if (selectedTerminal) focusTerminal(selectedTerminal, false); } });
+  });
   updateDecision();
-  initializeMap();
+  if (!mapDetails || mapDetails.open) initializeMap();
   startRefreshTimer();
   window.addEventListener("pagehide", function () {
     window.clearInterval(refreshTimer);
@@ -978,6 +1024,7 @@
       return (a.wait - b.wait) || (a.primary - b.primary) || (a.index - b.index);
     });
 
+    if (terminalRouting && !selectedTerminal) allowRecommendation = false;
     var fastest = allowRecommendation && ranked.length ? ranked[0] : null;
     setNodeState(compatible, fastest ? fastest.node : null, Boolean(gate || terminal));
 
