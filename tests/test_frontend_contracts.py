@@ -3259,7 +3259,8 @@ class FrontendContractTests(unittest.TestCase):
             html, _ = self.get_html("/")
             self.assertIn('const measurementId = "G-TEST123"', html)
             self.assertIn('script.src = "https://www.googletagmanager.com/gtag/js?id=" + measurementId', html)
-            self.assertIn('gtag("config", measurementId)', html)
+            self.assertIn('gtag("config", measurementId, { page_location: location.origin + location.pathname })', html)
+            self.assertIn('/static/journey-analytics.js', html)
             self.assertIn('id="analytics-consent"', html)
         finally:
             module.ENABLE_ANALYTICS = original_enabled

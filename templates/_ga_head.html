@@ -1,4 +1,5 @@
 {% if monetization.ga_id %}
+<script src="/static/journey-analytics.js" defer></script>
 <aside id="analytics-consent" class="analytics-consent" role="dialog" aria-label="Analytics preferences" hidden>
   <p>We use optional analytics to understand aggregate site usage. <a href="/privacy">Learn more</a>.</p>
   <div class="analytics-consent-actions">
@@ -19,18 +20,20 @@
         window.gtag = function(){ window.dataLayer.push(arguments); };
         gtag("js", new Date());
         gtag("consent", "default", { analytics_storage: "granted" });
-        gtag("config", measurementId);
+        gtag("config", measurementId, { page_location: location.origin + location.pathname });
+        document.dispatchEvent(new Event("tsa:analytics-ready"));
         const script = document.createElement("script");
         script.async = true;
         script.src = "https://www.googletagmanager.com/gtag/js?id=" + measurementId;
         document.head.appendChild(script);
       };
       const setPreference = (value) => {
-        localStorage.setItem(preferenceKey, value);
+        try { localStorage.setItem(preferenceKey, value); } catch (_) { return; }
         if (consent) consent.hidden = true;
         if (value === "granted") loadAnalytics();
       };
-      const preference = localStorage.getItem(preferenceKey);
+      let preference;
+      try { preference = localStorage.getItem(preferenceKey); } catch (_) { return; }
       if (preference === "granted") {
         loadAnalytics();
       } else if (preference !== "denied" && consent) {

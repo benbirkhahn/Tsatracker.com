@@ -1246,6 +1246,7 @@ function renderAirportChips(payload, filterText = "") {
 }
 
 async function selectAirport(code, shouldPush = true) {
+  if (window.tsaAnalytics) window.tsaAnalytics.airportSelected(code, "airport_picker");
   selectedAirportCode = code;
 
   // Update URL history for SEO/Bookmarks (preventing re-push on back button)

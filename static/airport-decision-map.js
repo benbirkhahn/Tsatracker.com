@@ -682,6 +682,7 @@
   }
 
   function updateDecision() {
+    root.dataset.sourceState = model.source_status || "unknown";
     updateHistoricalFallback();
     selectedTerminal = String(selected("decision-terminal") || "").toLowerCase();
     selectedGate = String(selected("decision-gate") || "").toUpperCase();

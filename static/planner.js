@@ -179,6 +179,7 @@
         refreshTimer = win.setTimeout(function () { loadAirport($('checkpoint').value, $('terminal').value, true); }, Math.max(30000, Math.min(120000, (payload.refresh_seconds || 120) * 1000)));
       } catch (error) {
         if (thisRequest !== requestVersion) return;
+        if (win.tsaAnalytics) win.tsaAnalytics.track("airport_data_error", { error_type: error.name === "AbortError" ? "timeout" : "request_failed" });
         $('airportStatus').textContent = 'We could not refresh checkpoint readings. You can still build a plan with your security allowance.';
         $('retryAirport').hidden = false;
         // Keep routing choices, but never present cached readings as newly refreshed.
@@ -194,7 +195,10 @@
       $('plannerError').textContent = message; $('plannerError').hidden = !message;
       $('resultContent').hidden = true; $('resultPlaceholder').hidden = false;
       $('planResult').setAttribute('aria-labelledby', 'planResultTitle');
-      if (interactive && focusId) $(focusId).focus();
+      if (interactive && focusId) {
+        if (win.tsaAnalytics) win.tsaAnalytics.track("plan_validation_error", { error_field: focusId, error_type: focusId === "dstChoice" ? "ambiguous_time" : "invalid_local_time" });
+        $(focusId).focus();
+      }
       return null;
     }
     function departureInstant(interactive) {
@@ -245,6 +249,7 @@
       $('srcNote').textContent = sourceText;
       $('resultTimezone').textContent = 'Every time above is in ' + code() + ' local time (' + zone().replace(/_/g, ' ') + '), including your leave time.';
       $('resultAnnouncement').textContent = $('leaveLabel').textContent + ': ' + stamp(plan.leave) + '. Arrive at airport ' + stamp(plan.airport) + '. ' + $('verdict').textContent;
+      if (interactive && win.tsaAnalytics) win.tsaAnalytics.completed(plan.status);
       if (interactive) { $('planResult').focus({ preventScroll: true }); $('planResult').scrollIntoView({ behavior: win.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' }); }
     }
     $('plannerForm').addEventListener('submit', function (event) { event.preventDefault(); calculate(true); });
@@ -257,7 +262,7 @@
     $('flightDate').addEventListener('input', function () { dateTouched = true; });
     $('dep').addEventListener('input', function () { dateTouched = true; });
     fields.filter(function (id) { return ['apt', 'terminal', 'checkpoint', 'pre', 'bag', 'intl'].indexOf(id) < 0; }).forEach(function (id) { $(id).addEventListener('input', function () { if (hasPlan) calculate(false); }); });
-    $('retryAirport').addEventListener('click', function () { loadAirport($('checkpoint').value, $('terminal').value, Boolean(model)); });
+    $('retryAirport').addEventListener('click', function () { if (win.tsaAnalytics) win.tsaAnalytics.track('airport_data_retry'); loadAirport($('checkpoint').value, $('terminal').value, Boolean(model)); });
     $('editPlan').addEventListener('click', function () { $('apt').focus(); $('plannerForm').scrollIntoView({ block: 'start' }); });
     // Expire observations even while the tab remains open and refresh when it regains focus.
     win.setInterval(function () { if (!doc.hidden && code()) { updateSource(); if (hasPlan) calculate(false); } }, 30000);
