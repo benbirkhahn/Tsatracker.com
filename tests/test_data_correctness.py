@@ -47,7 +47,7 @@ class DataCorrectnessTests(unittest.TestCase):
         clock = patch.object(self.m, "utc_now", return_value=self.now)
         clock.start()
         self.addCleanup(clock.stop)
-        collector = patch.object(self.m, "collect_once", return_value={"ok": [], "errors": []})
+        collector = patch.object(self.m, "collect_once", return_value={"ok": [{"airport": "PHL", "rows": 1}], "errors": []})
         self.collector = collector.start()
         self.addCleanup(collector.stop)
         self.m.init_db()
@@ -310,6 +310,50 @@ class DataCorrectnessTests(unittest.TestCase):
             self.collector.assert_not_called()
             self.assertEqual(self.client.post("/api/collect-now", headers={"x-collect-token": "test-only-token"}).status_code, 200)
             self.collector.assert_called_once()
+    def test_collect_now_returns_failure_status_only_when_no_airport_succeeds(self):
+        results = [
+            ({"ok": [{"airport": "PHL", "rows": 2}], "errors": []}, 200),
+            ({"ok": [{"airport": "PHL", "rows": 2}], "errors": [{"airport": "BOS", "error": "offline"}]}, 200),
+            ({"ok": [], "errors": [{"airport": "PHL", "error": "offline"}]}, 502),
+        ]
+        with patch.object(self.m, "COLLECT_NOW_TOKEN", "test-only-token"):
+            for result, expected_status in results:
+                with self.subTest(expected_status=expected_status, result=result), patch.object(
+                    self.m, "collect_once", return_value=result
+                ):
+                    response = self.client.post(
+                        "/api/collect-now",
+                        headers={"x-collect-token": "test-only-token"},
+                    )
+                    self.assertEqual(response.status_code, expected_status)
+                    self.assertEqual(response.get_json(), result)
+
+    def test_wsgi_import_starts_runtime_and_runtime_start_is_idempotent(self):
+        import importlib
+
+        previous_wsgi = sys.modules.pop("wsgi", None)
+        try:
+            with patch.dict(sys.modules, {"app": self.m}), patch.object(
+                self.m, "start_web_runtime_once"
+            ) as start_runtime:
+                module = importlib.import_module("wsgi")
+                self.assertIs(module.app, self.m.app)
+                start_runtime.assert_called_once_with()
+        finally:
+            sys.modules.pop("wsgi", None)
+            if previous_wsgi is not None:
+                sys.modules["wsgi"] = previous_wsgi
+
+        with patch.object(self.m, "_db_initialized", False), patch.object(
+            self.m, "_poller_started", False
+        ), patch.object(self.m, "ENABLE_POLLER", True), patch.object(
+            self.m, "init_db"
+        ) as init_db, patch.object(self.m.threading, "Thread") as thread:
+            self.m.start_web_runtime_once()
+            self.m.start_web_runtime_once()
+            init_db.assert_called_once_with()
+            thread.assert_called_once()
+            thread.return_value.start.assert_called_once_with()
 
 
 if __name__ == "__main__":
