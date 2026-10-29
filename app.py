@@ -5736,7 +5736,8 @@ def api_collect_now():
         return jsonify({"error": "Unauthorized"}), 401
     with _poll_lock:
         result = collect_once()
-    return jsonify(result)
+    status_code = 502 if not result.get("ok") else 200
+    return jsonify(result), status_code
 
 @app.route("/api/report-wait", methods=["POST"])
 def api_report_wait():
