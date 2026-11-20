@@ -741,46 +741,48 @@ AIRPORT_PAGE_GUIDES = {
     },
     "EWR": {
         "tips": [
-            "EWR has three main terminals (A, B, C). Terminal C is the United hub and features the most consistent security pressure.",
+            "Newark has three terminals: A, B, and C. Confirm your departure terminal in your airline app or on your boarding pass before heading to the airport.",
             "Newark publishes airport wait times by terminal and gate group, so always check your specific terminal before heading to the airport.",
             "Newark offers 'CLEAR + TSA PreCheck' across all three terminals, with enrollment centers specifically in Terminals A and C.",
         ],
         "notes": [
             "Terminal A is the newest facility and often has the most efficient screening technology, but it can be a long trek from the AirTrain.",
-            "If you need to change terminals mid-itinerary, factor in the AirTrain wait and a full re-screening at your new terminal—EWR is not fully connected post-security.",
+            "Many terminal changes require taking AirTrain and clearing security again. United passengers arriving on a domestic flight and connecting between A and C can use United's free post-security shuttle at gates A28 and C71.",
             "Terminal C security surges during United's morning and evening 'banks'—if you're flying United, arrive 2.5 hours early during these windows.",
         ],
         "terminal_notes": [
-            "Terminal A (Gates A1-A28) serves multiple domestic carriers. Terminal B handles international and some domestic. Terminal C is almost exclusively United.",
+            "Terminal A serves a mix of domestic and international departures. Terminal B handles many international flights and some domestic flights. Terminal C is United's main terminal.",
             "Each terminal has its own independent security checkpoints; there is no centralized screening for all of Newark.",
         ],
         "airline_notes": [
-            "United Airlines passengers should head directly to Terminal C. JetBlue and American are typically in Terminal A.",
-            "Delta and many international carriers (Lufthansa, British Airways) operate out of Terminal B.",
+            "United domestic flights can depart from Terminal A or C. Check your boarding pass or the United app for your flight's assigned terminal.",
+            "Delta, American and JetBlue departures use Terminal A. British Airways and Lufthansa use Terminal B.",
         ],
         "links": [
             {"label": "Official EWR site", "url": "https://www.newarkairport.com/"},
             {"label": "EWR security wait times", "url": "https://www.newarkairport.com/flights/departures"},
             {"label": "Official EWR terminal maps", "url": "https://www.newarkairport.com/explore-ewr/airport-map"},
+            {"label": "EWR airline terminal directory", "url": "https://www.newarkairport.com/flights/airlines"},
+            {"label": "EWR flight connections guide", "url": "https://www.newarkairport.com/flights/connections-guide"},
         ],
     },
     "LGA": {
         "tips": [
-            "LGA security is divided by terminal (A, B, C). Terminal B is often the biggest bottleneck, with waits sometimes spilling into the check-in hall.",
-            "If you're flying Delta, check both Terminals A and C—Terminal C is the massive newer hub and handles the bulk of Delta's Newark-area volume.",
-            "Unlike JFK, changing terminals at LGA pre-security is a hassle involving shuttles; always confirm your terminal before drop-off.",
+            "Commercial flights at LaGuardia use Terminals B and C, each with its own security checkpoint.",
+            "Delta operates from Terminal C. Check your operating airline's assigned terminal before drop-off.",
+            "If you need to change terminals, use the free airport shuttle or the pedestrian path between Terminals B and C.",
         ],
         "notes": [
-            "LaGuardia's Terminal B serves American, Southwest, United, and JetBlue. Terminal C is almost exclusively Delta.",
+            "Terminal B serves airlines including American, Southwest, United and JetBlue. Delta uses Terminal C.",
             "Terminal B wait times are notorious for early-morning spikes (6–9 AM)—if you're flying out of B, arrive 2.5 hours early during these windows.",
             "Holiday weekends (Thanksgiving, July 4th) at LGA can see PreCheck lines stretch to 45+ minutes—do not rely on a standard 10-minute pass.",
         ],
         "terminal_notes": [
-            "LGA operates as three separate airports with no post-security connection. You MUST clear security in the terminal your flight departs from.",
-            "Terminal A (Marine Air Terminal) is much smaller and generally faster but only serves Delta Shuttle and Spirit.",
+            "Terminals B and C are not connected post-security. Allow time to clear security again if you change terminals.",
+            "Terminal A, the Marine Air Terminal, is closed to the public and has no commercial flights.",
         ],
         "airline_notes": [
-            "Delta is split between Terminal A (Shuttle) and Terminal C (Main Hub). Double-check your app before heading to the airport.",
+            "Delta passengers should go to Terminal C for check-in and security.",
             "Terminal B is the 'general' terminal for most other major domestic carriers.",
         ],
         "links": [
